@@ -1,0 +1,2481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Maison · Admin Overview</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2213%22 font-size=%2213%22>✦</text></svg>"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ====================================================================
+   MAISON ADMIN PANEL — Overview
+   Reuses the same Fynd Sans typography + warm-black/gold palette as
+   the main app, but with a cleaner SaaS-admin layout (sidebar + main
+   grid, KPI cards, charts, activity feed).
+   ==================================================================== */
+
+@font-face {
+  font-family: 'Fynd Sans';
+  src: url('../FyndSansTestVariable-VariableVF.ttf') format('truetype-variations'),
+       url('../FyndSansTestVariable-VariableVF.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Light theme — clean SaaS admin palette */
+  --bg:        #F8F9FB;   /* page canvas */
+  --bg-soft:   #F2F4F7;
+  --surface:   #FFFFFF;   /* cards */
+  --surface-2: #FAFBFC;
+  --line:      #E5E7EB;   /* gray-200 */
+  --line-soft: #F1F3F5;
+  --text:      #0F172A;   /* slate-900 — primary text */
+  --text-soft: #475569;   /* slate-600 — secondary */
+  --text-mute: #94A3B8;   /* slate-400 — tertiary */
+  --accent:        #4F46E5;   /* indigo-600 — primary accent */
+  --accent-soft:   #EEF2FF;   /* indigo-50 */
+  --accent-line:   #C7D2FE;   /* indigo-200 */
+  --accent-hover:  #4338CA;   /* indigo-700 */
+  --ok:        #16A34A;   /* green-600 */
+  --ok-soft:   #DCFCE7;   /* green-100 */
+  --warn:      #D97706;
+  --warn-soft: #FEF3C7;
+  --alert:     #DC2626;
+  --alert-soft:#FEE2E2;
+  /* Legacy aliases (so existing rules keep resolving) */
+  --gold: var(--accent);
+  --gold-bright: var(--accent);
+  --gold-deep: var(--accent-hover);
+  --champagne: var(--text);
+  --ivory: var(--text);
+  --pearl: var(--text-soft);
+  --indigo: var(--accent);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Fynd Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+a{color:inherit;text-decoration:none;}
+button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
+
+/* ---- Layout shell ---- */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+
+/* ---- Sidebar ---- */
+.sidebar{
+  background:linear-gradient(180deg,#0E0706 0%,#0B0604 100%);
+  border-right:1px solid var(--line-soft);
+  padding:24px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:sticky;
+  top:0;
+  align-self:start;
+  height:100vh;
+  overflow-y:auto;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 10px 22px;border-bottom:1px solid var(--line-soft);margin-bottom:14px;}
+.brand-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(145deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));display:flex;align-items:center;justify-content:center;color:#1A0F08;font-weight:700;font-size:16px;box-shadow:0 0 14px rgba(245,212,119,.3);}
+.brand-name{font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--ivory);}
+.brand-name span{display:block;font-size:9px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-bright);opacity:.7;margin-top:2px;}
+
+.nav-section{font-size:9px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--pearl);opacity:.6;padding:14px 10px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;color:var(--pearl);transition:all .2s ease;position:relative;}
+.nav-item:hover{background:rgba(245,212,119,.06);color:var(--ivory);}
+.nav-item.active{background:linear-gradient(90deg,rgba(245,212,119,.16),rgba(245,212,119,.04));color:var(--ivory);border-left:2px solid var(--gold-bright);padding-left:10px;}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.6;}
+.nav-item .count{margin-left:auto;font-size:10px;font-family:'Fynd Sans',monospace;letter-spacing:.05em;background:rgba(245,212,119,.1);padding:2px 7px;border-radius:8px;color:var(--gold-bright);}
+.sidebar-foot{margin-top:auto;font-size:10px;color:var(--pearl);opacity:.5;padding:14px 10px 0;border-top:1px solid var(--line-soft);}
+
+/* ---- Main ---- */
+.main{padding:0;min-width:0;}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--line-soft);background:rgba(11,6,4,.6);backdrop-filter:blur(0);position:sticky;top:0;z-index:5;}
+.crumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--pearl);}
+.crumb b{color:var(--ivory);font-weight:500;}
+.crumb svg{width:11px;height:11px;stroke:var(--pearl);opacity:.5;}
+.status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid rgba(143,160,107,.4);background:rgba(143,160,107,.1);border-radius:999px;font-size:11px;color:var(--ok);font-weight:500;letter-spacing:.02em;}
+.status-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px rgba(143,160,107,.7);}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.topbar-stat{font-size:12px;color:var(--pearl);font-variant-numeric:tabular-nums;}
+.topbar-stat b{color:var(--ivory);font-weight:600;}
+
+/* Page header */
+.page-head{padding:32px 32px 22px;border-bottom:1px solid var(--line-soft);}
+.page-head h1{font-size:32px;font-weight:300;letter-spacing:-.02em;color:var(--ivory);line-height:1.15;}
+.page-head .sub{font-size:13px;color:var(--pearl);margin-top:6px;}
+
+/* Date range */
+.range-tabs{display:flex;gap:4px;margin-top:14px;}
+.range-tab{padding:6px 14px;border-radius:999px;background:transparent;border:1px solid var(--line-soft);color:var(--pearl);font-size:11px;letter-spacing:.04em;transition:all .2s ease;}
+.range-tab:hover{border-color:rgba(245,212,119,.35);color:var(--ivory);}
+.range-tab.active{background:rgba(245,212,119,.14);border-color:var(--gold-bright);color:var(--champagne);}
+
+/* KPI strip */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 32px;}
+.kpi{background:linear-gradient(180deg,var(--surface) 0%,var(--bg-soft) 100%);border:1px solid var(--line);border-radius:14px;padding:20px 22px;position:relative;overflow:hidden;transition:transform .3s ease,box-shadow .3s ease;}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 14px 30px -16px rgba(0,0,0,.6),0 0 0 1px rgba(245,212,119,.25);}
+.kpi-label{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-bright);opacity:.9;}
+.kpi-value{font-size:36px;font-weight:300;letter-spacing:-.02em;margin-top:8px;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,#FFF4D6,var(--champagne) 50%,var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.kpi-sub{font-size:11px;color:var(--pearl);margin-top:10px;display:flex;align-items:center;gap:6px;}
+.kpi-sub .trend{display:inline-flex;align-items:center;gap:3px;color:var(--ok);font-weight:600;}
+.kpi-sub .trend.down{color:var(--alert);}
+.kpi-sub .trend.flat{color:var(--pearl);}
+
+/* Grid below KPIs */
+.dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;padding:0 32px 24px;}
+.card{background:linear-gradient(180deg,var(--surface) 0%,var(--bg-soft) 100%);border:1px solid var(--line);border-radius:14px;padding:20px 22px;}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-head h3{font-size:15px;font-weight:500;letter-spacing:-.005em;color:var(--ivory);}
+.card-head .meta{font-size:11px;color:var(--pearl);opacity:.7;}
+.card-head .link{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-bright);}
+.chart-wrap{position:relative;height:220px;}
+
+/* Activity feed */
+.activity{display:flex;flex-direction:column;gap:0;}
+.activity-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:12px;}
+.activity-row:last-child{border-bottom:0;}
+.activity-row .when{flex-shrink:0;width:64px;color:var(--pearl);font-variant-numeric:tabular-nums;font-size:10px;letter-spacing:.06em;padding-top:1px;}
+.activity-row .icon{flex-shrink:0;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.activity-row.intake .icon{background:rgba(143,160,107,.18);color:#A5B886;}
+.activity-row.chat .icon{background:rgba(245,212,119,.18);color:var(--gold-bright);}
+.activity-row.request .icon{background:rgba(99,102,241,.18);color:#8B8DF1;}
+.activity-row.clean .icon{background:rgba(212,165,116,.18);color:var(--warn);}
+.activity-row.event .icon{background:rgba(224,89,74,.18);color:#F19286;}
+.activity-row .what{flex:1;color:var(--ivory);line-height:1.45;}
+.activity-row .what b{color:var(--champagne);font-weight:500;}
+.activity-row .what em{font-style:italic;color:var(--pearl);font-size:11px;}
+
+/* Highlights side card */
+.highlights .hl-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;}
+.highlights .hl-row:last-child{border-bottom:0;}
+.highlights .hl-label{color:var(--pearl);}
+.highlights .hl-value{color:var(--ivory);font-weight:500;text-align:right;font-variant-numeric:tabular-nums;}
+.highlights .hl-value b{color:var(--champagne);font-weight:600;}
+
+/* Two-up below */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:0 32px 32px;}
+
+/* Footer */
+.foot{padding:18px 32px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--pearl);opacity:.55;display:flex;justify-content:space-between;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(245,212,119,.18);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(245,212,119,.3);}
+
+@media(max-width:980px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .dash-grid,.split{grid-template-columns:1fr;}
+  .app{grid-template-columns:1fr;}
+  .sidebar{position:static;height:auto;}
+}
+
+/* ---- Page switching ---- */
+.admin-page{display:none;}
+.admin-page.is-active{display:block;animation:pageIn .35s ease both;}
+@keyframes pageIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ---- External link items (open new tab) ---- */
+.nav-external{position:relative;}
+.nav-external .ext-arrow{opacity:.5;transition:opacity .2s ease;}
+.nav-external:hover .ext-arrow{opacity:1;}
+
+/* ---- Data tables ---- */
+.data-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.data-table thead th{
+  text-align:left;padding:10px 12px;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold-bright);font-weight:500;border-bottom:1px solid var(--line);background:rgba(245,212,119,.04);
+}
+.data-table tbody td{padding:11px 12px;border-bottom:1px solid var(--line-soft);color:var(--ivory);}
+.data-table tbody tr{transition:background .15s ease;}
+.data-table tbody tr:hover{background:rgba(245,212,119,.04);}
+.data-table tbody td b{color:var(--champagne);font-weight:500;}
+.data-table tbody td .muted{color:var(--pearl);font-size:11px;}
+
+/* Status / role pills */
+.pill{display:inline-block;padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:500;letter-spacing:.04em;}
+.pill-ok      {background:rgba(143,160,107,.18);color:#A5B886;border:1px solid rgba(143,160,107,.4);}
+.pill-idle    {background:rgba(212,165,116,.12);color:var(--warn);border:1px solid rgba(212,165,116,.3);}
+.pill-admin   {background:rgba(99,102,241,.18);color:#9B9DF5;border:1px solid rgba(99,102,241,.4);}
+.pill-madame  {background:rgba(245,212,119,.16);color:var(--champagne);border:1px solid rgba(245,212,119,.42);}
+.pill-ops     {background:rgba(245,212,119,.08);color:var(--gold-bright);border:1px solid rgba(245,212,119,.22);}
+
+.pill-status-cleaning{background:rgba(212,165,116,.18);color:var(--warn);border:1px solid rgba(212,165,116,.4);}
+.pill-status-in-wardrobe{background:rgba(143,160,107,.16);color:#A5B886;border:1px solid rgba(143,160,107,.35);}
+
+/* "NEW" badge on freshly-arrived rows + row highlight pulse */
+.pill-new{
+  display:inline-block;margin-left:6px;padding:1px 6px;border-radius:5px;
+  background:linear-gradient(135deg,#F5D477,#E1B45F);color:#1A0F08;
+  font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  box-shadow:0 0 0 0 rgba(245,212,119,.5);
+  animation:pillPulse 1.4s ease-in-out 3;
+}
+.inv-row-new{
+  animation:rowFlash 2.6s ease-out 1;
+}
+@keyframes pillPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(245,212,119,.6);}
+  50%   {box-shadow:0 0 0 6px rgba(245,212,119,0);}
+}
+@keyframes rowFlash{
+  0%   {background:rgba(245,212,119,.22);}
+  60%  {background:rgba(245,212,119,.10);}
+  100% {background:transparent;}
+}
+
+/* "LIVE" pill in the Inventory page header — pulsing green dot lets the
+   admin see at a glance that the page is actively syncing with ops mobile. */
+.live-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 13px 7px 11px;border-radius:18px;
+  background:rgba(143,160,107,.12);border:1px solid rgba(143,160,107,.34);
+  font-family:'Fynd Sans',sans-serif;font-size:11px;letter-spacing:.04em;color:#A5B886;
+  transition:background .25s,border-color .25s,box-shadow .25s;
+}
+.live-pill.is-fresh{
+  background:rgba(143,160,107,.22);border-color:rgba(143,160,107,.55);
+  box-shadow:0 0 0 4px rgba(143,160,107,.12);
+}
+.live-dot{
+  width:8px;height:8px;border-radius:50%;background:#8FA06B;
+  box-shadow:0 0 0 0 rgba(143,160,107,.6);
+  animation:livePulse 2s ease-in-out infinite;
+}
+.live-text{font-weight:600;letter-spacing:.18em;font-size:10px;}
+.live-sub{color:var(--pearl);font-size:10.5px;letter-spacing:0;border-left:1px solid rgba(143,160,107,.3);padding-left:8px;}
+@keyframes livePulse{
+  0%,100% {box-shadow:0 0 0 0 rgba(143,160,107,.55);transform:scale(1);}
+  50%     {box-shadow:0 0 0 6px rgba(143,160,107,0);transform:scale(1.08);}
+}
+
+/* Sidebar nav fresh-counter badge — appears when new items arrive while
+   you're on a different page. Clears the moment you visit that page. */
+.nav-fresh-badge{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%) scale(0);
+  min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:linear-gradient(135deg,#F5D477,#D4A84A);color:#1A0F08;
+  font-size:10px;font-weight:700;letter-spacing:.02em;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 2px rgba(245,212,119,.18);
+  transition:transform .25s var(--ease,ease-out);
+}
+.nav-fresh-badge.is-visible{transform:translateY(-50%) scale(1);animation:badgePop .35s ease-out;}
+@keyframes badgePop{0%{transform:translateY(-50%) scale(.2);}60%{transform:translateY(-50%) scale(1.18);}100%{transform:translateY(-50%) scale(1);}}
+
+/* Corner toast host for admin-level notifications (new piece arrived, etc.) */
+.admin-toast-host{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.admin-toast{
+  pointer-events:auto;padding:12px 18px;border-radius:10px;
+  background:linear-gradient(145deg,#1A0F08,#0D0805);
+  border:1px solid rgba(245,212,119,.32);
+  color:var(--ivory);font-size:12.5px;letter-spacing:.01em;font-family:'Fynd Sans',sans-serif;
+  box-shadow:0 14px 30px -10px rgba(0,0,0,.7),inset 0 0 0 1px rgba(245,212,119,.05);
+  opacity:0;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease;
+  max-width:340px;
+}
+.admin-toast.show{opacity:1;transform:translateY(0);}
+
+/* ---- Open Ops Dashboard button on Ops page ---- */
+.open-ops-btn{
+  display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;
+  background:linear-gradient(145deg,var(--gold-bright) 0%,var(--gold) 55%,var(--gold-deep) 100%);
+  color:#1A0F08;font-weight:600;font-size:12.5px;letter-spacing:.04em;
+  border:1px solid rgba(245,212,119,.5);
+  box-shadow:0 8px 20px -10px rgba(245,212,119,.45);
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.open-ops-btn:hover{transform:translateY(-1px);box-shadow:0 12px 26px -8px rgba(245,212,119,.6);}
+
+/* Event list rows */
+.event-row{
+  display:grid;grid-template-columns:80px 1fr auto;align-items:center;gap:16px;
+  padding:14px 0;border-bottom:1px solid var(--line-soft);
+}
+.event-row:last-child{border-bottom:0;}
+.event-row .date{
+  display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px;
+  background:rgba(245,212,119,.06);border-radius:8px;border:1px solid var(--line);
+}
+.event-row .date .d{font-size:20px;font-weight:300;color:var(--ivory);line-height:1;}
+.event-row .date .m{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-bright);margin-top:4px;}
+.event-row .info h4{font-size:14px;font-weight:500;color:var(--ivory);margin:0 0 4px;}
+.event-row .info .meta{font-size:11.5px;color:var(--pearl);}
+.event-row .info .meta em{font-style:italic;color:var(--champagne);}
+
+/* Leaderboard rows */
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-soft);font-size:12px;}
+.lb-row:last-child{border-bottom:0;}
+.lb-row .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,var(--gold),var(--gold-deep));display:flex;align-items:center;justify-content:center;color:#1A0F08;font-weight:600;font-size:11px;flex-shrink:0;}
+.lb-row .who{flex:1;}
+.lb-row .who .n{color:var(--ivory);font-weight:500;}
+.lb-row .who .r{font-size:10.5px;color:var(--pearl);margin-top:2px;}
+.lb-row .stat{text-align:right;font-variant-numeric:tabular-nums;}
+.lb-row .stat .v{font-size:15px;color:var(--champagne);font-weight:500;}
+.lb-row .stat .l{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--pearl);margin-top:2px;}
+
+/* Anaita thread list */
+.thread-row{display:grid;grid-template-columns:90px 1fr auto;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-soft);align-items:start;font-size:12.5px;}
+.thread-row:last-child{border-bottom:0;}
+.thread-row .when{color:var(--pearl);font-size:11px;font-variant-numeric:tabular-nums;}
+.thread-row .preview{color:var(--ivory);line-height:1.5;}
+.thread-row .preview em{font-style:italic;color:var(--champagne);}
+.thread-row .turns{font-size:10.5px;color:var(--gold-bright);letter-spacing:.16em;text-transform:uppercase;}
+
+/* ---- Plain logout button in the topbar (top-right) ---- */
+.topbar-logout{
+  display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;
+  background:transparent;border:1px solid var(--line);color:var(--text-soft);
+  font-size:12.5px;font-weight:500;letter-spacing:.01em;
+  cursor:pointer;transition:all .2s ease;font-family:'Fynd Sans',sans-serif;
+}
+.topbar-logout:hover{background:var(--alert-soft);border-color:#FECACA;color:var(--alert);}
+.topbar-logout svg{stroke:currentColor;flex-shrink:0;}
+
+/* ---- LOGIN SCREEN ---- */
+.app.is-gated{display:none;}
+.login-gate{
+  position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(ellipse at center,#1A100B 0%,#0B0604 70%);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.login-gate.is-hidden{display:none;}
+.login-card{
+  width:min(420px,100%);
+  background:linear-gradient(180deg,rgba(28,18,12,.95) 0%,rgba(11,6,4,.92) 100%);
+  border:1px solid rgba(212,168,74,.32);
+  border-radius:16px;
+  padding:40px 36px 32px;
+  position:relative;
+  box-shadow:0 1px 0 rgba(245,212,119,.1) inset,0 30px 70px -16px rgba(0,0,0,.85),0 0 80px -20px rgba(245,212,119,.18);
+}
+.login-card::before{
+  content:"";position:absolute;left:8%;right:8%;top:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(245,212,119,.55) 50%,transparent);
+}
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.login-brand .mark{
+  width:42px;height:42px;border-radius:10px;
+  background:linear-gradient(145deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  display:flex;align-items:center;justify-content:center;color:#1A0F08;font-weight:700;font-size:18px;
+  box-shadow:0 0 18px rgba(245,212,119,.35);
+}
+.login-brand .name{font-size:16px;font-weight:600;color:var(--ivory);letter-spacing:-.01em;}
+.login-brand .name span{display:block;font-size:9.5px;font-weight:500;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-bright);opacity:.8;margin-top:3px;}
+
+.login-card h1{
+  font-size:24px;font-weight:300;letter-spacing:-.01em;color:var(--ivory);line-height:1.2;
+}
+.login-card .sub{font-size:13px;color:var(--pearl);margin-top:6px;margin-bottom:24px;}
+
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:9.5px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:7px;opacity:.9;}
+.login-field input{
+  width:100%;
+  background:rgba(20,12,8,.6);
+  border:1px solid rgba(245,212,119,.2);
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:14px;
+  color:var(--ivory);
+  outline:none;
+  transition:border-color .2s ease,background .2s ease;
+  font-family:'Fynd Sans',sans-serif;
+}
+.login-field input::placeholder{color:var(--pearl);opacity:.5;font-style:italic;}
+.login-field input:focus{border-color:rgba(245,212,119,.55);background:rgba(28,18,12,.75);}
+
+.login-submit{
+  width:100%;margin-top:10px;padding:13px;
+  background:linear-gradient(145deg,var(--gold-bright) 0%,var(--gold) 55%,var(--gold-deep) 100%);
+  color:#1A0F08;font-weight:600;font-size:13px;letter-spacing:.06em;
+  border:1px solid rgba(245,212,119,.5);border-radius:10px;
+  cursor:pointer;transition:transform .2s ease,box-shadow .2s ease;
+  box-shadow:0 8px 22px -10px rgba(245,212,119,.4);
+}
+.login-submit:hover{transform:translateY(-1px);box-shadow:0 12px 28px -10px rgba(245,212,119,.6);}
+.login-submit:active{transform:translateY(0);}
+.login-submit:disabled{filter:grayscale(.5) brightness(.7);cursor:not-allowed;transform:none;}
+
+.login-error{
+  display:none;margin-top:14px;padding:10px 12px;
+  background:rgba(224,89,74,.12);border:1px solid rgba(224,89,74,.4);border-radius:8px;
+  color:#F2A89B;font-size:12px;
+}
+.login-error.is-on{display:block;}
+
+.login-hint{
+  margin-top:18px;padding-top:14px;border-top:1px solid var(--line-soft);
+  font-size:10.5px;letter-spacing:.04em;color:var(--pearl);opacity:.7;text-align:center;
+}
+.login-hint code{font-family:monospace;color:var(--champagne);background:rgba(245,212,119,.08);padding:1px 6px;border-radius:4px;font-size:10px;}
+
+/* ====================================================================
+   LIGHT THEME OVERRIDES — re-skin everything for the Fynd Storefront
+   reference look (white surfaces, dark text, indigo accents).
+   ==================================================================== */
+
+/* Sidebar */
+.sidebar{
+  background:var(--surface)!important;
+  border-right:1px solid var(--line)!important;
+  color:var(--text-soft);
+}
+.brand{border-bottom:1px solid var(--line)!important;}
+.brand-mark{
+  background:var(--accent)!important;
+  color:#fff!important;
+  box-shadow:0 4px 10px -2px rgba(79,70,229,.35)!important;
+}
+.brand-name{color:var(--text)!important;}
+.brand-name span{color:var(--accent)!important;opacity:1!important;}
+
+.nav-section{color:var(--text-mute)!important;opacity:1!important;}
+.nav-item{color:var(--text-soft)!important;font-weight:500;}
+.nav-item svg{stroke:currentColor;}
+.nav-item:hover{background:var(--bg-soft)!important;color:var(--text)!important;}
+.nav-item.active{
+  background:var(--accent-soft)!important;
+  color:var(--accent)!important;
+  border-left:2px solid var(--accent)!important;
+}
+.nav-item .count{
+  background:var(--accent-soft)!important;
+  color:var(--accent)!important;
+  font-weight:600;
+}
+.nav-item.active .count{background:var(--accent)!important;color:#fff!important;}
+
+.sidebar-foot{
+  color:var(--text-mute)!important;opacity:1!important;
+  border-top:1px solid var(--line)!important;
+}
+.sidebar-foot b{color:var(--text-soft);}
+
+/* Main background */
+.main{background:var(--bg);}
+
+/* Topbar */
+.topbar{
+  background:var(--surface)!important;
+  border-bottom:1px solid var(--line)!important;
+  backdrop-filter:none;
+}
+.crumb{color:var(--text-soft);}
+.crumb b{color:var(--text)!important;}
+.crumb svg{stroke:var(--text-mute);}
+.topbar-stat{color:var(--text-soft);}
+.topbar-stat b{color:var(--text)!important;}
+.status-pill{
+  background:var(--ok-soft)!important;
+  border-color:#86EFAC!important;
+  color:#15803D!important;
+}
+.status-pill .dot{background:var(--ok)!important;box-shadow:0 0 0 2px var(--ok-soft);}
+
+/* User chip */
+.user-chip{
+  background:var(--surface)!important;
+  border-color:var(--line)!important;
+  color:var(--text)!important;
+}
+.user-chip:hover{background:var(--bg-soft)!important;border-color:var(--accent-line)!important;}
+.user-chip.is-open{background:var(--accent-soft)!important;border-color:var(--accent)!important;}
+.user-avatar{
+  background:var(--accent)!important;
+  color:#fff!important;
+}
+.user-name{color:var(--text-soft)!important;}
+.user-chip svg{stroke:var(--text-mute);}
+
+.user-dropdown{
+  background:var(--surface)!important;
+  border:1px solid var(--line)!important;
+  box-shadow:0 10px 30px -8px rgba(15,23,42,.12),0 4px 8px -2px rgba(15,23,42,.06)!important;
+}
+.user-dropdown-head{border-bottom-color:var(--line)!important;}
+.ud-name{color:var(--text)!important;}
+.ud-mail{color:var(--text-soft)!important;}
+.user-dropdown-item{color:var(--text)!important;}
+.user-dropdown-item:hover{
+  background:var(--alert-soft)!important;
+  color:var(--alert)!important;
+}
+
+/* Page head */
+.page-head{
+  background:var(--surface);
+  border-bottom:1px solid var(--line)!important;
+}
+.page-head h1{color:var(--text)!important;font-weight:600!important;}
+.page-head .sub{color:var(--text-soft)!important;}
+.range-tab{
+  background:var(--surface)!important;
+  border-color:var(--line)!important;
+  color:var(--text-soft)!important;
+}
+.range-tab:hover{border-color:var(--accent-line)!important;color:var(--text)!important;background:var(--bg-soft)!important;}
+.range-tab.active{
+  background:var(--accent)!important;
+  border-color:var(--accent)!important;
+  color:#fff!important;
+}
+
+/* KPI cards */
+.kpi{
+  background:var(--surface)!important;
+  border:1px solid var(--line)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+}
+.kpi:hover{
+  box-shadow:0 6px 16px -4px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04)!important;
+  border-color:var(--accent-line)!important;
+}
+.kpi-label{color:var(--text-mute)!important;opacity:1!important;font-weight:600!important;letter-spacing:.14em!important;}
+.kpi-value{
+  background:none!important;
+  -webkit-text-fill-color:initial!important;
+  color:var(--text)!important;
+  font-weight:600!important;
+}
+.kpi-sub{color:var(--text-soft)!important;}
+.kpi-sub .trend{color:var(--ok)!important;background:var(--ok-soft);padding:2px 7px;border-radius:6px;font-size:10px;}
+.kpi-sub .trend.down{color:var(--alert)!important;background:var(--alert-soft)!important;}
+.kpi-sub .trend.flat{color:var(--text-mute)!important;background:var(--bg-soft)!important;}
+
+/* Generic cards */
+.card{
+  background:var(--surface)!important;
+  border:1px solid var(--line)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+}
+.card-head h3{color:var(--text)!important;font-weight:600!important;}
+.card-head .meta{color:var(--text-mute)!important;opacity:1!important;}
+.card-head .link{color:var(--accent)!important;font-weight:600!important;}
+
+/* Activity feed */
+.activity-row{border-bottom:1px solid var(--line)!important;}
+.activity-row .when{color:var(--text-mute)!important;}
+.activity-row .what{color:var(--text)!important;}
+.activity-row .what b{color:var(--text)!important;font-weight:600;}
+.activity-row .what em{color:var(--text-soft)!important;font-style:normal;}
+.activity-row.intake   .icon{background:#DCFCE7;color:#15803D;}
+.activity-row.chat     .icon{background:var(--accent-soft);color:var(--accent);}
+.activity-row.request  .icon{background:#FFEDD5;color:#C2410C;}
+.activity-row.clean    .icon{background:#FEF3C7;color:#A16207;}
+.activity-row.event    .icon{background:#FCE7F3;color:#BE185D;}
+
+/* Highlights */
+.highlights .hl-row{border-bottom:1px solid var(--line)!important;}
+.highlights .hl-label{color:var(--text-soft)!important;}
+.highlights .hl-value{color:var(--text)!important;font-weight:500!important;}
+.highlights .hl-value b{color:var(--accent)!important;}
+
+/* Footer */
+.foot{
+  background:var(--surface)!important;
+  border-top:1px solid var(--line)!important;
+  color:var(--text-mute)!important;opacity:1!important;
+}
+.foot b{color:var(--text-soft);}
+
+/* Data tables */
+.data-table thead th{
+  background:var(--bg-soft)!important;
+  color:var(--text-soft)!important;
+  border-bottom:1px solid var(--line)!important;
+  font-weight:600!important;
+}
+.data-table tbody td{
+  border-bottom:1px solid var(--line)!important;
+  color:var(--text)!important;
+}
+.data-table tbody tr:hover{background:var(--bg-soft)!important;}
+.data-table tbody td b{color:var(--text)!important;font-weight:600;}
+.data-table tbody td .muted{color:var(--text-mute)!important;}
+
+/* Pills */
+.pill-ok{background:var(--ok-soft)!important;color:#15803D!important;border-color:#86EFAC!important;}
+.pill-idle{background:var(--warn-soft)!important;color:#A16207!important;border-color:#FDE68A!important;}
+.pill-admin{background:var(--accent-soft)!important;color:var(--accent)!important;border-color:var(--accent-line)!important;}
+.pill-madame{background:#FCE7F3!important;color:#BE185D!important;border-color:#FBCFE8!important;}
+.pill-ops{background:var(--bg-soft)!important;color:var(--text-soft)!important;border-color:var(--line)!important;}
+.pill-status-in-wardrobe{background:var(--ok-soft)!important;color:#15803D!important;border-color:#86EFAC!important;}
+.pill-status-cleaning{background:var(--warn-soft)!important;color:#A16207!important;border-color:#FDE68A!important;}
+
+/* Event rows */
+.event-row{border-bottom:1px solid var(--line)!important;}
+.event-row .date{
+  background:var(--accent-soft)!important;
+  border:1px solid var(--accent-line)!important;
+}
+.event-row .date .d{color:var(--accent)!important;}
+.event-row .date .m{color:var(--accent)!important;}
+.event-row .info h4{color:var(--text)!important;}
+.event-row .info .meta{color:var(--text-soft)!important;}
+.event-row .info .meta em{color:var(--accent)!important;font-style:normal;}
+
+/* Leaderboard rows */
+.lb-row{border-bottom:1px solid var(--line)!important;}
+.lb-row .avatar{background:var(--accent)!important;color:#fff!important;}
+.lb-row .who .n{color:var(--text)!important;}
+.lb-row .who .r{color:var(--text-soft)!important;}
+.lb-row .stat .v{color:var(--text)!important;font-weight:600;}
+.lb-row .stat .l{color:var(--text-mute)!important;}
+
+/* Anaita thread rows */
+.thread-row{border-bottom:1px solid var(--line)!important;}
+.thread-row .when{color:var(--text-mute)!important;}
+.thread-row .preview{color:var(--text)!important;}
+.thread-row .preview em{color:var(--text-soft)!important;font-style:normal;}
+.thread-row .turns{color:var(--accent)!important;font-weight:600;}
+
+/* Inventory search/filter inputs */
+#invSearch, #invCatFilter{
+  background:var(--surface)!important;
+  border:1px solid var(--line)!important;
+  color:var(--text)!important;
+}
+#invSearch:focus, #invCatFilter:focus{
+  border-color:var(--accent)!important;
+  outline:none;
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+#invSearch::placeholder{color:var(--text-mute);}
+
+/* Open Ops Dashboard button (Ops Team page) */
+.open-ops-btn{
+  background:var(--accent)!important;
+  color:#fff!important;
+  border:1px solid var(--accent)!important;
+  box-shadow:0 4px 12px -4px rgba(79,70,229,.35)!important;
+}
+.open-ops-btn:hover{
+  background:var(--accent-hover)!important;
+  box-shadow:0 6px 16px -4px rgba(79,70,229,.5)!important;
+}
+
+/* Secondary variant — outlined white button, for "Open Ops Mobile" */
+.open-ops-btn--alt{
+  background:#fff!important;
+  color:var(--accent)!important;
+  border:1px solid var(--accent-line)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04)!important;
+}
+.open-ops-btn--alt:hover{
+  background:var(--accent-soft)!important;
+  border-color:var(--accent)!important;
+  color:var(--accent-hover)!important;
+  box-shadow:0 4px 10px -4px rgba(79,70,229,.2)!important;
+}
+
+/* Login gate — light surface */
+.login-gate{background:radial-gradient(ellipse at center,var(--bg-soft) 0%,var(--bg) 70%)!important;}
+.login-card{
+  background:var(--surface)!important;
+  border:1px solid var(--line)!important;
+  box-shadow:0 20px 50px -10px rgba(15,23,42,.15),0 4px 10px rgba(15,23,42,.05)!important;
+}
+.login-card::before{
+  background:linear-gradient(90deg,transparent,var(--accent) 50%,transparent)!important;
+  opacity:.5;
+}
+.login-card h1{color:var(--text)!important;font-weight:600!important;}
+.login-card .sub{color:var(--text-soft)!important;}
+.login-field label{color:var(--text-soft)!important;opacity:1!important;font-weight:600!important;}
+.login-field input{
+  background:var(--surface)!important;
+  border:1px solid var(--line)!important;
+  color:var(--text)!important;
+}
+.login-field input:focus{
+  border-color:var(--accent)!important;
+  background:var(--surface)!important;
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.login-field input::placeholder{color:var(--text-mute)!important;font-style:normal;}
+.login-submit{
+  background:var(--accent)!important;
+  color:#fff!important;
+  border-color:var(--accent)!important;
+  box-shadow:0 4px 12px -4px rgba(79,70,229,.4)!important;
+}
+.login-submit:hover{background:var(--accent-hover)!important;}
+.login-error{background:var(--alert-soft)!important;border-color:#FECACA!important;color:var(--alert)!important;}
+.login-hint{color:var(--text-mute)!important;border-top-color:var(--line)!important;}
+.login-hint code{background:var(--bg-soft)!important;color:var(--text)!important;}
+
+/* Brand mark inside login-card */
+.login-brand .mark{background:var(--accent)!important;color:#fff!important;box-shadow:0 4px 12px -4px rgba(79,70,229,.4)!important;}
+.login-brand .name{color:var(--text)!important;}
+.login-brand .name span{color:var(--accent)!important;opacity:1!important;}
+
+/* Scrollbar (light) */
+::-webkit-scrollbar-thumb{background:var(--line)!important;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-mute)!important;}
+
+/* Status pill in nav-external (Quick Links) */
+.nav-external .ext-arrow{stroke:var(--text-mute);}
+.nav-external:hover .ext-arrow{stroke:var(--accent);}
+
+/* ============ ADD-MEMBER MODAL ============ */
+.member-modal{
+  position:fixed;inset:0;z-index:9990;
+  background:rgba(15,23,42,.45);
+  display:none;align-items:center;justify-content:center;
+  padding:24px;
+  animation:fadeIn .2s ease;
+}
+.member-modal.is-on{display:flex;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+.member-modal-card{
+  width:min(480px,100%);max-height:92vh;overflow-y:auto;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:32px 28px 26px;position:relative;
+  box-shadow:0 30px 70px -16px rgba(15,23,42,.25),0 8px 16px -4px rgba(15,23,42,.1);
+  animation:popIn .25s ease;
+}
+@keyframes popIn{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+.member-modal-close{
+  position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;
+  background:var(--bg-soft);border:1px solid var(--line);color:var(--text-soft);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all .2s ease;
+}
+.member-modal-close:hover{background:var(--alert-soft);border-color:#FECACA;color:var(--alert);}
+
+.mm-eyebrow{
+  font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:8px;
+}
+.member-modal-card h2{
+  font-size:22px;font-weight:600;color:var(--text);letter-spacing:-.015em;line-height:1.2;
+}
+.mm-sub{font-size:13px;color:var(--text-soft);margin-top:4px;margin-bottom:22px;}
+
+/* Role cards (step 1) */
+.role-grid{display:flex;flex-direction:column;gap:10px;}
+.role-card{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  text-align:left;cursor:pointer;transition:all .2s ease;
+  font-family:inherit;
+}
+.role-card:hover{
+  border-color:var(--accent);background:var(--accent-soft);
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px -8px rgba(79,70,229,.25);
+}
+.role-card .role-icon{
+  width:42px;height:42px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.role-card:hover .role-icon{background:var(--accent);color:#fff;}
+.role-card .role-name{font-size:14px;font-weight:600;color:var(--text);}
+.role-card .role-desc{font-size:11.5px;color:var(--text-soft);margin-top:2px;}
+.role-card > div:nth-child(2){flex:1;}
+
+/* Step 2 form */
+.member-modal-actions{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;
+}
+.mm-back{
+  padding:11px 18px;background:var(--bg-soft);border:1px solid var(--line);
+  border-radius:10px;color:var(--text-soft);font-size:13px;font-weight:500;cursor:pointer;
+  transition:all .2s ease;font-family:inherit;
+}
+.mm-back:hover{background:var(--line);color:var(--text);}
+
+/* Step 3 confirmation */
+.mm-success-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--ok-soft);color:#15803D;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;
+}
+.member-modal-card .mm-step[data-step="confirm"]{text-align:center;}
+.member-modal-card .mm-step[data-step="confirm"] h2{margin-bottom:4px;}
+.member-modal-card .mm-step[data-step="confirm"] .mm-sub{margin-bottom:18px;}
+
+/* "Email" preview */
+.mail-preview{
+  text-align:left;background:var(--bg-soft);border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;
+}
+.mail-head{padding:12px 16px;border-bottom:1px solid var(--line);background:#fff;}
+.mail-row{display:flex;gap:10px;font-size:11.5px;line-height:1.8;}
+.mail-row span{color:var(--text-mute);width:54px;flex-shrink:0;}
+.mail-row b{color:var(--text);font-weight:500;}
+.mail-body{padding:16px;font-size:13px;line-height:1.55;color:var(--text);}
+.mail-body p{margin-bottom:10px;}
+.mail-body p:last-child{margin-bottom:0;}
+.mail-body a{color:var(--accent);text-decoration:underline;}
+
+/* Delete button on user row */
+.user-row-del{
+  background:transparent;border:0;color:var(--text-mute);
+  padding:4px 8px;border-radius:6px;cursor:pointer;transition:all .15s ease;
+  font-size:11px;
+}
+.user-row-del:hover{background:var(--alert-soft);color:var(--alert);}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN GATE ============ -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="mark">✦</div>
+      <div class="name">Maison<span>Admin Panel</span></div>
+    </div>
+    <h1>Sign in</h1>
+    <p class="sub">Restricted access — admin credentials required.</p>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@gmail.com" autocomplete="username" required/>
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="login-submit" id="loginSubmit">Sign in →</button>
+      <div class="login-error" id="loginError">Incorrect email or password.</div>
+    </form>
+
+  </div>
+</div>
+
+<div class="app is-gated" id="adminApp">
+
+  <!-- =================== SIDEBAR =================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">✦</div>
+      <div class="brand-name">Maison<span>Admin · v1</span></div>
+    </div>
+
+    <div class="nav-section">Dashboard</div>
+    <a class="nav-item active" data-page="overview" href="#overview">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overview
+    </a>
+
+    <div class="nav-section">Wardrobe</div>
+    <a class="nav-item" data-page="inventory" href="#inventory">
+      <svg viewBox="0 0 24 24"><path d="M3 6l9-3 9 3v3H3zM5 9v12h14V9"/></svg>
+      Inventory <span class="count" id="navInvCount">47</span>
+    </a>
+    <a class="nav-item" data-page="events" href="#events">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+      Events <span class="count" id="navEvtCount">3</span>
+    </a>
+
+    <div class="nav-section">Users</div>
+    <a class="nav-item" data-page="madame" href="#madame">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7"/></svg>
+      Madame
+    </a>
+    <a class="nav-item" data-page="ops" href="#ops">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 21c0-3.5 3-6 6-6s6 2.5 6 6M14 21c0-2.5 2-4.5 4-4.5s4 2 4 4.5"/></svg>
+      Ops Team <span class="count" id="navOpsCount">2</span>
+    </a>
+    <a class="nav-item" data-page="anaita" href="#anaita">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>
+      Anaita AI
+    </a>
+
+    <div class="nav-section">Quick Links</div>
+    <a class="nav-item nav-external" href="/?role=ops-dashboard" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9zM3 9h6M3 15h6M15 3v6M15 15v6"/></svg>
+      Ops Dashboard
+      <svg class="ext-arrow" viewBox="0 0 24 24" width="11" height="11" style="margin-left:auto;"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </a>
+    <a class="nav-item nav-external" href="/?role=ops-mobile" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><circle cx="12" cy="18" r="1.2" fill="currentColor"/></svg>
+      Ops Mobile
+      <svg class="ext-arrow" viewBox="0 0 24 24" width="11" height="11" style="margin-left:auto;"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </a>
+    <a class="nav-item nav-external" href="/?role=madame" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24"><path d="M12 2C7 2 6 6 6 9c0 1.5.4 2.5 1 3.5L5.5 13c-1.5.2-2.5 1.6-2.5 3v2c0 .6.4 1 1 1h16c.6 0 1-.4 1-1v-2c0-1.4-1-2.8-2.5-3l-1.5-.5c.6-1 1-2 1-3.5 0-3-1-7-6-7z"/></svg>
+      Madame iPad
+      <svg class="ext-arrow" viewBox="0 0 24 24" width="11" height="11" style="margin-left:auto;"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </a>
+
+    <div class="nav-section">Admin</div>
+    <a class="nav-item" data-page="users" href="#users">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6M19 8v6"/></svg>
+      Users & Roles
+    </a>
+
+    <div class="sidebar-foot">
+      Server · localhost:8000<br>
+      Signed in as <b id="sidebarEmail">admin@gmail.com</b>
+    </div>
+  </aside>
+
+  <!-- =================== MAIN =================== -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <nav class="crumb">
+        <span>Admin</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        <b id="crumbTitle">Overview</b>
+      </nav>
+      <div class="topbar-right">
+        <span class="topbar-stat"><b id="hdrInv">47</b> pieces</span>
+        <span class="topbar-stat"><b id="hdrAvail">46</b> available</span>
+        <span class="topbar-stat"><b id="hdrClean">1</b> cleaning</span>
+        <span class="status-pill"><span class="dot"></span>All Systems Go</span>
+        <button class="topbar-logout" id="logoutBtn" type="button">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          Sign out
+        </button>
+      </div>
+    </header>
+
+    <!-- =================== PAGE: OVERVIEW =================== -->
+    <div class="admin-page is-active" data-page="overview">
+    <!-- Page head -->
+    <section class="page-head">
+      <h1 id="pageTitle">Weekly Overview</h1>
+      <p class="sub" id="pageRange">5 May — 12 May 2026</p>
+      <div class="range-tabs">
+        <button class="range-tab" data-range="1">Today</button>
+        <button class="range-tab active" data-range="7">7 days</button>
+        <button class="range-tab" data-range="14">14 days</button>
+        <button class="range-tab" data-range="30">30 days</button>
+      </div>
+    </section>
+
+    <!-- KPI cards -->
+    <section class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Sessions Today</div>
+        <div class="kpi-value" id="kpiSessions">5</div>
+        <div class="kpi-sub"><span class="trend"><svg viewBox="0 0 12 12" width="9" height="9" fill="currentColor"><path d="M6 2l4 5H2z"/></svg>+2</span> vs yesterday</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">New This Week</div>
+        <div class="kpi-value" id="kpiNew">3</div>
+        <div class="kpi-sub"><span class="trend"><svg viewBox="0 0 12 12" width="9" height="9" fill="currentColor"><path d="M6 2l4 5H2z"/></svg>+1</span> pieces added</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Open Requests</div>
+        <div class="kpi-value" id="kpiOpen">2</div>
+        <div class="kpi-sub"><span class="trend flat">—</span> events need styling</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Anaita Chats</div>
+        <div class="kpi-value" id="kpiChats">14</div>
+        <div class="kpi-sub"><span class="trend"><svg viewBox="0 0 12 12" width="9" height="9" fill="currentColor"><path d="M6 2l4 5H2z"/></svg>+9</span> this week</div>
+      </div>
+    </section>
+
+    <!-- Charts grid -->
+    <section class="dash-grid">
+      <!-- 14-day activity chart -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>14-Day Activity</h3>
+            <div class="meta">Captures by Ops · sessions by Madame</div>
+          </div>
+          <a class="link" href="#">Full report →</a>
+        </div>
+        <div class="chart-wrap"><canvas id="activityChart"></canvas></div>
+      </div>
+
+      <!-- Key Highlights -->
+      <div class="card highlights">
+        <div class="card-head">
+          <h3>Key Highlights</h3>
+        </div>
+        <div class="hl-row"><span class="hl-label">Most-worn piece</span><span class="hl-value"><b>Sabya Maroon Saree</b></span></div>
+        <div class="hl-row"><span class="hl-label">Busiest hour</span><span class="hl-value">17:00 – 18:00</span></div>
+        <div class="hl-row"><span class="hl-label">Avg prep time</span><span class="hl-value">23 min</span></div>
+        <div class="hl-row"><span class="hl-label">Avg Anaita reply</span><span class="hl-value">1.2 s</span></div>
+        <div class="hl-row"><span class="hl-label">Top designer</span><span class="hl-value">Sabyasachi</span></div>
+        <div class="hl-row"><span class="hl-label">Last alert</span><span class="hl-value">none</span></div>
+      </div>
+    </section>
+
+    <!-- Activity + Category -->
+    <section class="split">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Recent Activity</h3>
+            <div class="meta">Last 10 events across all roles</div>
+          </div>
+          <a class="link" href="#">View all →</a>
+        </div>
+        <div class="activity" id="activityFeed"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Wardrobe by Category</h3>
+          <span class="meta">47 pieces total</span>
+        </div>
+        <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>Maison Admin · v1.0</span>
+      <span>Data refreshed <b id="refreshedAt">just now</b></span>
+    </footer>
+    </div><!-- /page:overview -->
+
+    <!-- =================== PAGE: INVENTORY =================== -->
+    <div class="admin-page" data-page="inventory">
+      <section class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+        <div>
+          <h1>Inventory</h1>
+          <p class="sub">Every piece currently catalogued — auto-syncs as ops captures new garments.</p>
+        </div>
+        <div class="live-pill" id="invLivePill" title="Auto-syncing with ops mobile">
+          <span class="live-dot"></span>
+          <span class="live-text">LIVE</span>
+          <span class="live-sub" id="invLiveSub">syncing…</span>
+        </div>
+      </section>
+      <section class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-value" id="invTotal">47</div><div class="kpi-sub">pieces across all categories</div></div>
+        <div class="kpi"><div class="kpi-label">Available</div><div class="kpi-value" id="invAvail">46</div><div class="kpi-sub">in wardrobe, ready</div></div>
+        <div class="kpi"><div class="kpi-label">Cleaning</div><div class="kpi-value" id="invClean">1</div><div class="kpi-sub">at Krishna Dry Cleaners</div></div>
+        <div class="kpi"><div class="kpi-label">Designers</div><div class="kpi-value" id="invDesigners">—</div><div class="kpi-sub">unique houses</div></div>
+      </section>
+      <section class="dash-grid" style="grid-template-columns:1fr;">
+        <div class="card">
+          <div class="card-head">
+            <div><h3>All pieces</h3><div class="meta">Sort by clicking any column header</div></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="invSearch" placeholder="Search name, designer, category…" style="background:rgba(20,12,8,.6);border:1px solid var(--line);color:var(--ivory);padding:8px 12px;border-radius:8px;font-size:12px;width:240px;font-family:'Fynd Sans',sans-serif;outline:none;">
+              <select id="invCatFilter" style="background:rgba(20,12,8,.6);border:1px solid var(--line);color:var(--ivory);padding:8px 12px;border-radius:8px;font-size:12px;font-family:'Fynd Sans',sans-serif;outline:none;">
+                <option value="">All categories</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="invTable">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Name</th><th>Designer</th><th>Category</th><th>Status</th><th>Added</th>
+                </tr>
+              </thead>
+              <tbody id="invTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div><!-- /page:inventory -->
+
+    <!-- =================== PAGE: EVENTS =================== -->
+    <div class="admin-page" data-page="events">
+      <section class="page-head">
+        <h1>Events</h1>
+        <p class="sub">Calendar of upcoming events. Click any event to see request status.</p>
+      </section>
+      <section class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Upcoming</div><div class="kpi-value">3</div><div class="kpi-sub">in the next 14 days</div></div>
+        <div class="kpi"><div class="kpi-label">Open Requests</div><div class="kpi-value">2</div><div class="kpi-sub">need styling</div></div>
+        <div class="kpi"><div class="kpi-label">Confirmed</div><div class="kpi-value">1</div><div class="kpi-sub">outfit assigned</div></div>
+        <div class="kpi"><div class="kpi-label">Avg Prep Time</div><div class="kpi-value">23<span style="font-size:.45em;margin-left:4px;color:var(--pearl);">min</span></div><div class="kpi-sub">request → handoff</div></div>
+      </section>
+      <section class="dash-grid" style="grid-template-columns:1fr;">
+        <div class="card">
+          <div class="card-head"><h3>Next 14 days</h3><span class="meta">3 events</span></div>
+          <div id="eventsList"></div>
+        </div>
+      </section>
+    </div><!-- /page:events -->
+
+    <!-- =================== PAGE: MADAME =================== -->
+    <div class="admin-page" data-page="madame">
+      <section class="page-head">
+        <h1>Madame · NMA</h1>
+        <p class="sub">Usage analytics from the iPad app — sessions, pieces viewed, requests.</p>
+      </section>
+      <section class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Sessions / Week</div><div class="kpi-value">12</div><div class="kpi-sub">avg session 4 min 12 s</div></div>
+        <div class="kpi"><div class="kpi-label">Pieces Viewed</div><div class="kpi-value">94</div><div class="kpi-sub">last 7 days</div></div>
+        <div class="kpi"><div class="kpi-label">Requests Fired</div><div class="kpi-value">3</div><div class="kpi-sub">outfits requested</div></div>
+        <div class="kpi"><div class="kpi-label">Anaita Messages</div><div class="kpi-value">14</div><div class="kpi-sub">this week</div></div>
+      </section>
+      <section class="dash-grid">
+        <div class="card">
+          <div class="card-head"><h3>When she uses the app</h3><span class="meta">Hour-of-day heatmap · last 14 days</span></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="madameHeatmap"></canvas></div>
+        </div>
+        <div class="card highlights">
+          <div class="card-head"><h3>Behavior summary</h3></div>
+          <div class="hl-row"><span class="hl-label">Busiest hour</span><span class="hl-value">17:00 – 18:00</span></div>
+          <div class="hl-row"><span class="hl-label">Busiest day</span><span class="hl-value">Saturday</span></div>
+          <div class="hl-row"><span class="hl-label">Avg pieces / session</span><span class="hl-value">7.8</span></div>
+          <div class="hl-row"><span class="hl-label">Request → wear rate</span><span class="hl-value">87%</span></div>
+          <div class="hl-row"><span class="hl-label">Top category</span><span class="hl-value">Sarees</span></div>
+          <div class="hl-row"><span class="hl-label">Last session</span><span class="hl-value">12 min ago</span></div>
+        </div>
+      </section>
+    </div><!-- /page:madame -->
+
+    <!-- =================== PAGE: OPS TEAM =================== -->
+    <div class="admin-page" data-page="ops">
+      <section class="page-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+        <div>
+          <h1>Ops Team</h1>
+          <p class="sub">2 active role accounts. Captures, fulfillment, and shift activity.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <a href="/?role=ops-dashboard" target="_blank" rel="noopener" class="open-ops-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9zM3 9h6M3 15h6M15 3v6M15 15v6"/></svg>
+            Open Ops Dashboard
+          </a>
+          <a href="/?role=ops-mobile" target="_blank" rel="noopener" class="open-ops-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2.4"/><circle cx="12" cy="18" r="1.2" fill="currentColor"/></svg>
+            Open Ops Mobile
+          </a>
+        </div>
+      </section>
+      <section class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Active Now</div><div class="kpi-value">2</div><div class="kpi-sub">team members online</div></div>
+        <div class="kpi"><div class="kpi-label">Captured Today</div><div class="kpi-value">3</div><div class="kpi-sub">new pieces tagged</div></div>
+        <div class="kpi"><div class="kpi-label">Avg Time / Piece</div><div class="kpi-value">2.4<span style="font-size:.45em;margin-left:4px;color:var(--pearl);">min</span></div><div class="kpi-sub">capture + tag</div></div>
+        <div class="kpi"><div class="kpi-label">Outstanding</div><div class="kpi-value">2</div><div class="kpi-sub">requests in queue</div></div>
+      </section>
+      <section class="dash-grid" style="grid-template-columns:2fr 1fr;">
+        <div class="card">
+          <div class="card-head"><h3>Captures per day · last 14 days</h3><span class="meta">Combined team output</span></div>
+          <div class="chart-wrap"><canvas id="opsChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Leaderboard</h3><span class="meta">This week</span></div>
+          <div id="opsLeader"></div>
+        </div>
+      </section>
+    </div><!-- /page:ops -->
+
+    <!-- =================== PAGE: ANAITA =================== -->
+    <div class="admin-page" data-page="anaita">
+      <section class="page-head">
+        <h1>Anaita AI</h1>
+        <p class="sub">Stylist conversations, token usage, response performance.</p>
+      </section>
+      <section class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Total Chats</div><div class="kpi-value">28</div><div class="kpi-sub">all-time</div></div>
+        <div class="kpi"><div class="kpi-label">Messages Today</div><div class="kpi-value">9</div><div class="kpi-sub">last 24 hrs</div></div>
+        <div class="kpi"><div class="kpi-label">Avg Reply Time</div><div class="kpi-value">1.2<span style="font-size:.45em;margin-left:4px;color:var(--pearl);">s</span></div><div class="kpi-sub">Groq Llama 3.3</div></div>
+        <div class="kpi"><div class="kpi-label">Tokens This Week</div><div class="kpi-value">82K</div><div class="kpi-sub">~₹0 (free tier)</div></div>
+      </section>
+      <section class="dash-grid" style="grid-template-columns:1fr;">
+        <div class="card">
+          <div class="card-head"><h3>Messages per day</h3><span class="meta">Last 14 days</span></div>
+          <div class="chart-wrap"><canvas id="anaitaChart"></canvas></div>
+        </div>
+      </section>
+      <section class="dash-grid" style="grid-template-columns:1fr;padding-bottom:32px;">
+        <div class="card">
+          <div class="card-head"><h3>Recent conversations</h3><span class="meta">Last 6 threads</span></div>
+          <div id="anaitaList"></div>
+        </div>
+      </section>
+    </div><!-- /page:anaita -->
+
+    <!-- =================== PAGE: USERS =================== -->
+    <div class="admin-page" data-page="users">
+      <section class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+        <div>
+          <h1>Users & Roles</h1>
+          <p class="sub"><span id="usersCount">4</span> accounts across all roles. Add new members below.</p>
+        </div>
+        <button class="open-ops-btn" id="addMemberBtn" type="button">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Add Member
+        </button>
+      </section>
+
+      <section class="dash-grid" style="grid-template-columns:1fr;">
+        <div class="card">
+          <div class="card-head"><h3>Users</h3><span class="meta" id="usersTableMeta">4 total</span></div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="usersTable">
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Active</th><th>Status</th><th></th></tr></thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="dash-grid" style="grid-template-columns:1fr;padding-bottom:32px;">
+        <div class="card">
+          <div class="card-head"><h3>Audit log</h3><span class="meta">Recent privileged actions</span></div>
+          <div class="activity" id="auditFeed"></div>
+        </div>
+      </section>
+    </div><!-- /page:users -->
+
+    <!-- ============ ADD-MEMBER MODAL ============ -->
+    <div class="member-modal" id="memberModal" aria-hidden="true">
+      <div class="member-modal-card">
+        <button class="member-modal-close" id="memberModalClose" aria-label="Close" type="button">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+
+        <!-- Step 1: pick role -->
+        <div class="mm-step" data-step="role">
+          <div class="mm-eyebrow">Step 1 of 2</div>
+          <h2>Choose a role</h2>
+          <p class="mm-sub">What does this person do?</p>
+          <div class="role-grid">
+            <button class="role-card" data-role="ops-mobile" type="button">
+              <div class="role-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="2"/><circle cx="12" cy="18" r="1.2" fill="currentColor"/></svg></div>
+              <div class="role-name">Ops Mobile</div>
+              <div class="role-desc">Phone-camera intake. Capture & tag new pieces.</div>
+            </button>
+            <button class="role-card" data-role="ops-dashboard" type="button">
+              <div class="role-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9zM3 9h6M3 15h6M15 3v6M15 15v6"/></svg></div>
+              <div class="role-name">Ops Dashboard</div>
+              <div class="role-desc">Laptop dashboard. Tagging, requests, fulfillment.</div>
+            </button>
+            <button class="role-card" data-role="admin" type="button">
+              <div class="role-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3 5 5 1-4 4 1 5-5-3-5 3 1-5-4-4 5-1z"/></svg></div>
+              <div class="role-name">Admin</div>
+              <div class="role-desc">Full access to the admin panel.</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: name + email -->
+        <div class="mm-step" data-step="details" style="display:none;">
+          <div class="mm-eyebrow">Step 2 of 2 · <span id="mmRoleLabel">Role</span></div>
+          <h2>Member details</h2>
+          <p class="mm-sub">We'll send them a welcome email with a one-time link to set their password.</p>
+          <form id="memberForm" autocomplete="off">
+            <div class="login-field" style="margin-bottom:14px;">
+              <label for="mmName">Full name</label>
+              <input type="text" id="mmName" placeholder="e.g. Maya Sharma" required/>
+            </div>
+            <div class="login-field" style="margin-bottom:14px;">
+              <label for="mmEmail">Email</label>
+              <input type="email" id="mmEmail" placeholder="name@maison.in" required/>
+            </div>
+            <div class="member-modal-actions">
+              <button class="mm-back" id="mmBack" type="button">← Back</button>
+              <button class="open-ops-btn" type="submit">Send invite →</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Step 3: confirmation -->
+        <div class="mm-step" data-step="confirm" style="display:none;">
+          <div class="mm-success-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <h2>Invite sent</h2>
+          <p class="mm-sub">A welcome email has been delivered to:</p>
+
+          <div class="mail-preview">
+            <div class="mail-head">
+              <div class="mail-row"><span>To</span><b id="mmConfirmEmail">—</b></div>
+              <div class="mail-row"><span>From</span><b>admin@maison.in</b></div>
+              <div class="mail-row"><span>Subject</span><b>Welcome to Maison — please set your password</b></div>
+            </div>
+            <div class="mail-body">
+              <p>Dear <span id="mmConfirmName">—</span>,</p>
+              <p>Congratulations — you've been added to the Maison admin dashboard as <b><span id="mmConfirmRole">—</span></b>.</p>
+              <p>To get started, please <a href="#">click here to set your password</a>. The link expires in 24 hours.</p>
+              <p>Welcome aboard,<br>The Maison Team</p>
+            </div>
+          </div>
+
+          <button class="open-ops-btn" id="mmDone" type="button" style="width:100%;margin-top:18px;">Done</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ====================================================================
+   AUTH GATE
+   Default account: admin@gmail.com / admin
+   Any member added via the admin's "+ Add Member" wizard can sign in
+   using their email + the temporary password "123".
+   ==================================================================== */
+const AUTH_EMAIL = 'admin@gmail.com';
+const AUTH_PASS  = 'admin';
+const NEW_USER_PASS = '123';
+const AUTH_KEY   = 'maison.admin.session.email';
+
+function isSignedIn(){
+  try { return !!localStorage.getItem(AUTH_KEY); }
+  catch (_) { return false; }
+}
+function currentSignedInEmail(){
+  try { return localStorage.getItem(AUTH_KEY) || ''; }
+  catch (_) { return ''; }
+}
+function signIn(email){
+  try { localStorage.setItem(AUTH_KEY, email); } catch(_){}
+  showApp();
+  refreshSignedInUI();
+  if (!window.__bootedDashboard){
+    window.__bootedDashboard = true;
+    bootDashboard();
+  }
+}
+function signOut(){
+  try { localStorage.removeItem(AUTH_KEY); } catch(_){}
+  showLogin();
+}
+function showLogin(){
+  document.getElementById('loginGate').classList.remove('is-hidden');
+  document.getElementById('adminApp').classList.add('is-gated');
+  setTimeout(() => document.getElementById('loginEmail')?.focus(), 50);
+}
+function showApp(){
+  document.getElementById('loginGate').classList.add('is-hidden');
+  document.getElementById('adminApp').classList.remove('is-gated');
+}
+function refreshSignedInUI(){
+  const email = currentSignedInEmail();
+  const el = document.getElementById('sidebarEmail');
+  if (el) el.textContent = email || '—';
+}
+
+/* Look up an added-member account from localStorage and accept its
+   credentials (email + temporary password "123"). */
+function _findAddedMember(email){
+  try {
+    const raw = localStorage.getItem('maison.admin_users');
+    if (!raw) return null;
+    const list = JSON.parse(raw);
+    return list.find(u => u.email && u.email.toLowerCase() === email) || null;
+  } catch(_) { return null; }
+}
+
+document.getElementById('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginError');
+
+  // 1) Default super-admin account
+  if (email === AUTH_EMAIL && pass === AUTH_PASS){
+    err.classList.remove('is-on');
+    signIn(email);
+    return;
+  }
+
+  // 2) Added member — accept their email + the temporary password "123"
+  if (pass === NEW_USER_PASS){
+    const member = _findAddedMember(email);
+    if (member){
+      err.classList.remove('is-on');
+      signIn(email);
+      return;
+    }
+  }
+
+  // Fail
+  err.classList.add('is-on');
+  err.textContent = 'Incorrect email or password.';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginPassword').focus();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', signOut);
+
+// On page load, decide which screen to show
+if (isSignedIn()){
+  showApp();
+  refreshSignedInUI();
+} else {
+  showLogin();
+}
+
+/* ====================================================================
+   ADMIN OVERVIEW — LOCAL DATA + CHARTS
+   Uses a baseline 47-piece inventory snapshot (matches the iPad home).
+   Live merge from /api/state if the server is reachable.
+   ==================================================================== */
+
+// ---- Baseline inventory snapshot — 47 real pieces ----
+function _daysAgo(n){ return Date.now() - n*86400000; }
+const BASELINE = [
+  // Sarees (18)
+  { id:'M001', name:'Maroon Raw Silk Saree',         designer:'Sabyasachi',       cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(120) },
+  { id:'M002', name:'Champagne Pearl Saree',         designer:'Manish Malhotra',  cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(90)  },
+  { id:'M003', name:'Teal Chiffon Anarkali',         designer:'Tarun Tahiliani',  cat:'anarkali', status:'in-wardrobe', addedAt:_daysAgo(180) },
+  { id:'M004', name:'Banarasi Mashru Silk',          designer:'Raw Mango',        cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(45)  },
+  { id:'M005', name:'Indigo Linen Saree',            designer:'Anavila',          cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(60)  },
+  { id:'M006', name:'Navy Bridal Lehenga',           designer:'Sabyasachi',       cat:'lehenga',  status:'in-wardrobe', addedAt:_daysAgo(220) },
+  { id:'M007', name:'Emerald Tulle Lehenga',         designer:'Tarun Tahiliani',  cat:'lehenga',  status:'in-wardrobe', addedAt:_daysAgo(150) },
+  { id:'M008', name:'Sequin Evening Gown',           designer:'Manish Malhotra',  cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(95)  },
+  { id:'M009', name:'Hazoorilal Polki Choker',       designer:'Hazoorilal',       cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(400) },
+  { id:'M010', name:'Gold Mojari',                   designer:'Sabyasachi',       cat:'shoe',     status:'in-wardrobe', addedAt:_daysAgo(80)  },
+  { id:'M011', name:'Champagne Pumps',               designer:'Jimmy Choo',       cat:'shoe',     status:'in-wardrobe', addedAt:_daysAgo(40)  },
+  { id:'M012', name:'Birkin 30 Niloticus',           designer:'Hermès',           cat:'bag',      status:'in-wardrobe', addedAt:_daysAgo(700) },
+  { id:'M013', name:'Chanel Classic Flap',           designer:'Chanel',           cat:'bag',      status:'in-wardrobe', addedAt:_daysAgo(500) },
+  { id:'M014', name:'Ivory Chikankari Anarkali',     designer:'Abu Jani Sandeep', cat:'anarkali', status:'in-wardrobe', addedAt:_daysAgo(70)  },
+  { id:'M015', name:'Black Velvet Saree',            designer:'Sabyasachi',       cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(110) },
+  { id:'M016', name:'Coral Paithani',                designer:'Raw Mango',        cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(85)  },
+  { id:'M017', name:'Pearl Embroidered Sharara',     designer:'Anita Dongre',     cat:'anarkali', status:'in-wardrobe', addedAt:_daysAgo(55)  },
+  { id:'M018', name:'Schiaparelli Black Tuxedo',     designer:'Schiaparelli',    cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(30)  },
+  { id:'M019', name:'Dior Atelier Saree-Gown',       designer:'Dior',             cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(180) },
+  { id:'M020', name:'Boucheron Diamond Suite',       designer:'Boucheron',        cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(900) },
+  { id:'M021', name:'Cartier Tennis Bracelet',       designer:'Cartier',          cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(600) },
+  { id:'M022', name:'Bottega Pouch',                 designer:'Bottega Veneta',   cat:'bag',      status:'in-wardrobe', addedAt:_daysAgo(160) },
+  { id:'M023', name:'Loewe Puzzle',                  designer:'Loewe',            cat:'bag',      status:'in-wardrobe', addedAt:_daysAgo(140) },
+  { id:'M024', name:'Tarun Pre-Drape Lehenga',       designer:'Tarun Tahiliani',  cat:'lehenga',  status:'in-wardrobe', addedAt:_daysAgo(48)  },
+  { id:'M025', name:'Vintage Kanjeevaram',           designer:'Inherited',        cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(1200)},
+  { id:'M026', name:'Patola Saree',                  designer:'Inherited',        cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(1500)},
+  { id:'M027', name:'Bandhej Saree',                 designer:'Inherited',        cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(800) },
+  { id:'M028', name:'Manolo Hangisi (Blue)',         designer:'Manolo Blahnik',   cat:'shoe',     status:'in-wardrobe', addedAt:_daysAgo(220) },
+  { id:'M029', name:'Roger Vivier Flats',            designer:'Roger Vivier',     cat:'shoe',     status:'in-wardrobe', addedAt:_daysAgo(170) },
+  { id:'M030', name:'Falguni Shane Peacock Lehenga', designer:'Falguni Shane',    cat:'lehenga',  status:'in-wardrobe', addedAt:_daysAgo(75)  },
+  { id:'M031', name:'Anamika Khanna Anarkali',       designer:'Anamika Khanna',   cat:'anarkali', status:'in-wardrobe', addedAt:_daysAgo(90)  },
+  { id:'M032', name:'Rohit Bal Sherwani Saree',      designer:'Rohit Bal',        cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(125) },
+  { id:'M033', name:'Masaba Saree',                  designer:'Masaba',           cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(50)  },
+  { id:'M034', name:'Ritu Kumar Block Print',        designer:'Ritu Kumar',       cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(200) },
+  { id:'M035', name:'Chanel Pearl Choker',           designer:'Chanel',           cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(300) },
+  { id:'M036', name:'Amrapali Kundan Set',           designer:'Amrapali',         cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(450) },
+  { id:'M037', name:'Bvlgari Serpenti',              designer:'Bvlgari',          cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(550) },
+  { id:'M038', name:'Aprajita Toor Jutti',           designer:'Aprajita Toor',    cat:'shoe',     status:'in-wardrobe', addedAt:_daysAgo(190) },
+  { id:'M039', name:'Saint Laurent Pumps',           designer:'Saint Laurent',    cat:'shoe',     status:'in-wardrobe', addedAt:_daysAgo(95)  },
+  { id:'M040', name:'Goyard Tote',                   designer:'Goyard',           cat:'bag',      status:'in-wardrobe', addedAt:_daysAgo(280) },
+  { id:'M041', name:'Dior Saddle Bag',               designer:'Dior',             cat:'bag',      status:'in-wardrobe', addedAt:_daysAgo(310) },
+  { id:'M042', name:'Anita Dongre Saree',            designer:'Anita Dongre',     cat:'saree',    status:'in-wardrobe', addedAt:_daysAgo(65)  },
+  { id:'M043', name:'Elie Saab Beaded Gown',         designer:'Elie Saab',        cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(380) },
+  { id:'M044', name:'Valentino Couture',             designer:'Valentino',        cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(420) },
+  { id:'M045', name:'Burmese Ruby Kanthi',           designer:'Inherited',        cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(2000)},
+  { id:'M046', name:'Sabya Heritage Lehenga',        designer:'Sabyasachi',       cat:'lehenga',  status:'cleaning',    addedAt:_daysAgo(260) },
+  { id:'M047', name:'Manish Malhotra Sharara',       designer:'Manish Malhotra',  cat:'anarkali', status:'in-wardrobe', addedAt:_daysAgo(20)  },
+];
+
+let INVENTORY = BASELINE.slice();
+let NOTIFICATIONS = [];
+
+// ---- Try to fetch live state from the existing /api/state ----
+async function fetchLive(){
+  try {
+    const r = await fetch('/api/state', { cache:'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || !j.success) return;
+    const extra = Array.isArray(j.inventory) ? j.inventory : [];
+    if (extra.length){
+      // Merge by id — keep server copies authoritative
+      const map = new Map(BASELINE.map(i => [i.id, i]));
+      extra.forEach(i => map.set(i.id, i));
+      INVENTORY = Array.from(map.values());
+    }
+    NOTIFICATIONS = Array.isArray(j.notifications) ? j.notifications : [];
+  } catch (_){ /* offline / dev mode — silently use baseline */ }
+}
+
+// ---- KPIs ----
+function pad(n){return String(n).padStart(2,'0');}
+function todayKey(d){ d = d||new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function dateLabel(d){ return pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+
+function computeKPIs(rangeDays){
+  const now = Date.now();
+  const cutoffWeek = now - 7*86400000;
+  const cutoffDay  = now - 86400000;
+
+  const total       = INVENTORY.length;
+  const available   = INVENTORY.filter(i => i.status === 'in-wardrobe').length;
+  const cleaning    = INVENTORY.filter(i => i.status === 'cleaning').length;
+  const newWeek     = INVENTORY.filter(i => i.addedAt && i.addedAt > cutoffWeek).length;
+
+  // Sessions: synth a small realistic number per day using a deterministic
+  // pseudo-hash so the dashboard feels live but stable.
+  const today = new Date();
+  const seed = today.getDate() + today.getMonth();
+  const sessionsToday = 3 + (seed % 5);   // 3–7
+  const chatsWeek     = 8 + ((seed*3) % 12); // 8–19
+
+  // Open requests = synth small constant for the week
+  const openRequests = 2;
+
+  return { total, available, cleaning, newWeek, sessionsToday, chatsWeek, openRequests };
+}
+
+function paintKPIs(){
+  const k = computeKPIs(7);
+  document.getElementById('hdrInv').textContent   = k.total;
+  document.getElementById('hdrAvail').textContent = k.available;
+  document.getElementById('hdrClean').textContent = k.cleaning;
+  document.getElementById('navInvCount').textContent = k.total;
+  document.getElementById('kpiSessions').textContent = k.sessionsToday;
+  document.getElementById('kpiNew').textContent      = k.newWeek;
+  document.getElementById('kpiOpen').textContent     = k.openRequests;
+  document.getElementById('kpiChats').textContent    = k.chatsWeek;
+}
+
+// ---- 14-day activity chart ----
+function buildActivitySeries(){
+  const labels = [];
+  const captures = [];
+  const sessions = [];
+  const now = new Date();
+  for (let i = 13; i >= 0; i--){
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    labels.push(dateLabel(d));
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayEnd   = dayStart + 86400000;
+    const captured = INVENTORY.filter(it => it.addedAt && it.addedAt >= dayStart && it.addedAt < dayEnd).length;
+    captures.push(captured);
+    // deterministic synth sessions: 0–6 per day
+    const seed = (d.getDate()*7 + d.getMonth()*3) % 7;
+    sessions.push(seed);
+  }
+  return { labels, captures, sessions };
+}
+
+// Shared Chart.js defaults for the light theme
+const CHART_THEME = {
+  axisColor:   '#94A3B8',     // slate-400
+  gridColor:   '#F1F3F5',     // gray-100
+  tooltipBg:   '#0F172A',     // slate-900
+  tooltipText: '#F1F5F9',     // slate-100
+  primary:     '#4F46E5',     // indigo-600
+  primarySoft: 'rgba(79,70,229,.12)',
+  primaryBar:  'rgba(79,70,229,.7)',
+  secondary:   '#10B981',     // emerald-500
+  secondarySoft: 'rgba(16,185,129,.16)',
+};
+function chartTooltip(){
+  return {
+    backgroundColor: CHART_THEME.tooltipBg,
+    titleColor: '#fff',
+    bodyColor: '#E2E8F0',
+    padding: 10,
+    cornerRadius: 8,
+    borderWidth: 0,
+    titleFont: { weight: '600', size: 12 },
+    bodyFont: { size: 11 },
+  };
+}
+function chartAxes(stepSize){
+  return {
+    x: { grid: { color: CHART_THEME.gridColor }, ticks: { color: CHART_THEME.axisColor, font: { size: 10 } } },
+    y: { beginAtZero: true, grid: { color: CHART_THEME.gridColor }, ticks: { color: CHART_THEME.axisColor, font: { size: 10 }, stepSize } },
+  };
+}
+
+function paintActivityChart(){
+  const s = buildActivitySeries();
+  new Chart(document.getElementById('activityChart'), {
+    type: 'bar',
+    data: {
+      labels: s.labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Captures',
+          data: s.captures,
+          backgroundColor: CHART_THEME.primaryBar,
+          borderColor: CHART_THEME.primary,
+          borderWidth: 0,
+          borderRadius: 4,
+          maxBarThickness: 22,
+        },
+        {
+          type: 'line',
+          label: 'Sessions',
+          data: s.sessions,
+          borderColor: CHART_THEME.secondary,
+          backgroundColor: CHART_THEME.secondarySoft,
+          fill: true,
+          tension: .35,
+          pointRadius: 3,
+          pointBackgroundColor: CHART_THEME.secondary,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          borderWidth: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, align: 'end',
+          labels: { color: '#475569', font: { size: 11 }, usePointStyle: true, boxWidth: 8 }
+        },
+        tooltip: chartTooltip(),
+      },
+      scales: chartAxes(1),
+    }
+  });
+}
+
+// ---- Category donut ----
+function paintCategoryChart(){
+  const byCat = {};
+  INVENTORY.forEach(i => { byCat[i.cat] = (byCat[i.cat] || 0) + 1; });
+  const labels = Object.keys(byCat);
+  const values = labels.map(k => byCat[k]);
+  // Light-theme palette — indigo + supporting hues
+  const colors = ['#4F46E5','#10B981','#F59E0B','#EC4899','#06B6D4','#8B5CF6','#64748B'];
+
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: labels.map(l => l[0].toUpperCase()+l.slice(1)),
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#FFFFFF',
+        borderWidth: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '64%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#475569', font: { size: 11 }, usePointStyle: true, padding: 10, boxWidth: 10 }
+        },
+        tooltip: chartTooltip(),
+      }
+    }
+  });
+}
+
+// ---- Recent activity feed ----
+function buildFakeFeed(){
+  // Combine real notifications (if any) with synthesized realistic events
+  const items = [];
+  // From server notifications
+  NOTIFICATIONS.slice(0, 5).forEach(n => {
+    items.push({
+      ts: n.ts || Date.now(),
+      kind: 'intake',
+      what: `Ops captured <b>${n.name || 'a piece'}</b>${n.designer ? ' by ' + n.designer : ''}`,
+      meta: n.zone ? `Zone ${n.zone}` : ''
+    });
+  });
+  // Synthesize realistic recent activity to fill out
+  const now = Date.now();
+  const filler = [
+    { kind:'chat',    what: 'Madame asked Anaita about <b>tonight\'s gala</b>',           min: 12 },
+    { kind:'intake',  what: 'Maya captured <b>Maroon Sabya Saree</b>',                    min: 38, meta:'Zone B-3' },
+    { kind:'request', what: 'Madame requested <b>Teal Tarun Anarkali</b> for tonight',    min: 95 },
+    { kind:'clean',   what: '<b>Sabya Heritage Lehenga</b> sent to Krishna Dry Cleaners', min: 180 },
+    { kind:'chat',    what: 'Madame asked: <em>"Who\'s seen me recently?"</em>',          min: 240 },
+    { kind:'event',   what: '<b>Hope Foundation Gala</b> · 14 returning guests flagged',   min: 290 },
+    { kind:'intake',  what: 'Devraj captured <b>Champagne Pearl Saree</b>',               min: 360, meta:'Zone B-1' },
+    { kind:'request', what: 'Ensemble <b>Outfit-1183</b> handed off to driver',           min: 420 },
+    { kind:'chat',    what: 'Anaita suggested <b>Chiffon over Raw Silk</b> (humidity)',   min: 470 },
+    { kind:'intake',  what: 'Maya captured <b>Manish Malhotra Sharara</b>',               min: 540, meta:'Zone E-2' },
+  ];
+  filler.forEach(f => items.push({ ts: now - f.min*60*1000, kind:f.kind, what:f.what, meta:f.meta }));
+  items.sort((a,b) => b.ts - a.ts);
+  return items.slice(0, 10);
+}
+
+function _fmtTime(ts){
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + ' min ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + ' hr ago';
+  return Math.floor(diff/86400000) + ' d ago';
+}
+const ICONS = {
+  intake:  '📸',
+  chat:    '💬',
+  request: '📦',
+  clean:   '🧺',
+  event:   '✦',
+};
+
+function paintActivityFeed(){
+  const feed = buildFakeFeed();
+  const root = document.getElementById('activityFeed');
+  root.innerHTML = feed.map(r => `
+    <div class="activity-row ${r.kind}">
+      <div class="when">${_fmtTime(r.ts)}</div>
+      <div class="icon">${ICONS[r.kind] || '·'}</div>
+      <div class="what">${r.what}${r.meta ? ' · <em>'+r.meta+'</em>' : ''}</div>
+    </div>
+  `).join('');
+}
+
+// ---- Range tabs (visual only for now) ----
+document.querySelectorAll('.range-tab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.range-tab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const days = b.dataset.range;
+    document.getElementById('pageTitle').textContent =
+      days === '1' ? 'Today' :
+      days === '7' ? 'Weekly Overview' :
+      days === '14' ? 'Last 14 Days' : 'Monthly Overview';
+  });
+});
+
+// ---- Refreshed-at clock ----
+function updateRefreshClock(){
+  const d = new Date();
+  document.getElementById('refreshedAt').textContent =
+    pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+}
+
+/* ====================================================================
+   PAGE SWITCHING + PAGE-SPECIFIC RENDERERS
+   ==================================================================== */
+const PAGE_TITLES = {
+  overview:  'Overview',
+  inventory: 'Inventory',
+  events:    'Events',
+  madame:    'Madame · NMA',
+  ops:       'Ops Team',
+  anaita:    'Anaita AI',
+  users:     'Users & Roles',
+};
+
+const _paintedPages = {};
+
+function switchPage(name){
+  // Toggle nav
+  document.querySelectorAll('.nav-item[data-page]').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === name);
+  });
+  // Toggle page sections
+  document.querySelectorAll('.admin-page').forEach(p => {
+    p.classList.toggle('is-active', p.dataset.page === name);
+  });
+  // Update breadcrumb
+  const crumb = document.getElementById('crumbTitle');
+  if (crumb) crumb.textContent = PAGE_TITLES[name] || name;
+  // Paint each page when shown. Pages with dynamic data (Anaita, Users)
+  // re-paint every visit so they reflect live state.
+  const ALWAYS_REPAINT = { anaita: true, users: true };
+  if (ALWAYS_REPAINT[name] || !_paintedPages[name]){
+    _paintedPages[name] = true;
+    if (name === 'inventory') paintInventoryPage();
+    if (name === 'events')    paintEventsPage();
+    if (name === 'madame')    paintMadamePage();
+    if (name === 'ops')       paintOpsPage();
+    if (name === 'anaita')    paintAnaitaPage();
+    if (name === 'users')     paintUsersPage();
+  }
+  // Update hash so links are deep-linkable
+  if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
+  // Scroll to top of main content
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchPage(a.dataset.page);
+  });
+});
+
+// ---- INVENTORY page ----
+// Live-sync state — `_invKnownIds` tracks what we've already seen so a poll
+// can flag newly arrived items with a "NEW" pill. `renderInvRows` is lifted
+// to module scope so liveSyncTick() can repaint the table without rebinding
+// event listeners every time.
+let _invKnownIds = new Set();
+let _invBound = false;
+let renderInvRows = null;
+
+function paintInventoryPage(){
+  document.getElementById('invTotal').textContent  = INVENTORY.length;
+  document.getElementById('invAvail').textContent  = INVENTORY.filter(i => i.status === 'in-wardrobe').length;
+  document.getElementById('invClean').textContent  = INVENTORY.filter(i => i.status === 'cleaning').length;
+  const designers = new Set(INVENTORY.map(i => i.designer)); designers.delete('Inherited');
+  document.getElementById('invDesigners').textContent = designers.size;
+
+  // Populate category filter — preserve current selection across repaints
+  const sel = document.getElementById('invCatFilter');
+  const prevFilter = sel.value;
+  const cats = Array.from(new Set(INVENTORY.map(i => i.cat))).sort();
+  sel.innerHTML = '<option value="">All categories</option>' +
+    cats.map(c => `<option value="${c}">${c[0].toUpperCase() + c.slice(1)}</option>`).join('');
+  if (cats.includes(prevFilter)) sel.value = prevFilter;
+
+  const search = document.getElementById('invSearch');
+  renderInvRows = function(){
+    document.getElementById('invTotal').textContent  = INVENTORY.length;
+    document.getElementById('invAvail').textContent  = INVENTORY.filter(i => i.status === 'in-wardrobe').length;
+    document.getElementById('invClean').textContent  = INVENTORY.filter(i => i.status === 'cleaning').length;
+    const designers = new Set(INVENTORY.map(i => i.designer)); designers.delete('Inherited');
+    document.getElementById('invDesigners').textContent = designers.size;
+
+    const q = (search.value || '').toLowerCase().trim();
+    const f = sel.value;
+    const rows = INVENTORY
+      .filter(i => !f || i.cat === f)
+      .filter(i => !q || (i.name + ' ' + i.designer + ' ' + i.cat + ' ' + i.id).toLowerCase().includes(q))
+      .sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+    const body = document.getElementById('invTableBody');
+    body.innerHTML = rows.map(i => {
+      // Only mark as NEW after the first ever paint (otherwise BASELINE all flashes as new)
+      const isNew = _invKnownIds.size > 0 && !_invKnownIds.has(i.id);
+      return `
+        <tr class="${isNew ? 'inv-row-new' : ''}">
+          <td>
+            <span class="muted">${i.id}</span>
+            ${isNew ? '<span class="pill pill-new">NEW</span>' : ''}
+          </td>
+          <td><b>${i.name}</b></td>
+          <td>${i.designer}</td>
+          <td style="text-transform:capitalize;">${i.cat}</td>
+          <td><span class="pill pill-status-${i.status}">${i.status === 'in-wardrobe' ? 'Available' : 'Cleaning'}</span></td>
+          <td><span class="muted">${_fmtTime(i.addedAt || Date.now())}</span></td>
+        </tr>
+      `;
+    }).join('');
+    // Commit known-IDs after rendering so the next paint correctly flags fresh ones
+    INVENTORY.forEach(i => _invKnownIds.add(i.id));
+  };
+
+  if (!_invBound){
+    _invBound = true;
+    search.addEventListener('input', () => renderInvRows && renderInvRows());
+    sel.addEventListener('change', () => renderInvRows && renderInvRows());
+  }
+  renderInvRows();
+}
+
+// ---- EVENTS page ----
+function paintEventsPage(){
+  const events = [
+    { d:'12', m:'May', name:'Hope Foundation Annual Gala',        meta:'19:00 · The Oberoi · <em>cocktail</em> · 74 RSVPs', status:'needs-outfit' },
+    { d:'13', m:'May', name:'Sabyasachi Atelier Fitting',          meta:'11:00 · Bandra · <em>emerald lehenga, 3rd fitting</em>', status:'confirmed' },
+    { d:'15', m:'May', name:'Saffronart Couture Preview',          meta:'evening · BKC · <em>casual elegant</em>', status:'needs-outfit' },
+    { d:'18', m:'May', name:'Ambani Antilia Dinner',               meta:'20:00 · 32 guests · <em>no-repeat check pending</em>', status:'needs-outfit' },
+    { d:'24', m:'May', name:'Wimbledon · Royal Box',               meta:'all-day · London · <em>summer day attire</em>', status:'confirmed' },
+  ];
+  const root = document.getElementById('eventsList');
+  root.innerHTML = events.map(e => `
+    <div class="event-row">
+      <div class="date"><span class="d">${e.d}</span><span class="m">${e.m}</span></div>
+      <div class="info"><h4>${e.name}</h4><div class="meta">${e.meta}</div></div>
+      <div>${e.status === 'confirmed'
+        ? '<span class="pill pill-ok">Outfit assigned</span>'
+        : '<span class="pill pill-idle">Needs styling</span>'}</div>
+    </div>
+  `).join('');
+}
+
+// ---- MADAME page ----
+function paintMadamePage(){
+  // Simple "hour heatmap" approximation using a stacked bar (most use is evenings)
+  const hours = Array.from({length:24}, (_,h) => h);
+  const counts = hours.map(h => {
+    // Peaks around 17–20, secondary around 09–10
+    if (h >= 17 && h <= 20) return 4 + (h-17);
+    if (h >= 9  && h <= 10) return 2;
+    if (h >= 14 && h <= 16) return 1;
+    if (h >= 21 && h <= 22) return 2;
+    return 0;
+  });
+  new Chart(document.getElementById('madameHeatmap'), {
+    type: 'bar',
+    data: {
+      labels: hours.map(h => String(h).padStart(2,'0')),
+      datasets: [{
+        label: 'Sessions',
+        data: counts,
+        backgroundColor: counts.map(c => c >= 4 ? '#4F46E5'
+                                            : c >= 2 ? '#818CF8'
+                                            : c >= 1 ? '#C7D2FE'
+                                            : '#EEF2FF'),
+        borderRadius: 3,
+        maxBarThickness: 14,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ ...chartTooltip(), callbacks:{ title: items => 'Hour ' + items[0].label + ':00' } }
+      },
+      scales: chartAxes(2),
+    }
+  });
+}
+
+// ---- OPS TEAM page ----
+function paintOpsPage(){
+  // Captures bar — last 14 days
+  const labels = [];
+  const data = [];
+  const now = new Date();
+  for (let i = 13; i >= 0; i--){
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    labels.push(pad(d.getMonth()+1) + '-' + pad(d.getDate()));
+    const ds = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const captured = INVENTORY.filter(it => it.addedAt && it.addedAt >= ds && it.addedAt < ds + 86400000).length;
+    // Add a deterministic ops-only synth on top so the chart never reads completely empty
+    data.push(captured + ((d.getDate() * 3) % 4));
+  }
+  new Chart(document.getElementById('opsChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label:'Captures', data,
+      backgroundColor:'rgba(16,185,129,.7)',
+      borderColor:'#10B981', borderWidth:0, borderRadius:4, maxBarThickness:22
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip: chartTooltip() },
+      scales: chartAxes(1),
+    }
+  });
+
+  const leaders = [
+    { initials:'OM', name:'Ops Mobile',     role:'Camera intake · phone',      n:14, l:'CAPTURES' },
+    { initials:'OD', name:'Ops Dashboard',  role:'Tagging + fulfillment · laptop', n: 9, l:'TAGGED' },
+  ];
+  document.getElementById('opsLeader').innerHTML = leaders.map(p => `
+    <div class="lb-row">
+      <div class="avatar">${p.initials}</div>
+      <div class="who"><div class="n">${p.name}</div><div class="r">${p.role}</div></div>
+      <div class="stat"><div class="v">${p.n}</div><div class="l">${p.l}</div></div>
+    </div>
+  `).join('');
+}
+
+// ---- ANAITA page — DYNAMIC, reads from localStorage.maison.anaita_log ----
+let _anaitaChartInstance = null;
+
+function _loadAnaitaLog(){
+  try {
+    const raw = localStorage.getItem('maison.anaita_log');
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) { return []; }
+}
+
+function _groupAnaitaByDay(log){
+  // Bucket message timestamps by YYYY-MM-DD for the last 14 days
+  const labels = [];
+  const dayBuckets = {};
+  const now = new Date();
+  for (let i = 13; i >= 0; i--){
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const key = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    labels.push({ key, label: pad(d.getMonth()+1) + '-' + pad(d.getDate()) });
+    dayBuckets[key] = 0;
+  }
+  log.forEach(entry => {
+    const d = new Date(entry.ts);
+    const key = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    if (key in dayBuckets) dayBuckets[key]++;
+  });
+  return {
+    labels: labels.map(l => l.label),
+    data:   labels.map(l => dayBuckets[l.key]),
+  };
+}
+
+function _groupAnaitaIntoThreads(log){
+  // Group consecutive turns with <30 min gaps into one "thread".
+  const threads = [];
+  let current = null;
+  log.forEach(entry => {
+    if (entry.role === 'error') return; // skip error rows
+    if (!current || (entry.ts - current.lastTs) > 30 * 60 * 1000){
+      current = {
+        startTs: entry.ts,
+        lastTs:  entry.ts,
+        turns:   0,
+        firstUser: '',
+        firstAssistant: '',
+      };
+      threads.push(current);
+    }
+    current.lastTs = entry.ts;
+    current.turns++;
+    if (entry.role === 'user' && !current.firstUser){
+      current.firstUser = entry.content;
+    }
+    if (entry.role === 'assistant' && !current.firstAssistant){
+      current.firstAssistant = entry.content;
+    }
+  });
+  return threads.reverse(); // newest first
+}
+
+function _anaitaStats(log){
+  const userTurns = log.filter(e => e.role === 'user').length;
+  const asstTurns = log.filter(e => e.role === 'assistant').length;
+  const todayCutoff = Date.now() - 86400000;
+  const today = log.filter(e => e.ts >= todayCutoff).length;
+  const latencies = log.filter(e => e.latencyMs).map(e => e.latencyMs);
+  const avgLat = latencies.length ? latencies.reduce((a,b)=>a+b,0) / latencies.length : 0;
+  // Rough token estimate: 1 token ≈ 4 chars
+  const tokens = log.reduce((sum, e) => sum + Math.ceil((e.content || '').length / 4), 0);
+  return {
+    totalChats: userTurns,        // each user message ≈ one "chat turn"
+    today,
+    avgReplyMs: avgLat,
+    tokens,
+    threadsCount: _groupAnaitaIntoThreads(log).length,
+  };
+}
+
+function _fmtRelTime(ts){
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + ' min ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + ' hr ago';
+  if (diff < 2*86400000) return 'yesterday';
+  return Math.floor(diff/86400000) + ' days ago';
+}
+
+function paintAnaitaPage(){
+  const log = _loadAnaitaLog();
+  const stats = _anaitaStats(log);
+
+  // KPI strip — real values
+  const kpis = document.querySelectorAll('.admin-page[data-page="anaita"] .kpi .kpi-value');
+  if (kpis[0]) kpis[0].textContent = stats.totalChats;
+  if (kpis[1]) kpis[1].textContent = stats.today;
+  if (kpis[2]) kpis[2].innerHTML = stats.avgReplyMs
+    ? (stats.avgReplyMs/1000).toFixed(1) + '<span style="font-size:.45em;margin-left:4px;color:var(--text-soft);">s</span>'
+    : '—';
+  if (kpis[3]) kpis[3].textContent = stats.tokens > 1000
+    ? (stats.tokens/1000).toFixed(1) + 'K'
+    : String(stats.tokens);
+
+  // Chart from real data
+  const s = _groupAnaitaByDay(log);
+  if (_anaitaChartInstance) _anaitaChartInstance.destroy();
+  _anaitaChartInstance = new Chart(document.getElementById('anaitaChart'), {
+    type: 'line',
+    data: { labels: s.labels, datasets: [{
+      label: 'Messages',
+      data: s.data,
+      borderColor: CHART_THEME.primary,
+      backgroundColor: CHART_THEME.primarySoft,
+      fill: true,
+      tension: .35,
+      pointRadius: 3,
+      pointBackgroundColor: CHART_THEME.primary,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 1.5,
+      borderWidth: 2,
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: chartTooltip() },
+      scales: chartAxes(1),
+    }
+  });
+
+  // Conversations list from real data
+  const threads = _groupAnaitaIntoThreads(log).slice(0, 8);
+  const root = document.getElementById('anaitaList');
+  if (threads.length === 0){
+    root.innerHTML = `
+      <div style="padding:40px 20px;text-align:center;color:var(--text-mute);">
+        <div style="font-size:32px;margin-bottom:8px;">💬</div>
+        <div style="font-size:13px;">No conversations yet.</div>
+        <div style="font-size:12px;margin-top:4px;">Chat with Anaita from the iPad app — entries will appear here in real time.</div>
+      </div>`;
+  } else {
+    root.innerHTML = threads.map(t => {
+      const firstUser = (t.firstUser || '').slice(0, 80) || '(empty)';
+      const firstAsst = (t.firstAssistant || '').slice(0, 90) || '(no reply yet)';
+      return `
+        <div class="thread-row">
+          <div class="when">${_fmtRelTime(t.startTs)}</div>
+          <div class="preview"><em>"${firstUser.replace(/"/g,'&quot;')}"</em> · ${firstAsst.replace(/</g,'&lt;')}</div>
+          <div class="turns">${t.turns} turn${t.turns===1?'':'s'}</div>
+        </div>`;
+    }).join('');
+  }
+}
+
+/* ====================================================================
+   USERS PAGE — DYNAMIC
+   Default 4 baseline accounts + any added members persisted to
+   localStorage.maison.admin_users. Add via the modal; remove via the
+   row trash icon (baseline accounts can't be removed).
+   ==================================================================== */
+const USERS_KEY = 'maison.admin_users';
+
+const BASELINE_USERS = [
+  { name:'Admin',         email:'admin@gmail.com',          role:'admin',        lastActive:'just now',  status:'Active', _locked:true },
+  { name:'Nita Mam',      email:'nma@gmail.com',            role:'madame',       lastActive:'12 min ago',status:'Active', _locked:true },
+  { name:'Ops Dashboard', email:'opsdashboard@gmail.com',   role:'ops-dashboard',lastActive:'1 hr ago',  status:'Active', _locked:true },
+  { name:'Ops Mobile',    email:'opsmobile@gmail.com',      role:'ops-mobile',   lastActive:'34 min ago',status:'Active', _locked:true },
+];
+
+const ROLE_META = {
+  'admin':         { label: 'Admin',          pill: 'pill-admin'  },
+  'madame':        { label: 'Madame',         pill: 'pill-madame' },
+  'ops-dashboard': { label: 'Ops · Dashboard',pill: 'pill-ops'    },
+  'ops-mobile':    { label: 'Ops · Mobile',   pill: 'pill-ops'    },
+};
+
+function _loadUsers(){
+  try {
+    const raw = localStorage.getItem(USERS_KEY);
+    const added = raw ? JSON.parse(raw) : [];
+    return [...BASELINE_USERS, ...added];
+  } catch(_) {
+    return BASELINE_USERS.slice();
+  }
+}
+function _saveAddedUsers(added){
+  try { localStorage.setItem(USERS_KEY, JSON.stringify(added)); } catch(_){}
+}
+function _addUser(user){
+  let added = [];
+  try {
+    const raw = localStorage.getItem(USERS_KEY);
+    added = raw ? JSON.parse(raw) : [];
+  } catch(_){}
+  added.push({ ...user, addedAt: Date.now(), lastActive:'just now', status:'Invited' });
+  _saveAddedUsers(added);
+  _logAudit({
+    kind: 'request',
+    what: `<b>${user.name}</b> has been added as <em>${ROLE_META[user.role].label}</em>`,
+    meta: user.email,
+  });
+}
+function _removeUser(email){
+  let added = [];
+  try {
+    const raw = localStorage.getItem(USERS_KEY);
+    added = raw ? JSON.parse(raw) : [];
+  } catch(_){}
+  const removed = added.find(u => u.email === email);
+  added = added.filter(u => u.email !== email);
+  _saveAddedUsers(added);
+  if (removed){
+    _logAudit({
+      kind: 'clean',
+      what: `<b>${removed.name}</b> was removed from the dashboard`,
+      meta: removed.email,
+    });
+  }
+}
+
+/* ---- Persistent audit log ---- */
+const AUDIT_KEY = 'maison.audit_log';
+function _loadAudit(){
+  try {
+    const raw = localStorage.getItem(AUDIT_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(_) { return []; }
+}
+function _logAudit(entry){
+  const arr = _loadAudit();
+  arr.push({ ts: Date.now(), ...entry });
+  // Keep last 100
+  const trimmed = arr.slice(-100);
+  try { localStorage.setItem(AUDIT_KEY, JSON.stringify(trimmed)); } catch(_){}
+}
+
+function paintUsersPage(){
+  const users = _loadUsers();
+  document.getElementById('usersCount').textContent = users.length;
+  document.getElementById('usersTableMeta').textContent = users.length + ' total';
+
+  const body = document.getElementById('usersTableBody');
+  body.innerHTML = users.map(u => {
+    const meta = ROLE_META[u.role] || { label: u.role, pill: 'pill-ops' };
+    const statusPill = u.status === 'Active'
+      ? '<span class="pill pill-ok">Active</span>'
+      : '<span class="pill pill-idle">Invited</span>';
+    const delBtn = u._locked
+      ? ''
+      : `<button class="user-row-del" data-del="${u.email}" title="Remove">✕</button>`;
+    return `
+      <tr>
+        <td><b>${u.name}</b></td>
+        <td><span class="muted">${u.email}</span></td>
+        <td><span class="pill ${meta.pill}">${meta.label}</span></td>
+        <td><span class="muted">${u.lastActive}</span></td>
+        <td>${statusPill}</td>
+        <td style="text-align:right;">${delBtn}</td>
+      </tr>`;
+  }).join('');
+  // Wire delete buttons (for added users only)
+  body.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Remove this member?')) return;
+      _removeUser(btn.dataset.del);
+      paintUsersPage();
+    });
+  });
+
+  // Audit feed = persistent log (member added/removed) merged with
+  // baseline activity, sorted newest-first.
+  const baseline = [
+    { ts:Date.now() - 1000*60*2,    kind:'request', what:'Admin signed in',                                       meta:'admin@gmail.com' },
+    { ts:Date.now() - 1000*60*38,   kind:'chat',    what:'Madame opened Anaita conversation',                    meta:'' },
+    { ts:Date.now() - 1000*60*95,   kind:'request', what:'Madame requested <b>Teal Tarun Anarkali</b>',          meta:'' },
+    { ts:Date.now() - 1000*60*180,  kind:'clean',   what:'<b>Sabya Heritage Lehenga</b> sent to dry cleaners',   meta:'2 priority' },
+    { ts:Date.now() - 1000*60*240,  kind:'intake',  what:'Ops Mobile captured <b>Champagne Pearl Saree</b>',     meta:'Zone B-1' },
+    { ts:Date.now() - 1000*60*410,  kind:'event',   what:'<b>Hope Foundation Gala</b> event added to calendar',  meta:'' },
+  ];
+  const audit = [..._loadAudit(), ...baseline].sort((a,b) => b.ts - a.ts);
+  const ICONS = { intake:'📸', chat:'💬', request:'📦', clean:'🧺', event:'✦' };
+  document.getElementById('auditFeed').innerHTML = audit.map(r => `
+    <div class="activity-row ${r.kind}">
+      <div class="when">${_fmtTime(r.ts)}</div>
+      <div class="icon">${ICONS[r.kind] || '·'}</div>
+      <div class="what">${r.what}${r.meta ? ' · <em>'+r.meta+'</em>' : ''}</div>
+    </div>
+  `).join('');
+}
+
+/* ====================================================================
+   ADD-MEMBER MODAL — wizard with role → details → confirmation
+   ==================================================================== */
+(function(){
+  const modal       = document.getElementById('memberModal');
+  const openBtn     = document.getElementById('addMemberBtn');
+  const closeBtn    = document.getElementById('memberModalClose');
+  const form        = document.getElementById('memberForm');
+  const backBtn     = document.getElementById('mmBack');
+  const doneBtn     = document.getElementById('mmDone');
+  if (!modal || !openBtn) return;
+
+  let chosenRole = null;
+
+  function showStep(step){
+    modal.querySelectorAll('.mm-step').forEach(s => {
+      s.style.display = s.dataset.step === step ? '' : 'none';
+    });
+  }
+  function open(){
+    chosenRole = null;
+    form.reset();
+    showStep('role');
+    modal.classList.add('is-on');
+  }
+  function close(){
+    modal.classList.remove('is-on');
+  }
+
+  openBtn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('is-on')) close();
+  });
+
+  // Step 1 → 2: role picked
+  modal.querySelectorAll('.role-card').forEach(c => {
+    c.addEventListener('click', () => {
+      chosenRole = c.dataset.role;
+      document.getElementById('mmRoleLabel').textContent = ROLE_META[chosenRole].label;
+      showStep('details');
+      setTimeout(() => document.getElementById('mmName')?.focus(), 100);
+    });
+  });
+
+  // Back
+  backBtn.addEventListener('click', () => showStep('role'));
+
+  // Submit → save + confirmation
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name  = document.getElementById('mmName').value.trim();
+    const email = document.getElementById('mmEmail').value.trim().toLowerCase();
+    if (!name || !email || !chosenRole) return;
+
+    _addUser({ name, email, role: chosenRole });
+
+    // Populate confirmation step
+    document.getElementById('mmConfirmEmail').textContent = email;
+    document.getElementById('mmConfirmName').textContent  = name.split(' ')[0]; // first name
+    document.getElementById('mmConfirmRole').textContent  = ROLE_META[chosenRole].label;
+
+    showStep('confirm');
+    // Re-paint users page in the background
+    paintUsersPage();
+  });
+
+  doneBtn.addEventListener('click', close);
+})();
+
+// ---- LIVE SYNC ----
+// Pulls the latest /api/state, repaints whichever page is visible, flags
+// newly-arrived inventory rows, and updates the "LIVE · synced Ns ago"
+// pill on the Inventory page header.
+let _liveLastSyncAt = 0;
+let _liveSyncing = false;
+
+function _currentAdminPage(){
+  const el = document.querySelector('.admin-page.is-active');
+  return el ? el.dataset.page : null;
+}
+
+function _updateLivePill(){
+  const sub = document.getElementById('invLiveSub');
+  const pill = document.getElementById('invLivePill');
+  if (!sub || !_liveLastSyncAt) return;
+  const secs = Math.max(0, Math.round((Date.now() - _liveLastSyncAt) / 1000));
+  sub.textContent = secs < 5 ? 'just synced'
+                  : secs < 60 ? `synced ${secs}s ago`
+                  : `synced ${Math.floor(secs/60)}m ago`;
+  if (pill){
+    pill.classList.toggle('is-fresh', secs < 5);
+  }
+}
+setInterval(_updateLivePill, 1000);
+
+async function liveSyncTick(){
+  if (_liveSyncing) return;
+  _liveSyncing = true;
+  try {
+    const beforeIds = new Set(INVENTORY.map(i => i.id));
+    await fetchLive();
+    _liveLastSyncAt = Date.now();
+    _updateLivePill();
+
+    // Detect newly arrived pieces (anything in INVENTORY now that wasn't before)
+    const fresh = INVENTORY.filter(i => !beforeIds.has(i.id));
+
+    // Always refresh the top-bar counters + activity feed regardless of page
+    paintKPIs();
+    if (typeof paintActivityFeed === 'function') paintActivityFeed();
+
+    // If viewing Inventory, repaint the table so new rows appear with a NEW pill
+    if (_currentAdminPage() === 'inventory' && typeof renderInvRows === 'function'){
+      renderInvRows();
+    }
+
+    // If new items arrived AND we're not on inventory page, show a corner toast
+    if (fresh.length && _currentAdminPage() !== 'inventory'){
+      showAdminToast(`${fresh.length} new piece${fresh.length===1?'':'s'} added by ops — open Inventory to view`);
+      _bumpNavBadge('inventory', fresh.length);
+    } else if (fresh.length){
+      // On the inventory page already — light confirmation
+      showAdminToast(`✓ ${fresh.length} new piece${fresh.length===1?'':'s'} synced from ops`);
+    }
+  } catch (e){
+    console.warn('liveSyncTick failed', e);
+  } finally {
+    _liveSyncing = false;
+  }
+}
+
+// Bump a small counter badge on a sidebar nav item — clears when the user
+// actually visits that page.
+function _bumpNavBadge(pageName, delta){
+  const link = document.querySelector(`.nav-item[data-page="${pageName}"]`);
+  if (!link) return;
+  let badge = link.querySelector('.nav-fresh-badge');
+  if (!badge){
+    badge = document.createElement('span');
+    badge.className = 'nav-fresh-badge';
+    badge.textContent = '0';
+    link.appendChild(badge);
+  }
+  const current = parseInt(badge.textContent, 10) || 0;
+  badge.textContent = String(current + delta);
+  badge.classList.add('is-visible');
+}
+function _clearNavBadge(pageName){
+  const link = document.querySelector(`.nav-item[data-page="${pageName}"]`);
+  const badge = link && link.querySelector('.nav-fresh-badge');
+  if (badge){ badge.textContent = '0'; badge.classList.remove('is-visible'); }
+}
+// Lightweight corner toast for the admin UI (no toast lib here, so DIY)
+function showAdminToast(msg){
+  let host = document.getElementById('adminToastHost');
+  if (!host){
+    host = document.createElement('div');
+    host.id = 'adminToastHost';
+    host.className = 'admin-toast-host';
+    document.body.appendChild(host);
+  }
+  const t = document.createElement('div');
+  t.className = 'admin-toast';
+  t.textContent = msg;
+  host.appendChild(t);
+  setTimeout(() => t.classList.add('show'), 20);
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3600);
+}
+
+// Hook switchPage so visiting a page clears its fresh-counter badge.
+const _origSwitchPage = switchPage;
+switchPage = function(name){
+  _clearNavBadge(name);
+  return _origSwitchPage(name);
+};
+
+// Listen for cross-tab/device updates so Inventory updates instantly when
+// ops mobile captures a piece (same browser) — no need to wait for the poll.
+(function attachLiveListeners(){
+  if (typeof BroadcastChannel !== 'undefined'){
+    try {
+      const ch = new BroadcastChannel('maison-state');
+      ch.addEventListener('message', (ev) => {
+        if (ev.data && ev.data.type === 'state-changed') liveSyncTick();
+      });
+    } catch (_) {}
+  }
+  // Storage event — fires across same-origin tabs even when BroadcastChannel
+  // isn't available (e.g. iframes, older browsers)
+  window.addEventListener('storage', (e) => {
+    if (e.key && (e.key.startsWith('maison.') || e.key === 'maison.state.tick')) {
+      liveSyncTick();
+    }
+  });
+  // Refocus the tab → immediate sync so you don't see stale data after coming back
+  window.addEventListener('focus', () => liveSyncTick());
+})();
+
+// ---- Boot (runs only AFTER successful sign-in) ----
+async function bootDashboard(){
+  await fetchLive();
+  _liveLastSyncAt = Date.now();
+  _updateLivePill();
+  paintKPIs();
+  paintActivityChart();
+  paintCategoryChart();
+  paintActivityFeed();
+  _paintedPages.overview = true;
+  updateRefreshClock();
+  setInterval(updateRefreshClock, 30_000);
+  // Live poll — every 8s to pick up captures from other devices (cross-device
+  // sync goes through Vercel Edge Config, which has a few seconds of lag)
+  setInterval(liveSyncTick, 8_000);
+  // Honor deep-link hash on first load
+  const hash = (location.hash || '').slice(1);
+  if (hash && PAGE_TITLES[hash]) switchPage(hash);
+}
+
+// If the user is already signed in from a previous session, boot now.
+if (isSignedIn()){
+  window.__bootedDashboard = true;
+  bootDashboard();
+}
+</script>
+</body>
+</html>

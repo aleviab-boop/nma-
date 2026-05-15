@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Static HTML Dev Server",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-I",
+        "-c",
+        "import os; os.chdir('/Users/aleviabandyopadhyay/Downloads/maison-project'); from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler\nclass H(SimpleHTTPRequestHandler):\n    def end_headers(self):\n        self.send_header('Cache-Control','no-store'); super().end_headers()\nprint('serving http://localhost:8001', flush=True); ThreadingHTTPServer(('',8001), H).serve_forever()"
+      ],
+      "port": 8001
+    }
+  ]
+}

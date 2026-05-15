@@ -58,3 +58,37 @@ All state is in-memory in the `state` object. `INVENTORY` array holds all items.
 - Wire the VTO to an actual VEO-like API for real video generation
 - Implement the QR tracking + RFID loops from the PRD
 - Add Algolia-style typeahead search
+
+## Virtual Try-On (VTO)
+
+Modeled on `VTO.md` — Imagen 3 VTO via Vercel serverless + client-side flow.
+
+### Files
+- `api/virtual-tryon.js` — POSTs to Vertex AI (`virtual-try-on-001`)
+- `api/upscale-image.js` — deferred 2× HD upscale (`imagen-4.0-upscale-preview`)
+- `index.html` → `openVtoModal(item)` runs the client flow
+
+### Usage flow (Madame role)
+1. Wardrobe → tap any item → PDP modal → **Virtual Try On**
+2. First time only: upload a full-body photo (stored in `localStorage` as `maison.bodyPhoto`)
+3. Loading screen cycles through 7 stages while the API runs
+4. Result shows with quality badge (`IMAGEN 3` for live, `DEMO PREVIEW` for client composite)
+5. **Finalise & save look** → entry pushed to Lookbook, navigates there
+
+### Demo mode
+If `GCP_SERVICE_ACCOUNT_KEY` isn't set in Vercel env vars, the API returns
+`{ success:false, demo:true }` and the client composites the garment over the
+body photo with an elliptical mask + warm grade. Useful for offline review.
+
+### Enabling live VTO on Vercel
+Set these env vars on the project (Settings → Environment Variables):
+
+| Key | Value |
+|---|---|
+| `GCP_SERVICE_ACCOUNT_KEY` | full JSON of the service-account key, single-line |
+| `GCP_PROJECT_ID` | optional — defaults to `fynd-jio-impetus-non-prod` |
+| `GCP_REGION` | optional — defaults to `us-central1` |
+| `GCP_VTO_MODEL` | optional — defaults to `virtual-try-on-001` |
+| `GCP_UPSCALE_MODEL` | optional — defaults to `imagen-4.0-upscale-preview` |
+
+Redeploy after setting them (push any change or trigger via `deploy_watch.py`).

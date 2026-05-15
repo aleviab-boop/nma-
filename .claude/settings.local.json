@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3)",
+      "Bash(curl -s -X POST http://localhost:8000/api/stylist -H \"Content-Type: application/json\" -d '{\"messages\":[{\"role\":\"user\",\"content\":\"Madam, just say hello and confirm you can hear me.\"}]}')",
+      "Bash(pkill -f \"python3 dev_server.py\")",
+      "Bash(python3 /Users/aleviabandyopadhyay/Downloads/maison-project/dev_server.py)",
+      "Bash(curl -s -X POST http://localhost:8000/api/stylist -H \"Content-Type: application/json\" -d '{\"messages\":[{\"role\":\"user\",\"content\":\"Madam, just say hello and confirm you can hear me. One sentence only.\"}]}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/stylist -H \"Content-Type: application/json\" -d '{\"messages\":[{\"role\":\"user\",\"content\":\"Madam, one-sentence hello to confirm.\"}]}')"
+    ]
+  }
+}
