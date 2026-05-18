@@ -1,0 +1,60 @@
+Last login: Mon May 18 11:29:46 on ttys002
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 ~ % cd maison-project
+cd: no such file or directory: maison-project
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 ~ % ls       
+Desktop		Downloads	Movies		Pictures
+Documents	Library		Music		Public
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 ~ % cd downloads
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 downloads % cd maison-project
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % touch api/items.js
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % nano api/items.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  UW PICO 5.09                                       File: api/items.js                                       Modified  
+
+    return res.status(200).json({ items: data });
+  }
+
+  // POST /api/items → create a new item
+  if (req.method === 'POST') {
+    const { name, category, colour, fabric, occasion, designer } = req.body;
+      
+    if (!name) {  
+      return res.status(400).json({ error: 'name is required' });
+    }
+    
+    const { data, error } = await supabase
+      .from('items')
+      .insert([{ name, category, colour, fabric, occasion, designer }])
+      .select()
+      .single();
+  
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    return res.status(201).json({ item: data });
+  }   
+     
+  return res.status(405).json({ error: 'Method not allowed' });
+}   
+
+^G Get Help         ^O WriteOut         ^R Read File        ^Y Prev Pg          ^K Cut Text         ^C Cur Pos          
+^X Exit             ^J Justify          ^W Where is         ^V Next Pg          ^U UnCut Text       ^T To Spell        

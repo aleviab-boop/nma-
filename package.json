@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4"
+  },
+  "name": "maison-project",
+  "version": "1.0.0",
+  "description": "A luxury wardrobe intelligence web application based on a PRD case study for Nita Ambani's wardrobe system (by Fynd). Single-file HTML/CSS/JS app with an editorial / magazine aesthetic.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleviab-boop/nma-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aleviab-boop/nma-/issues"
+  },
+  "homepage": "https://github.com/aleviab-boop/nma-#readme"
+}

@@ -1,0 +1,159 @@
+Last login: Mon May 11 15:50:40 on ttys017
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 ~ % cd /Users/aleviabandyopadhyay/Downloads/maison-project
+git push origin main
+Username for 'https://github.com': aleviab
+Password for 'https://aleviab@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/aleviab-boop/nma-.git/'
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % cd /Users/aleviabandyopadhyay/Downloads/maison-project
+git push origin main
+Username for 'https://github.com': aleviab-boop
+Password for 'https://aleviab-boop@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/aleviab-boop/nma-.git/'
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % cd /Users/aleviabandyopadhyay/Downloads/maison-project
+git push origin main
+Username for 'https://github.com': aleviab-boop
+Password for 'https://aleviab-boop@github.com': 
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/aleviab-boop/nma-.git/'
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % cd /Users/aleviabandyopadhyay/Downloads/maison-project
+git push origin main
+Username for 'https://github.com': aleviab-boop                            
+Password for 'https://aleviab-boop@github.com': 
+remote: Permission to aleviab-boop/nma-.git denied to aleviab-boop.
+fatal: unable to access 'https://github.com/aleviab-boop/nma-.git/': The requested URL returned error: 403
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % cd /Users/aleviabandyopadhyay/Downloads/maison-project
+git push origin main
+Username for 'https://github.com': aleviab
+Password for 'https://aleviab@github.com': 
+remote: Permission to aleviab-boop/nma-.git denied to aleviab-boop.
+fatal: unable to access 'https://github.com/aleviab-boop/nma-.git/': The requested URL returned error: 403
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % git push origin main
+Username for 'https://github.com': aleviab-boop
+Password for 'https://aleviab-boop@github.com': 
+Enumerating objects: 27, done.
+Counting objects: 100% (27/27), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (21/21), done.
+Writing objects: 100% (22/22), 29.16 MiB | 6.86 MiB/s, done.
+Total 22 (delta 3), reused 2 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 2 local objects.
+To https://github.com/aleviab-boop/nma-.git
+   46a852a..825a9d4  main -> main
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % git config --global credential.helper osxkeychain
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % npm init -y
+zsh: command not found: npm
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % npm install @supabase/supabase-js
+zsh: command not found: npm
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % node -v
+zsh: command not found: node
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % node -v
+   npm -v
+v24.15.0
+11.12.1
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % npm install @supabase/supabase-js
+
+added 9 packages in 2s
+npm notice
+npm notice New minor version of npm available! 11.12.1 -> 11.14.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.14.1
+npm notice To update run: npm install -g npm@11.14.1
+npm notice
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % npm install -g npm@11.14.1       
+npm error code EACCES
+npm error syscall rename
+npm error path /usr/local/lib/node_modules/npm
+npm error dest /usr/local/lib/node_modules/.npm-i9nnxROI
+npm error errno -13
+npm error Error: EACCES: permission denied, rename '/usr/local/lib/node_modules/npm' -> '/usr/local/lib/node_modules/.npm-i9nnxROI'
+npm error     at async Object.rename (node:internal/fs/promises:785:10)
+npm error     at async moveFile (/usr/local/lib/node_modules/npm/node_modules/@npmcli/fs/lib/move-file.js:30:5)
+npm error     at async Promise.allSettled (index 0)
+npm error     at async #reifyPackages (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:317:11)
+npm error     at async Arborist.reify (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:127:5)
+npm error     at async Install.exec (/usr/local/lib/node_modules/npm/lib/commands/install.js:146:5)
+npm error     at async Npm.exec (/usr/local/lib/node_modules/npm/lib/npm.js:193:9)
+npm error     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:67:5) {
+npm error   errno: -13,
+npm error   code: 'EACCES',
+npm error   syscall: 'rename',
+npm error   path: '/usr/local/lib/node_modules/npm',
+npm error   dest: '/usr/local/lib/node_modules/.npm-i9nnxROI'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It is likely you do not have the permissions to access this file as the current user
+npm error
+npm error If you believe this might be a permissions issue, please double-check the permissions of the file and its containing directories, or try running the command again as root/Administrator.
+npm error A complete log of this run can be found in: /Users/aleviabandyopadhyay/.npm/_logs/2026-05-18T05_46_06_690Z-debug-0.log
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % npm init -y
+Wrote to /Users/aleviabandyopadhyay/Downloads/maison-project/package.json:
+
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4"
+  },
+  "name": "maison-project",
+  "version": "1.0.0",
+  "description": "A luxury wardrobe intelligence web application based on a PRD case study for Nita Ambani's wardrobe system (by Fynd). Single-file HTML/CSS/JS app with an editorial / magazine aesthetic.",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleviab-boop/nma-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aleviab-boop/nma-/issues"
+  },
+  "homepage": "https://github.com/aleviab-boop/nma-#readme"
+}
+
+
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % npm install @supabase/supabase-js
+
+up to date, audited 10 packages in 630ms
+
+found 0 vulnerabilities
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % touch api/_supabase.js
+open api/_supabase.js
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % open api/_supabase.js
+aleviabandyopadhyay@aleviabandyopadhyay-C02HQ0R8Q6L4 maison-project % nano api/_supabase.js
+
+  UW PICO 5.09                                     File: api/_supabase.js                                     Modified  
+
+import { createClient } from '@supabase/supabase-js';
+
+// Server-side Supabase client (uses service_role key — bypasses RLS)
+// Only use this inside /api/* serverless functions, NEVER expose to browser
+export const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+^G Get Help         ^O WriteOut         ^R Read File        ^Y Prev Pg          ^K Cut Text         ^C Cur Pos          
+^X Exit             ^J Justify          ^W Where is         ^V Next Pg          ^U UnCut Text       ^T To Spell        
