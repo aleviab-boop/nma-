@@ -14,7 +14,10 @@
 const {
   supabaseAdmin,
   toClientShape,
-  fromClientShape
+  fromClientShape,
+  isUuid,
+  storagePublicUrl,
+  PHOTO_BUCKET
 } = require('./_supabase');
 
 async function readJsonBody(req) {
@@ -65,8 +68,17 @@ module.exports = async function handler(req, res) {
       if (!row.name) {
         return res.status(400).json({ success: false, error: 'name required' });
       }
-      // Allow caller to pin a UUID (rare — for migration scripts only).
-      if (body.id) row.id = body.id;
+      // Legacy clients (ops mobile capture, AI-detect flow) generate IDs like
+      // "M5001" or "OPS-XYZ" that aren't valid UUIDs. Route them to `sku` so
+      // Supabase can mint a fresh UUID for `id`. Only honor a caller-supplied
+      // `id` if it's actually a UUID.
+      if (body.id) {
+        if (isUuid(body.id)) {
+          row.id = body.id;
+        } else if (!row.sku) {
+          row.sku = body.id;
+        }
+      }
 
       const { data, error } = await supabaseAdmin
         .from('items')
@@ -74,6 +86,49 @@ module.exports = async function handler(req, res) {
         .select('*, item_photos(*)')
         .single();
       if (error) throw error;
+
+      // If the caller attached an inline base64 photo (ops mobile capture sends
+      // `capturedPhoto`, AI-detect sends `img`, generic uploads can use `photo`),
+      // push it to Storage + link in item_photos. Failures here don't roll back
+      // the item — the row is still useful even if the photo upload fails.
+      const photoB64 = body.capturedPhoto || body.img || body.photo;
+      if (photoB64 && typeof photoB64 === 'string' && photoB64.length > 200) {
+        try {
+          const mimeMatch = photoB64.match(/^data:([^;]+);base64,/);
+          const mimeType = (mimeMatch && mimeMatch[1]) || 'image/jpeg';
+          const cleanBase64 = photoB64.replace(/^data:[^;]+;base64,/, '');
+          const buf = Buffer.from(cleanBase64, 'base64');
+          const ext = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+          const storage_path = `${data.id}/${Date.now()}.${ext}`;
+          const { error: upErr } = await supabaseAdmin.storage
+            .from(PHOTO_BUCKET)
+            .upload(storage_path, buf, { contentType: mimeType, upsert: false });
+          if (!upErr) {
+            await supabaseAdmin.from('item_photos').insert({
+              item_id: data.id,
+              photo_type: 'primary',
+              storage_path,
+              display_order: 0
+            });
+            // Re-read so the response includes the new photo on the joined item
+            const { data: withPhoto } = await supabaseAdmin
+              .from('items')
+              .select('*, item_photos(*)')
+              .eq('id', data.id)
+              .single();
+            return res.status(200).json({
+              success: true,
+              item: toClientShape(withPhoto || data),
+              photoUploaded: true
+            });
+          } else {
+            console.warn('photo upload during item create failed:', upErr.message);
+          }
+        } catch (photoErr) {
+          console.warn('photo upload exception:', photoErr.message);
+        }
+      }
+
       return res.status(200).json({ success: true, item: toClientShape(data) });
     }
 

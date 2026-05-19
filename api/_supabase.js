@@ -107,11 +107,18 @@ function fromClientShape(body) {
     status: b.status || 'in-wardrobe',
     occasion: b.occasion || null,
     notes: b.notes || null,
-    zone: b.zone || null,
+    // Ops captures use a `loc` breadcrumb string ("Floor · Left · F02 · Slot 05").
+    // We don't try to split — just store the whole string in `zone` for now.
+    zone: b.zone || b.loc || null,
     rack: b.rack || null,
     shelf: b.shelf || null,
     position: b.position || null
   };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(s) {
+  return typeof s === 'string' && UUID_RE.test(s);
 }
 
 module.exports = {
@@ -120,6 +127,7 @@ module.exports = {
   storagePublicUrl,
   toClientShape,
   fromClientShape,
+  isUuid,
   PHOTO_BUCKET,
   SUPABASE_URL
 };
