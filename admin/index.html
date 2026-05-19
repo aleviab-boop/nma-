@@ -1492,11 +1492,24 @@ async function fetchLive(){
     const merged = [];
     const seenSkus = new Set();
     // First, lay down the Supabase rows. If a row has an sku matching a baseline
-    // id (e.g. "M001"), promote it to the legacy entry with the local photo path.
+    // id (e.g. "M001"), OVERLAY non-null Supabase fields onto the baseline.
+    // The null-filtering matters because freshly-seeded baseline rows have no
+    // photo / colour yet — without it, those nulls would wipe out the local
+    // image paths every refresh.
     for (const row of supaItems){
       seenSkus.add(row.sku);
       const base = row.sku && byBaselineId.has(row.sku) ? byBaselineId.get(row.sku) : null;
-      merged.push(base ? { ...base, ...row, id: base.id } : row);
+      if (base){
+        const overlay = { ...base };
+        for (const k in row){
+          const v = row[k];
+          if (v !== null && v !== undefined && v !== '') overlay[k] = v;
+        }
+        overlay.id = base.id;
+        merged.push(overlay);
+      } else {
+        merged.push(row);
+      }
     }
     // Then add any baseline items that DON'T have a matching Supabase row yet
     // (i.e. migration hasn't run; or Supabase row was deleted but baseline still shows it)
