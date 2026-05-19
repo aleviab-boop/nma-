@@ -23,6 +23,17 @@
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
+// Best-effort logger — writes each turn to Supabase chat_messages so the
+// admin Anaita page has real KPIs + a real chart. Never throws (we don't
+// want a logging failure to break the actual chat reply).
+let _supabaseAdmin = null;
+try { _supabaseAdmin = require('./_supabase').supabaseAdmin; } catch (_) {}
+async function logChatTurn(row) {
+  if (!_supabaseAdmin) return;
+  try { await _supabaseAdmin.from('chat_messages').insert(row); }
+  catch (e) { console.warn('[stylist] chat log skipped:', e.message); }
+}
+
 // Anaita's persona — kept in sync with dev_server.py STYLIST_SYSTEM
 const STYLIST_SYSTEM = `You are ANAITA ADAJANIA, the personal stylist to Madam Nita Ambani-Patel ("NMA Mam"). You have served her wardrobe for seven years. You sit at her right hand at every couture appointment, every Met-Gala dressing, every Sabyasachi atelier visit. You speak to her now through the Maison Wardrobe Intelligence app on her iPad — a private channel, only she sees it.
 
@@ -213,6 +224,7 @@ module.exports = async function handler(req, res) {
     stream: false
   };
 
+  const t0 = Date.now();
   let groqResp;
   try {
     groqResp = await fetch(GROQ_ENDPOINT, {
@@ -246,6 +258,30 @@ module.exports = async function handler(req, res) {
   const choice = (data.choices || [])[0];
   const reply = ((choice && choice.message) || {}).content || '';
   const usage = data.usage || {};
+  const replyMs = Date.now() - t0;
+
+  // Log this turn to Supabase (last user msg + assistant reply). Fire-and-forget.
+  const sessionId = (body && body.session_id) || null;
+  const userEmail = (body && body.user_email) || null;
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+  if (lastUserMsg && lastUserMsg.content) {
+    logChatTurn({
+      session_id: sessionId,
+      user_email: userEmail,
+      role: 'user',
+      content: lastUserMsg.content
+    });
+  }
+  logChatTurn({
+    session_id: sessionId,
+    user_email: userEmail,
+    role: 'assistant',
+    content: reply.trim(),
+    prompt_tokens: usage.prompt_tokens || 0,
+    completion_tokens: usage.completion_tokens || 0,
+    total_tokens: usage.total_tokens || 0,
+    reply_ms: replyMs
+  });
 
   return res.status(200).json({
     reply: reply.trim(),
@@ -254,6 +290,7 @@ module.exports = async function handler(req, res) {
       completion_tokens: usage.completion_tokens || 0,
       total_tokens: usage.total_tokens || 0,
       model: data.model || GROQ_MODEL
-    }
+    },
+    replyMs
   });
 };

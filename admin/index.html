@@ -1359,22 +1359,24 @@ function refreshSignedInUI(){
   if (el) el.textContent = email || '—';
 }
 
-/* Look up an added-member account from localStorage and accept its
-   credentials (email + temporary password "123"). */
-function _findAddedMember(email){
+/* Look up a member account in Supabase via /api/members. Returns the row
+   if email matches an Active member, else null. Async — the login submit
+   handler awaits it for the "added member + password 123" path. */
+async function _findMemberOnServer(email){
   try {
-    const raw = localStorage.getItem('maison.admin_users');
-    if (!raw) return null;
-    const list = JSON.parse(raw);
-    return list.find(u => u.email && u.email.toLowerCase() === email) || null;
-  } catch(_) { return null; }
+    const r = await fetch('/api/members', { cache: 'no-store' });
+    const j = await r.json();
+    if (!j || !j.success) return null;
+    return (j.members || []).find(u => u.email && u.email.toLowerCase() === email) || null;
+  } catch (_) { return null; }
 }
 
-document.getElementById('loginForm').addEventListener('submit', (e) => {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass  = document.getElementById('loginPassword').value;
   const err   = document.getElementById('loginError');
+  const submitBtn = e.target.querySelector('.login-submit');
 
   // 1) Default super-admin account
   if (email === AUTH_EMAIL && pass === AUTH_PASS){
@@ -1383,9 +1385,11 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
     return;
   }
 
-  // 2) Added member — accept their email + the temporary password "123"
+  // 2) Any member in Supabase — accept their email + the temporary password "123"
   if (pass === NEW_USER_PASS){
-    const member = _findAddedMember(email);
+    if (submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Checking…'; }
+    const member = await _findMemberOnServer(email);
+    if (submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Sign in'; }
     if (member){
       err.classList.remove('is-on');
       signIn(email);
@@ -1897,15 +1901,13 @@ function paintInventoryPage(){
 }
 
 // ---- EVENTS page ----
-function paintEventsPage(){
-  const events = [
-    { d:'12', m:'May', name:'Hope Foundation Annual Gala',        meta:'19:00 · The Oberoi · <em>cocktail</em> · 74 RSVPs', status:'needs-outfit' },
-    { d:'13', m:'May', name:'Sabyasachi Atelier Fitting',          meta:'11:00 · Bandra · <em>emerald lehenga, 3rd fitting</em>', status:'confirmed' },
-    { d:'15', m:'May', name:'Saffronart Couture Preview',          meta:'evening · BKC · <em>casual elegant</em>', status:'needs-outfit' },
-    { d:'18', m:'May', name:'Ambani Antilia Dinner',               meta:'20:00 · 32 guests · <em>no-repeat check pending</em>', status:'needs-outfit' },
-    { d:'24', m:'May', name:'Wimbledon · Royal Box',               meta:'all-day · London · <em>summer day attire</em>', status:'confirmed' },
-  ];
+function _renderEventsList(events){
   const root = document.getElementById('eventsList');
+  if (!root) return;
+  if (!events.length){
+    root.innerHTML = '<div class="event-row" style="opacity:.6;"><div class="info"><h4>No upcoming events</h4><div class="meta">Add events from Madame\'s calendar or via the API.</div></div></div>';
+    return;
+  }
   root.innerHTML = events.map(e => `
     <div class="event-row">
       <div class="date"><span class="d">${e.d}</span><span class="m">${e.m}</span></div>
@@ -1915,6 +1917,21 @@ function paintEventsPage(){
         : '<span class="pill pill-idle">Needs styling</span>'}</div>
     </div>
   `).join('');
+}
+
+let _EVENTS_CACHE = [];
+async function paintEventsPage(){
+  // Optimistic paint from cache
+  _renderEventsList(_EVENTS_CACHE);
+  // Fetch fresh from Supabase
+  try {
+    const r = await fetch('/api/events', { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.success){
+      _EVENTS_CACHE = j.events || [];
+      _renderEventsList(_EVENTS_CACHE);
+    }
+  } catch (_) {}
 }
 
 // ---- MADAME page ----
@@ -1996,15 +2013,28 @@ function paintOpsPage(){
   `).join('');
 }
 
-// ---- ANAITA page — DYNAMIC, reads from localStorage.maison.anaita_log ----
+// ---- ANAITA page — DYNAMIC, reads from /api/chat-messages (Supabase) ----
 let _anaitaChartInstance = null;
+let _ANAITA_CACHE = [];
 
-function _loadAnaitaLog(){
+async function _fetchAnaitaLog(){
   try {
-    const raw = localStorage.getItem('maison.anaita_log');
-    return raw ? JSON.parse(raw) : [];
-  } catch (_) { return []; }
+    const r = await fetch('/api/chat-messages?limit=500', { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.success && Array.isArray(j.messages)){
+      // Map server shape → legacy shape so existing helpers work unchanged
+      _ANAITA_CACHE = j.messages.map(m => ({
+        ts: m.ts,
+        role: m.role,
+        content: m.content,
+        latencyMs: m.replyMs,
+        tokens: m.totalTokens
+      }));
+    }
+  } catch (_) { /* fall back to existing cache */ }
+  return _ANAITA_CACHE;
 }
+function _loadAnaitaLog(){ return _ANAITA_CACHE; }
 
 function _groupAnaitaByDay(log){
   // Bucket message timestamps by YYYY-MM-DD for the last 14 days
@@ -2083,8 +2113,16 @@ function _fmtRelTime(ts){
   return Math.floor(diff/86400000) + ' days ago';
 }
 
-function paintAnaitaPage(){
-  const log = _loadAnaitaLog();
+async function paintAnaitaPage(){
+  // Optimistic paint with whatever's cached, then refresh from Supabase
+  let log = _loadAnaitaLog();
+  if (!log.length){
+    log = await _fetchAnaitaLog();
+  } else {
+    _fetchAnaitaLog().then(fresh => {
+      if (fresh.length !== log.length) paintAnaitaPage();   // re-render if it changed
+    });
+  }
   const stats = _anaitaStats(log);
 
   // KPI strip — real values
@@ -2169,67 +2207,87 @@ const ROLE_META = {
   'ops-mobile':    { label: 'Ops · Mobile',   pill: 'pill-ops'    },
 };
 
-function _loadUsers(){
+// In-memory cache populated from /api/members. Page renderers read this
+// directly; mutating helpers call the server then re-fetch + re-paint.
+let _MEMBERS_CACHE = BASELINE_USERS.slice();
+
+async function _fetchMembers(){
   try {
-    const raw = localStorage.getItem(USERS_KEY);
-    const added = raw ? JSON.parse(raw) : [];
-    return [...BASELINE_USERS, ...added];
-  } catch(_) {
-    return BASELINE_USERS.slice();
-  }
+    const r = await fetch('/api/members', { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.success && Array.isArray(j.members)) _MEMBERS_CACHE = j.members;
+  } catch (_) { /* fall back to whatever we had */ }
+  return _MEMBERS_CACHE;
 }
-function _saveAddedUsers(added){
-  try { localStorage.setItem(USERS_KEY, JSON.stringify(added)); } catch(_){}
-}
-function _addUser(user){
-  let added = [];
+// Synchronous accessor for legacy callers; returns the last cached list.
+function _loadUsers(){ return _MEMBERS_CACHE; }
+
+async function _addUser(user){
   try {
-    const raw = localStorage.getItem(USERS_KEY);
-    added = raw ? JSON.parse(raw) : [];
-  } catch(_){}
-  added.push({ ...user, addedAt: Date.now(), lastActive:'just now', status:'Invited' });
-  _saveAddedUsers(added);
-  _logAudit({
-    kind: 'request',
-    what: `<b>${user.name}</b> has been added as <em>${ROLE_META[user.role].label}</em>`,
-    meta: user.email,
-  });
-}
-function _removeUser(email){
-  let added = [];
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    added = raw ? JSON.parse(raw) : [];
-  } catch(_){}
-  const removed = added.find(u => u.email === email);
-  added = added.filter(u => u.email !== email);
-  _saveAddedUsers(added);
-  if (removed){
-    _logAudit({
-      kind: 'clean',
-      what: `<b>${removed.name}</b> was removed from the dashboard`,
-      meta: removed.email,
+    const r = await fetch('/api/members', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user)
     });
-  }
+    const j = await r.json();
+    if (j && j.success){
+      _logAudit({
+        kind: 'member',
+        what: `<b>${user.name}</b> added as <em>${(ROLE_META[user.role] || {}).label || user.role}</em>`,
+        meta: user.email
+      });
+      await _fetchMembers();
+    } else if (j && j.error === 'EMAIL_EXISTS'){
+      alert('That email is already a member.');
+    }
+  } catch (e) { console.warn('addUser failed', e); }
 }
 
-/* ---- Persistent audit log ---- */
-const AUDIT_KEY = 'maison.audit_log';
-function _loadAudit(){
+async function _removeUser(email){
   try {
-    const raw = localStorage.getItem(AUDIT_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch(_) { return []; }
-}
-function _logAudit(entry){
-  const arr = _loadAudit();
-  arr.push({ ts: Date.now(), ...entry });
-  // Keep last 100
-  const trimmed = arr.slice(-100);
-  try { localStorage.setItem(AUDIT_KEY, JSON.stringify(trimmed)); } catch(_){}
+    const r = await fetch(`/api/members?email=${encodeURIComponent(email)}`, { method: 'DELETE' });
+    const j = await r.json().catch(() => ({}));
+    if (j && j.success){
+      const removed = _MEMBERS_CACHE.find(u => u.email === email);
+      if (removed){
+        _logAudit({
+          kind: 'member',
+          what: `<b>${removed.name}</b> removed from the dashboard`,
+          meta: removed.email
+        });
+      }
+      await _fetchMembers();
+    } else if (j && j.error === 'LOCKED_ACCOUNT'){
+      alert('Baseline accounts cannot be removed.');
+    }
+  } catch (e) { console.warn('removeUser failed', e); }
 }
 
-function paintUsersPage(){
+/* ---- Audit log — Supabase-backed via /api/audit-log ---- */
+let _AUDIT_CACHE = [];
+
+async function _fetchAudit(){
+  try {
+    const r = await fetch('/api/audit-log?limit=100', { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.success && Array.isArray(j.entries)) _AUDIT_CACHE = j.entries;
+  } catch (_) { /* keep last good cache */ }
+  return _AUDIT_CACHE;
+}
+function _loadAudit(){ return _AUDIT_CACHE; }
+// Fire-and-forget; the Realtime subscription picks up the new row and re-renders.
+function _logAudit(entry){
+  fetch('/api/audit-log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry)
+  }).catch(() => {});
+}
+// Legacy stub left here for the audit-trim call below — Supabase keeps everything.
+function _trimNoop(){
+}
+
+function _renderUsersTable(){
   const users = _loadUsers();
   document.getElementById('usersCount').textContent = users.length;
   document.getElementById('usersTableMeta').textContent = users.length + ' total';
@@ -2248,39 +2306,45 @@ function paintUsersPage(){
         <td><b>${u.name}</b></td>
         <td><span class="muted">${u.email}</span></td>
         <td><span class="pill ${meta.pill}">${meta.label}</span></td>
-        <td><span class="muted">${u.lastActive}</span></td>
+        <td><span class="muted">${u.lastActive || ''}</span></td>
         <td>${statusPill}</td>
         <td style="text-align:right;">${delBtn}</td>
       </tr>`;
   }).join('');
-  // Wire delete buttons (for added users only)
   body.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (!confirm('Remove this member?')) return;
-      _removeUser(btn.dataset.del);
-      paintUsersPage();
+      await _removeUser(btn.dataset.del);
+      _renderUsersTable();
     });
   });
+}
 
-  // Audit feed = persistent log (member added/removed) merged with
-  // baseline activity, sorted newest-first.
-  const baseline = [
-    { ts:Date.now() - 1000*60*2,    kind:'request', what:'Admin signed in',                                       meta:'admin@gmail.com' },
-    { ts:Date.now() - 1000*60*38,   kind:'chat',    what:'Madame opened Anaita conversation',                    meta:'' },
-    { ts:Date.now() - 1000*60*95,   kind:'request', what:'Madame requested <b>Teal Tarun Anarkali</b>',          meta:'' },
-    { ts:Date.now() - 1000*60*180,  kind:'clean',   what:'<b>Sabya Heritage Lehenga</b> sent to dry cleaners',   meta:'2 priority' },
-    { ts:Date.now() - 1000*60*240,  kind:'intake',  what:'Ops Mobile captured <b>Champagne Pearl Saree</b>',     meta:'Zone B-1' },
-    { ts:Date.now() - 1000*60*410,  kind:'event',   what:'<b>Hope Foundation Gala</b> event added to calendar',  meta:'' },
-  ];
-  const audit = [..._loadAudit(), ...baseline].sort((a,b) => b.ts - a.ts);
-  const ICONS = { intake:'📸', chat:'💬', request:'📦', clean:'🧺', event:'✦' };
-  document.getElementById('auditFeed').innerHTML = audit.map(r => `
+function _renderAuditFeed(){
+  const ICONS = { intake:'📸', chat:'💬', request:'📦', clean:'🧺', event:'✦', member:'👤' };
+  const audit = _loadAudit().slice().sort((a,b) => b.ts - a.ts);
+  const node = document.getElementById('auditFeed');
+  if (!node) return;
+  if (!audit.length){
+    node.innerHTML = '<div class="activity-row" style="opacity:.6;"><div class="what">No activity yet — actions will appear here.</div></div>';
+    return;
+  }
+  node.innerHTML = audit.map(r => `
     <div class="activity-row ${r.kind}">
       <div class="when">${_fmtTime(r.ts)}</div>
       <div class="icon">${ICONS[r.kind] || '·'}</div>
       <div class="what">${r.what}${r.meta ? ' · <em>'+r.meta+'</em>' : ''}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
+}
+
+async function paintUsersPage(){
+  // Paint immediately with whatever cache we have (gives instant feedback)
+  _renderUsersTable();
+  _renderAuditFeed();
+  // Then refresh from Supabase + repaint
+  await Promise.all([_fetchMembers(), _fetchAudit()]);
+  _renderUsersTable();
+  _renderAuditFeed();
 }
 
 /* ====================================================================
@@ -2499,13 +2563,24 @@ async function initAdminSupabaseLive(){
   _adminSupabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
     auth: { persistSession: false }
   });
+  // Helper — refresh whichever page is currently visible
+  const refreshActive = () => {
+    const page = _currentAdminPage();
+    if (page === 'inventory') liveSyncTick();
+    else if (page === 'users') paintUsersPage();
+    else if (page === 'events') paintEventsPage();
+    else if (page === 'anaita') paintAnaitaPage();
+  };
+
   _adminSupabaseClient
-    .channel('admin-items-live')
-    .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'items' },
-        () => liveSyncTick())
+    .channel('admin-live-all')
+    .on('postgres_changes', { event:'*', schema:'public', table:'items' },          () => liveSyncTick())
+    .on('postgres_changes', { event:'*', schema:'public', table:'members' },        () => refreshActive())
+    .on('postgres_changes', { event:'*', schema:'public', table:'audit_log' },      () => { if (_currentAdminPage() === 'users') paintUsersPage(); })
+    .on('postgres_changes', { event:'*', schema:'public', table:'events' },         () => { if (_currentAdminPage() === 'events') paintEventsPage(); })
+    .on('postgres_changes', { event:'*', schema:'public', table:'chat_messages' },  () => { if (_currentAdminPage() === 'anaita') paintAnaitaPage(); })
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') console.info('[admin] supabase realtime: items channel live');
+      if (status === 'SUBSCRIBED') console.info('[admin] supabase realtime: items/members/audit_log/events/chat_messages all live');
     });
 }
 
