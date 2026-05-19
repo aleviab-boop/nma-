@@ -135,12 +135,12 @@ module.exports = async function handler(req, res) {
     if (req.method === 'PATCH') {
       const body = await readJsonBody(req);
       const id = body.id;
-      if (!id) {
-        return res.status(400).json({ success: false, error: 'id required' });
+      const sku = body.sku;
+      if (!id && !sku) {
+        return res.status(400).json({ success: false, error: 'id or sku required' });
       }
       // Build patch from supplied fields only — don't blank columns the caller
-      // didn't mention. fromClientShape() always returns all keys; we filter
-      // to just the ones the client actually sent.
+      // didn't mention.
       const allowed = fromClientShape(body);
       const patch = {};
       for (const k of Object.keys(allowed)) {
@@ -151,14 +151,17 @@ module.exports = async function handler(req, res) {
       // Explicit legacy → native key reads
       if ('cat' in body) patch.category = body.cat;
       if ('c1' in body) patch.colour = body.c1;
+      if ('loc' in body && !('zone' in body)) patch.zone = body.loc;
       patch.updated_at = new Date().toISOString();
 
-      const { data, error } = await supabaseAdmin
-        .from('items')
-        .update(patch)
-        .eq('id', id)
-        .select('*, item_photos(*)')
-        .single();
+      // Look up by UUID id (if it's a UUID) or by sku
+      const q = supabaseAdmin.from('items').update(patch);
+      const finder = (id && isUuid(id)) ? q.eq('id', id)
+                   : sku                ? q.eq('sku', sku)
+                   : id                 ? q.eq('sku', id)  // legacy ids land here too
+                   : null;
+      if (!finder) return res.status(400).json({ success: false, error: 'no lookup key' });
+      const { data, error } = await finder.select('*, item_photos(*)').single();
       if (error) throw error;
       return res.status(200).json({ success: true, item: toClientShape(data) });
     }
