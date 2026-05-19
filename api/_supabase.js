@@ -50,6 +50,17 @@ function storagePublicUrl(path) {
  * client-side INVENTORY shape so we don't have to rewrite index.html's reader
  * code. New code can still read native fields off `row` directly.
  */
+// Human-readable label for a status code — keeps the UI from rendering
+// "undefined" when a Supabase row carries only the machine-friendly `status`
+// and the client expects the older `statusLabel` field.
+const STATUS_LABELS = {
+  'in-wardrobe': 'Available',
+  'cleaning':    'Cleaning',
+  'reserved':    'Reserved',
+  'lent':        'Lent Out',
+  'pending':     'Pending Intake'
+};
+
 function toClientShape(row) {
   if (!row) return null;
   const photos = row.item_photos || [];
@@ -58,6 +69,7 @@ function toClientShape(row) {
     photos.sort((a, b) => (a.display_order || 0) - (b.display_order || 0))[0] ||
     null;
   const locParts = [row.zone, row.rack, row.shelf, row.position].filter(Boolean);
+  const status = row.status || 'in-wardrobe';
   return {
     id: row.id,
     sku: row.sku,
@@ -66,7 +78,8 @@ function toClientShape(row) {
     cat: row.category,            // legacy alias used across index.html
     category: row.category,
     subcategory: row.subcategory,
-    status: row.status || 'in-wardrobe',
+    status,
+    statusLabel: STATUS_LABELS[status] || 'Available',
     c1: row.colour,                // legacy alias used by SVG fallback
     colour: row.colour,
     fabric: row.fabric,
