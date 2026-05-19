@@ -6,6 +6,7 @@
 <title>Maison · Admin Overview</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2213%22 font-size=%2213%22>✦</text></svg>"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ====================================================================
    MAISON ADMIN PANEL — Overview
@@ -1471,22 +1472,40 @@ const BASELINE = [
 let INVENTORY = BASELINE.slice();
 let NOTIFICATIONS = [];
 
-// ---- Try to fetch live state from the existing /api/state ----
+// ---- Fetch live inventory from Supabase via /api/items ----
+// Merges Supabase rows with the hardcoded BASELINE so the admin keeps the
+// 47-piece seed visible even before the migration runs. Supabase rows are
+// matched to baseline by `sku` (M001-M047); when sku matches, the Supabase
+// row's fresh status/designer wins. Brand-new captures (no sku match) are
+// appended as additional inventory entries.
 async function fetchLive(){
   try {
-    const r = await fetch('/api/state', { cache:'no-store' });
+    const r = await fetch('/api/items', { cache:'no-store' });
     if (!r.ok) return;
     const j = await r.json();
     if (!j || !j.success) return;
-    const extra = Array.isArray(j.inventory) ? j.inventory : [];
-    if (extra.length){
-      // Merge by id — keep server copies authoritative
-      const map = new Map(BASELINE.map(i => [i.id, i]));
-      extra.forEach(i => map.set(i.id, i));
-      INVENTORY = Array.from(map.values());
+    const supaItems = Array.isArray(j.items) ? j.items : [];
+
+    // Index baseline by id for fast lookup
+    const byBaselineId = new Map(BASELINE.map(i => [i.id, i]));
+    // Start from baseline so demo data is preserved
+    const merged = [];
+    const seenSkus = new Set();
+    // First, lay down the Supabase rows. If a row has an sku matching a baseline
+    // id (e.g. "M001"), promote it to the legacy entry with the local photo path.
+    for (const row of supaItems){
+      seenSkus.add(row.sku);
+      const base = row.sku && byBaselineId.has(row.sku) ? byBaselineId.get(row.sku) : null;
+      merged.push(base ? { ...base, ...row, id: base.id } : row);
     }
-    NOTIFICATIONS = Array.isArray(j.notifications) ? j.notifications : [];
-  } catch (_){ /* offline / dev mode — silently use baseline */ }
+    // Then add any baseline items that DON'T have a matching Supabase row yet
+    // (i.e. migration hasn't run; or Supabase row was deleted but baseline still shows it)
+    for (const b of BASELINE){
+      if (!seenSkus.has(b.id)) merged.push(b);
+    }
+
+    INVENTORY = merged;
+  } catch (_){ /* offline — silently keep baseline */ }
 }
 
 // ---- KPIs ----
@@ -2451,6 +2470,32 @@ switchPage = function(name){
   window.addEventListener('focus', () => liveSyncTick());
 })();
 
+// ---- Supabase Realtime — cross-DEVICE live sync ----
+// BroadcastChannel only spans tabs in the same browser. Realtime spans
+// devices: ops mobile (phone) capture → admin laptop sees it within ~250ms.
+let _adminSupabaseClient = null;
+async function initAdminSupabaseLive(){
+  if (_adminSupabaseClient) return;
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') return;
+  let cfg;
+  try {
+    const r = await fetch('/api/config', { cache: 'no-store' });
+    cfg = await r.json();
+  } catch { return; }
+  if (!cfg || !cfg.hasSupabase) return;
+  _adminSupabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+    auth: { persistSession: false }
+  });
+  _adminSupabaseClient
+    .channel('admin-items-live')
+    .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'items' },
+        () => liveSyncTick())
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') console.info('[admin] supabase realtime: items channel live');
+    });
+}
+
 // ---- Boot (runs only AFTER successful sign-in) ----
 async function bootDashboard(){
   await fetchLive();
@@ -2463,9 +2508,12 @@ async function bootDashboard(){
   _paintedPages.overview = true;
   updateRefreshClock();
   setInterval(updateRefreshClock, 30_000);
-  // Live poll — every 8s to pick up captures from other devices (cross-device
-  // sync goes through Vercel Edge Config, which has a few seconds of lag)
+  // Live poll — every 8s as a fallback. Supabase Realtime delivers instant
+  // updates when it's available; the poll just covers the case where the WS
+  // connection drops or the SDK fails to load.
   setInterval(liveSyncTick, 8_000);
+  // Kick off cross-device Realtime sync (Supabase WebSocket → push updates)
+  initAdminSupabaseLive().catch(() => {});
   // Honor deep-link hash on first load
   const hash = (location.hash || '').slice(1);
   if (hash && PAGE_TITLES[hash]) switchPage(hash);
