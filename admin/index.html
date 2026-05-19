@@ -209,6 +209,22 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .pill-status-cleaning{background:rgba(212,165,116,.18);color:var(--warn);border:1px solid rgba(212,165,116,.4);}
 .pill-status-in-wardrobe{background:rgba(143,160,107,.16);color:#A5B886;border:1px solid rgba(143,160,107,.35);}
 
+/* Inventory table — Photo column thumbnail + initials fallback */
+.inv-photo-cell{padding:6px 8px!important;width:60px;}
+.inv-thumb{
+  width:44px;height:44px;border-radius:8px;object-fit:cover;
+  background:#1A0F08;border:1px solid rgba(212,168,74,.18);
+  display:block;
+}
+.inv-thumb-fallback{
+  width:44px;height:44px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fynd Sans',sans-serif;font-size:16px;font-weight:600;color:#fff;
+  letter-spacing:0;
+  border:1px solid rgba(212,168,74,.18);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
 /* "NEW" badge on freshly-arrived rows + row highlight pulse */
 .pill-new{
   display:inline-block;margin-left:6px;padding:1px 6px;border-radius:5px;
@@ -1871,11 +1887,22 @@ function paintInventoryPage(){
       .filter(i => !q || (i.name + ' ' + i.designer + ' ' + i.cat + ' ' + i.id).toLowerCase().includes(q))
       .sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
     const body = document.getElementById('invTableBody');
+    // Cheap photo resolver — uses the Supabase Storage URL if present,
+    // falls back to a small initials chip with the item's swatch colour.
+    const photoCell = (it) => {
+      if (it.photo){
+        return `<img class="inv-thumb" src="${it.photo}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="inv-thumb-fallback" style="display:none;background:${it.c1||'#3A2A20'};">${(it.name||'?').slice(0,1).toUpperCase()}</div>`;
+      }
+      return `<div class="inv-thumb-fallback" style="background:${it.c1||'#3A2A20'};">${(it.name||'?').slice(0,1).toUpperCase()}</div>`;
+    };
+
     body.innerHTML = rows.map(i => {
       // Only mark as NEW after the first ever paint (otherwise BASELINE all flashes as new)
       const isNew = _invKnownIds.size > 0 && !_invKnownIds.has(i.id);
       return `
         <tr class="${isNew ? 'inv-row-new' : ''}">
+          <td class="inv-photo-cell">${photoCell(i)}</td>
           <td>
             <span class="muted">${i.id}</span>
             ${isNew ? '<span class="pill pill-new">NEW</span>' : ''}
