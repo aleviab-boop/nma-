@@ -1762,12 +1762,18 @@ const ICONS = {
   request: '📦',
   clean:   '🧺',
   event:   '✦',
+  member:  '👤',
 };
 
 function paintActivityFeed(){
-  const feed = buildFakeFeed();
   const root = document.getElementById('activityFeed');
-  root.innerHTML = feed.map(r => `
+  if (!root) return;
+  // Prefer the live audit_log when we have any entries — keeps the Overview
+  // in lock-step with the Users page's audit card and Supabase Realtime.
+  const live = (typeof _AUDIT_CACHE !== 'undefined' && Array.isArray(_AUDIT_CACHE) && _AUDIT_CACHE.length)
+    ? _AUDIT_CACHE.slice().sort((a,b) => (b.ts||0) - (a.ts||0)).slice(0, 12)
+    : buildFakeFeed();
+  root.innerHTML = live.map(r => `
     <div class="activity-row ${r.kind}">
       <div class="when">${_fmtTime(r.ts)}</div>
       <div class="icon">${ICONS[r.kind] || '·'}</div>
@@ -2627,11 +2633,20 @@ async function initAdminSupabaseLive(){
     else if (page === 'anaita') paintAnaitaPage();
   };
 
+  // Audit log lives in TWO places (overview + users) so refetch + repaint
+  // both regardless of which page is currently visible — that's what makes
+  // the feed feel truly live across the entire panel.
+  const _refreshAuditEverywhere = async () => {
+    try { if (typeof _fetchAudit === 'function') await _fetchAudit(); } catch(_){}
+    try { if (typeof _renderAuditFeed === 'function') _renderAuditFeed(); } catch(_){}
+    try { if (typeof paintActivityFeed === 'function') paintActivityFeed(); } catch(_){}
+  };
+
   _adminSupabaseClient
     .channel('admin-live-all')
     .on('postgres_changes', { event:'*', schema:'public', table:'items' },          () => liveSyncTick())
     .on('postgres_changes', { event:'*', schema:'public', table:'members' },        () => refreshActive())
-    .on('postgres_changes', { event:'*', schema:'public', table:'audit_log' },      () => { if (_currentAdminPage() === 'users') paintUsersPage(); })
+    .on('postgres_changes', { event:'*', schema:'public', table:'audit_log' },      () => _refreshAuditEverywhere())
     .on('postgres_changes', { event:'*', schema:'public', table:'events' },         () => { if (_currentAdminPage() === 'events') paintEventsPage(); })
     .on('postgres_changes', { event:'*', schema:'public', table:'chat_messages' },  () => { if (_currentAdminPage() === 'anaita') paintAnaitaPage(); })
     .subscribe((status) => {
@@ -2642,6 +2657,9 @@ async function initAdminSupabaseLive(){
 // ---- Boot (runs only AFTER successful sign-in) ----
 async function bootDashboard(){
   await fetchLive();
+  // Seed the audit cache up front so the Overview activity feed shows real
+  // entries on first paint instead of the synthesized filler placeholders.
+  try { if (typeof _fetchAudit === 'function') await _fetchAudit(); } catch(_){}
   _liveLastSyncAt = Date.now();
   _updateLivePill();
   paintKPIs();
