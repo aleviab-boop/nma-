@@ -37,6 +37,10 @@ function toClient(row) {
     notes: row.notes,
     status: row.status,
     outfitItemId: row.outfit_item_id,
+    // Ops-saved outfit combinations (array of piece IDs) + the single one
+    // Madame picked from those suggestions.
+    suggestions: Array.isArray(row.suggestions) ? row.suggestions : [],
+    confirmedOutfitId: row.confirmed_outfit_id || null,
     // Helpers used directly by the admin renderer
     d: d ? String(d.getUTCDate()).padStart(2, '0') : '',
     m: d ? MONTHS[d.getUTCMonth()] : '',
@@ -104,6 +108,10 @@ module.exports = async function handler(req, res) {
       if (body.status)          patch.status = body.status;
       if (body.outfit_item_id !== undefined) patch.outfit_item_id = body.outfit_item_id;
       if (body.outfitItemId   !== undefined) patch.outfit_item_id = body.outfitItemId;
+      // Ops-curated outfit combinations + Madame's confirmed pick.
+      if (Array.isArray(body.suggestions))     patch.suggestions = body.suggestions;
+      if (body.confirmedOutfitId !== undefined) patch.confirmed_outfit_id = body.confirmedOutfitId;
+      if (body.confirmed_outfit_id !== undefined) patch.confirmed_outfit_id = body.confirmed_outfit_id;
       patch.updated_at = new Date().toISOString();
       const { data, error } = await supabaseAdmin
         .from('events').update(patch).eq('id', body.id).select().single();
