@@ -1887,14 +1887,42 @@ function paintInventoryPage(){
       .filter(i => !q || (i.name + ' ' + i.designer + ' ' + i.cat + ' ' + i.id).toLowerCase().includes(q))
       .sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
     const body = document.getElementById('invTableBody');
-    // Cheap photo resolver — uses the Supabase Storage URL if present,
-    // falls back to a small initials chip with the item's swatch colour.
+    // Photo resolver — tries (in order):
+    //   1. it.photo            (Supabase Storage URL from /api/items)
+    //   2. img/<it.id>.png     (per-id file on disk for catalogued items)
+    //   3. img/M-<CAT>-*.png   (per-category template — covers baseline M001-M047)
+    //   4. Initials chip with the item's swatch colour
+    const CAT_PHOTOS = {
+      saree:    ['M-SAREE-CLASSIC','M-SAREE-EDITORIAL','M-SAREE-EVENING','M-SAREE-FESTIVE','M-SAREE-HERITAGE','M-SAREE-SIGNATURE'],
+      lehenga:  ['M-LEHENGA-EDITORIAL','M-LEHENGA-FESTIVE','M-LEHENGA-HERITAGE','M-LEHENGA-SIGNATURE','M-LEHENGA-WEDDING'],
+      gown:     ['M-GOWN-CLASSIC','M-GOWN-EDITORIAL','M-GOWN-EVENING','M-GOWN-RARE','M-GOWN-SIGNATURE'],
+      anarkali: ['M-ANARKALI-EDITORIAL','M-ANARKALI-FESTIVE','M-ANARKALI-HERITAGE','M-ANARKALI-SIGNATURE'],
+      bag:      ['M-CLUTCH-EDITORIAL','M-CLUTCH-EVENING','M-CLUTCH-HERITAGE'],
+      shoe:     ['M-HEELS-EVENING','M-HEELS-SIGNATURE','M-JUTTIS-FESTIVE'],
+      jewelry:  ['M-EARRINGS-EVENING','M-EARRINGS-HERITAGE','M-EARRINGS-SIGNATURE','M-NECKLACE-EDITORIAL']
+    };
+    function _hashIdx(s, len){ let h = 0; const str = String(s||''); for (let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0; return h % len; }
+    function _catTemplate(it){
+      const arr = CAT_PHOTOS[String(it.cat||'').toLowerCase()];
+      if (!arr || !arr.length) return null;
+      return 'img/' + arr[_hashIdx(it.id || it.name, arr.length)] + '.png';
+    }
     const photoCell = (it) => {
-      if (it.photo){
-        return `<img class="inv-thumb" src="${it.photo}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                <div class="inv-thumb-fallback" style="display:none;background:${it.c1||'#3A2A20'};">${(it.name||'?').slice(0,1).toUpperCase()}</div>`;
-      }
-      return `<div class="inv-thumb-fallback" style="background:${it.c1||'#3A2A20'};">${(it.name||'?').slice(0,1).toUpperCase()}</div>`;
+      const escName = (it.name||'').replace(/"/g,'&quot;');
+      const initial = (it.name||'?').slice(0,1).toUpperCase();
+      const swatch  = it.c1 || '#3A2A20';
+      // Build a fallback chain — each onerror hops to the next source. The
+      // last hop reveals the initials chip.
+      const chain = [];
+      if (it.photo) chain.push(it.photo);
+      chain.push(`img/${it.id}.png`, `img/${it.id}.jpg`, `img/${it.id}.jpeg`, `img/${it.id}.webp`);
+      const tmpl = _catTemplate(it);
+      if (tmpl) chain.push(tmpl);
+      const srcs = chain.join('|');
+      return `<img class="inv-thumb" src="${chain[0]}" data-srcs="${srcs}" data-i="0"
+                   alt="${escName}" loading="lazy"
+                   onerror="var s=this.dataset.srcs.split('|');var n=parseInt(this.dataset.i,10)+1;if(n<s.length){this.dataset.i=n;this.src=s[n];}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">
+              <div class="inv-thumb-fallback" style="display:none;background:${swatch};">${initial}</div>`;
     };
 
     body.innerHTML = rows.map(i => {
