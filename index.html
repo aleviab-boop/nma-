@@ -4881,8 +4881,9 @@ body.role-madame .cinema-bg{width:min(100vw, 1024px);max-width:1024px;left:50%;t
   }
 }
 
-/* OPS DASHBOARD · desktop — wide layout, dense tables */
-body.role-ops-dashboard .main{max-width:1600px;margin:0 auto;}
+/* OPS DASHBOARD · desktop — fill the full viewport. Was previously
+   capped at 1600 px which left white margins on wider monitors. */
+body.role-ops-dashboard .main{max-width:none;margin:0;}
 body.role-ops-dashboard .topbar{padding:14px 40px 14px 24px;}
 
 /* Hamburger toggle — only shown for ops-dashboard */
@@ -5064,10 +5065,12 @@ body.role-ops-dashboard .suggest-hero{
 }
 .suggest-hero-pill b{font-weight:700;}
 
-/* Stats row */
+/* Stats row — always 4 columns on desktop, stretches with viewport */
 .suggest-stats{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;width:100%;
 }
+@media(min-width:1800px){.suggest-stats{gap:20px;}}
+@media(min-width:2400px){.suggest-stats{gap:24px;}}
 .suggest-stat{
   padding:18px 20px;border-radius:14px;
   background:#ffffff;border:1px solid var(--ods-line,#e2e8f0);
@@ -5127,9 +5130,20 @@ body.role-ops-dashboard #page-suggestions .suggest-board-wrap{
   background:#fff;border:1px solid var(--ods-line,#e2e8f0);color:var(--ods-text-soft,#475569);
 }
 
-/* Event card grid */
+/* Event card grid — auto-fill so card count scales naturally with the
+   viewport width. The min track adapts for narrow vs wide viewports. */
 .suggest-board{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+  gap:20px;
+  width:100%;
+}
+@media(min-width:1800px){
+  .suggest-board{grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:24px;}
+}
+@media(min-width:2400px){
+  /* Ultra-wide — let cards stretch a bit more to avoid 6-7 cramped columns */
+  .suggest-board{grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:28px;}
 }
 .suggest-empty-state{
   grid-column:1/-1;padding:60px 24px;text-align:center;
