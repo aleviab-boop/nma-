@@ -1755,6 +1755,32 @@ body.role-madame .qr-action{font-size:8.5px;padding:7px 11px;}
 .cl-stat-sub{font-family:var(--display);font-style:italic;font-size:11.5px;font-weight:400;color:var(--pearl);opacity:.88;letter-spacing:.02em;}
 .cl-divider-v{display:block;width:1px;height:74px;background:linear-gradient(180deg,transparent 8%,rgba(245,212,119,.4) 50%,transparent 92%);}
 
+/* Weather condition icon — sits between the header and the stats row.
+   Gold gradient stroke with a soft glow so it reads as decorative
+   rather than utilitarian, and animates a slow drift so it feels
+   alive without strobing. */
+.cl-weather-icon{
+  display:flex;align-items:center;justify-content:center;
+  margin:4px auto 14px;width:84px;height:84px;
+  color:var(--gold-bright);
+  filter:drop-shadow(0 0 18px rgba(245,212,119,.32));
+  animation:cwDrift 8s ease-in-out infinite;
+}
+.cl-weather-icon svg{
+  width:64px;height:64px;
+  stroke:url(#cwGradStroke);
+}
+@keyframes cwDrift{
+  0%,100%{transform:translateY(0);}
+  50%   {transform:translateY(-4px);}
+}
+/* Unit-suffix styling — keeps "°C" / "%" visually subordinate to the
+   big number, but more substantial than the prior bare ° degree. */
+.cl-stat-num .cl-deg-c small{
+  font-size:.58em;font-weight:400;margin-left:-1px;letter-spacing:.02em;opacity:.92;
+}
+.cl-stat-num .cl-deg-pct{font-size:.5em;}
+
 /* Humidity meter — thin horizontal gold-leaf rail with tick marks */
 .cl-stat-humid{align-items:center;}
 .cl-humid-meter{position:relative;width:92px;height:3px;margin:10px 0 4px;}
@@ -4196,6 +4222,32 @@ body.role-madame #page-home .concierge-triptych{margin-bottom:36px!important;}
 body.role-madame #page-home .section{margin-bottom:32px;}
 body.role-madame #page-home .section + .section{margin-top:8px;}
 body.role-madame #page-home .recently-added{margin-bottom:32px!important;}
+
+/* Hide the "Recently added" section on the wardrobe page — newly added
+   pieces already carry the gold NEW pill, the dedicated strip on top
+   was redundant and ate vertical space. */
+body.role-madame #page-wardrobe #recentlyAddedSection{display:none!important;}
+
+/* Kill remaining decorative animations on non-home Madam pages — gold
+   waves, paisley petals, cinema-bg layers were repainting on every
+   scroll/swipe, contributing to the iPad flicker even after the
+   backdrop-filter blurs were dropped. They're a hero-page flourish;
+   not needed on Wardrobe / Calendar / Lookbook / Requests / Stylist. */
+body.role-madame .page:not(#page-home) .cinema-bg,
+body.role-madame .page:not(#page-home) .royal-petals,
+body.role-madame .page:not(#page-home) .paisley,
+body.role-madame .page:not(#page-home) .gold-waves,
+body.role-madame .page:not(#page-home) .silk-sheen,
+body.role-madame .page:not(#page-home) .gold-dust,
+body.role-madame .page:not(#page-home) .fireflies{display:none!important;}
+/* And turn off the gold-thread shimmer that runs continuously under
+   the topbar — it forced a repaint of the whole bar every 7 s. */
+body.role-madame .topbar::after{animation:none!important;opacity:0!important;}
+
+/* Remove the "Avoid · Raw Silk · Velvet …" line from the climate
+   card's drape recommendation — Madam asked for it to be dropped so
+   the verdict reads positive ("here's what to wear") only. */
+body.role-madame .cl-verdict-avoid{display:none!important;}
 
 /* The wardrobe cart icon (top-right of the global topbar) was a holdover
    from the original boutique-style scaffolding — it never had a real
@@ -6650,9 +6702,10 @@ body.role-ops-mobile #page-ops{display:none!important;}
   body.role-madame .outfit-grid{grid-template-columns:repeat(2,1fr)!important;}
   body.role-madame .gallery-grid{grid-template-columns:repeat(4,1fr)!important;}
 }
-/* iPad portrait + iPad mini (744-1023) — 2-col wardrobe, 1-col outfits */
+/* iPad portrait + iPad mini (744-1023) — 3-col wardrobe (denser, less
+   scrolling), 2-col outfits */
 @media(min-width:744px) and (max-width:1023px){
-  body.role-madame .wardrobe-grid{grid-template-columns:repeat(2,1fr)!important;}
+  body.role-madame .wardrobe-grid{grid-template-columns:repeat(3,1fr)!important;}
   body.role-madame .outfit-grid{grid-template-columns:repeat(2,1fr)!important;}
   body.role-madame .gallery-grid{grid-template-columns:repeat(3,1fr)!important;}
   body.role-madame .calendar-grid,
@@ -7704,15 +7757,23 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             <span class="cl-ornament" aria-hidden="true">✦</span>
           </header>
 
+          <!-- Big condition icon — populated by _applyWeatherToCard()
+               based on the live weather_code. Cloudy by default. -->
+          <div class="cl-weather-icon" data-weather="icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 44h28a8 8 0 0 0 0-16 11 11 0 0 0-21-3 7 7 0 0 0-7 19z"/>
+            </svg>
+          </div>
+
           <div class="cl-stats" data-weather-root>
             <div class="cl-stat">
-              <span class="cl-stat-num"><span data-weather="temp">32</span><span class="cl-deg">°</span></span>
+              <span class="cl-stat-num"><span data-weather="temp">32</span><span class="cl-deg cl-deg-c">°<small>C</small></span></span>
               <span class="cl-stat-cap">Temperature</span>
-              <span class="cl-stat-sub" data-weather="temp-sub">Feels 38° · Hazy</span>
+              <span class="cl-stat-sub" data-weather="temp-sub">Feels 38°C · Hazy</span>
             </div>
             <span class="cl-divider-v" aria-hidden="true"></span>
             <div class="cl-stat cl-stat-humid">
-              <span class="cl-stat-num"><span data-weather="humid">73</span><span class="cl-deg">%</span></span>
+              <span class="cl-stat-num"><span data-weather="humid">73</span><span class="cl-deg cl-deg-pct">%</span></span>
               <div class="cl-humid-meter" aria-hidden="true">
                 <span class="cl-humid-track"></span>
                 <span class="cl-humid-fill" data-weather="humid-fill" style="width:73%"></span>
@@ -13660,12 +13721,18 @@ function _applyWeatherToCard(data){
   const set = (key, val) => { const el = $('[data-weather="' + key + '"]'); if (el) el.textContent = val; };
 
   set('temp',       temp);
-  set('temp-sub',   `Feels ${feels}° · ${condition}`);
+  set('temp-sub',   `Feels ${feels}°C · ${condition}`);
   set('humid',      humid);
   set('humid-sub',  season);
   set('sunset-h',   sunH);
   set('sunset-m',   sunM);
   set('wind',       `${windDir} ${windKmh} km/h`);
+  // Weather condition icon — swap the SVG body based on the live
+  // weather_code so the card feels "alive" rather than just numerics.
+  const iconRoot = $('[data-weather="icon"]');
+  if (iconRoot){
+    iconRoot.innerHTML = _weatherIconSvg(code);
+  }
   // Humidity meter geometry
   const fill   = $('[data-weather="humid-fill"]');
   const marker = $('[data-weather="humid-marker"]');
@@ -13674,7 +13741,63 @@ function _applyWeatherToCard(data){
   // Drape recommendation
   set('drape', drape.drape);
   set('also',  drape.also);
+  // 'avoid' element is hidden via CSS for Madam but still rendered
+  // (some other roles may want it). Keep the data write so the
+  // underlying state stays consistent.
   set('avoid', drape.avoid);
+}
+
+/* Return an inline SVG string for a given WMO weather_code. Strokes
+   inherit currentColor (gold) so the card's gradient stroke filter
+   applies seamlessly. */
+function _weatherIconSvg(code){
+  // Clear sun (0) or mainly clear (1)
+  if (code === 0 || code === 1){
+    return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="32" cy="32" r="11"/>
+      <path d="M32 12v6M32 46v6M12 32h6M46 32h6M18 18l4 4M42 42l4 4M46 18l-4 4M18 46l4-4"/>
+    </svg>`;
+  }
+  // Partly cloudy (2)
+  if (code === 2){
+    return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="22" cy="22" r="8"/>
+      <path d="M22 8v4M22 32v4M8 22h4M32 22h4M12 12l3 3M29 29l3 3M32 12l-3 3"/>
+      <path d="M28 46h22a7 7 0 0 0 0-14 9 9 0 0 0-17-2 6 6 0 0 0-5 16z"/>
+    </svg>`;
+  }
+  // Overcast / cloudy (3)
+  if (code === 3){
+    return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 42h28a8 8 0 0 0 0-16 11 11 0 0 0-21-3 7 7 0 0 0-7 19z"/>
+      <path d="M22 50h22" opacity=".55"/>
+    </svg>`;
+  }
+  // Hazy / fog (45, 48)
+  if (code === 45 || code === 48){
+    return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="32" cy="24" r="7" opacity=".7"/>
+      <path d="M12 36h40M10 44h30M18 52h36"/>
+    </svg>`;
+  }
+  // Drizzle / rain (51-67, 80-82)
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)){
+    return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 36h28a8 8 0 0 0 0-16 11 11 0 0 0-21-3 7 7 0 0 0-7 19z"/>
+      <path d="M24 44l-3 8M34 44l-3 8M44 44l-3 8"/>
+    </svg>`;
+  }
+  // Thunderstorm (95-99)
+  if (code >= 95){
+    return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 32h28a8 8 0 0 0 0-16 11 11 0 0 0-21-3 7 7 0 0 0-7 19z"/>
+      <path d="M32 38l-6 10h6l-3 8 9-12h-6z" fill="currentColor" opacity=".8"/>
+    </svg>`;
+  }
+  // Default — mild cloud
+  return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 42h28a8 8 0 0 0 0-16 11 11 0 0 0-21-3 7 7 0 0 0-7 19z"/>
+  </svg>`;
 }
 
 let _weatherInFlight = false;
