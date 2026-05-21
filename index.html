@@ -5029,6 +5029,243 @@ body.role-ops-dashboard #page-suggestions > .hero p{
   color:var(--ods-text-soft,#475569)!important;-webkit-text-fill-color:var(--ods-text-soft,#475569)!important;
 }
 
+/* =============================================================
+   EVENT SUGGESTIONS PAGE — desktop-class layout
+   Stats row + filter tabs + responsive event-card grid with inline
+   slot thumbnails. Replaces the single-column row list.
+   ============================================================= */
+body.role-ops-dashboard #page-suggestions{
+  background:#f8fafc;min-height:100%;
+}
+body.role-ops-dashboard .suggest-hero{
+  display:flex!important;flex-direction:column;gap:20px;
+  padding:32px 48px 28px!important;
+}
+.suggest-hero-inner{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;
+}
+.suggest-hero-text{flex:1 1 auto;min-width:0;}
+.suggest-hero-sub{
+  margin-top:8px;font-size:14px;line-height:1.55;
+  color:var(--ods-text-soft,#475569);max-width:720px;
+}
+.suggest-hero-pill{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:10px 16px;border-radius:999px;
+  background:var(--ods-blue,#2563eb);color:#fff;
+  font-family:'Inter',-apple-system,sans-serif;font-size:13px;font-weight:600;
+  box-shadow:0 6px 18px -6px rgba(37,99,235,.55),0 1px 2px rgba(15,23,42,.08);
+  flex-shrink:0;
+}
+.suggest-hero-pill .dot{
+  width:8px;height:8px;border-radius:50%;background:#fff;
+  box-shadow:0 0 0 0 rgba(255,255,255,.6);
+  animation:invPulse 2s ease-in-out infinite;
+}
+.suggest-hero-pill b{font-weight:700;}
+
+/* Stats row */
+.suggest-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
+}
+.suggest-stat{
+  padding:18px 20px;border-radius:14px;
+  background:#ffffff;border:1px solid var(--ods-line,#e2e8f0);
+  box-shadow:0 1px 2px rgba(15,23,42,.04),0 4px 14px -8px rgba(15,23,42,.06);
+  position:relative;overflow:hidden;
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.suggest-stat:hover{transform:translateY(-1px);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 26px -10px rgba(15,23,42,.18);}
+.suggest-stat::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:#94a3b8;
+}
+.suggest-stat.is-total::before{background:var(--ods-blue,#2563eb);}
+.suggest-stat.is-complete::before{background:#15803d;}
+.suggest-stat.is-partial::before{background:#b45309;}
+.suggest-stat.is-empty::before{background:#94a3b8;}
+.suggest-stat .num{
+  font-family:'Inter',-apple-system,sans-serif;font-size:34px;font-weight:700;
+  color:var(--ods-text,#0f172a);line-height:1;letter-spacing:-.02em;
+}
+.suggest-stat.is-complete .num{color:#15803d;}
+.suggest-stat.is-partial  .num{color:#b45309;}
+.suggest-stat .lbl{
+  font-family:ui-monospace,monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ods-text-mute,#64748b);
+  margin-top:8px;
+}
+
+/* Toolbar — filter tabs + count */
+body.role-ops-dashboard #page-suggestions .suggest-board-wrap{
+  padding:24px 48px 48px!important;
+}
+.suggest-toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:18px;flex-wrap:wrap;gap:14px;
+}
+.suggest-filters{
+  display:inline-flex;gap:0;padding:4px;background:#fff;
+  border:1px solid var(--ods-line,#e2e8f0);border-radius:10px;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+}
+.suggest-filter{
+  border:0;background:transparent;cursor:pointer;
+  padding:8px 16px;border-radius:7px;
+  font-family:'Inter',-apple-system,sans-serif;font-size:13px;font-weight:500;
+  color:var(--ods-text-soft,#475569);
+  transition:all .15s;
+}
+.suggest-filter:hover{color:var(--ods-text,#0f172a);background:#f1f5f9;}
+.suggest-filter.active{
+  background:var(--ods-blue,#2563eb);color:#fff;font-weight:600;
+  box-shadow:0 2px 6px -2px rgba(37,99,235,.5);
+}
+.suggest-toolbar-right .badge{
+  font-family:ui-monospace,monospace;font-size:11px;font-weight:500;
+  padding:6px 12px;border-radius:6px;
+  background:#fff;border:1px solid var(--ods-line,#e2e8f0);color:var(--ods-text-soft,#475569);
+}
+
+/* Event card grid */
+.suggest-board{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;
+}
+.suggest-empty-state{
+  grid-column:1/-1;padding:60px 24px;text-align:center;
+  background:#ffffff;border:1px dashed var(--ods-line,#cbd5e1);border-radius:14px;
+  color:var(--ods-text-mute,#64748b);font-size:13.5px;
+}
+.suggest-empty-state svg{width:34px;height:34px;margin-bottom:8px;stroke:#cbd5e1;}
+
+/* Each event card */
+.suggest-event-card{
+  background:#ffffff;border:1px solid var(--ods-line,#e2e8f0);border-radius:14px;
+  padding:20px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 1px 2px rgba(15,23,42,.04),0 4px 14px -8px rgba(15,23,42,.06);
+  transition:all .2s ease;position:relative;overflow:hidden;
+}
+.suggest-event-card:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(15,23,42,.04),0 14px 30px -12px rgba(15,23,42,.22);}
+.suggest-event-card.is-complete{border-color:#bbf7d0;}
+.suggest-event-card.is-partial{border-color:#fde68a;}
+.suggest-event-card.is-empty{border-style:dashed;}
+.suggest-event-card .sec-card-head{
+  display:flex;align-items:flex-start;gap:14px;
+}
+.suggest-event-card .sec-card-date{
+  width:62px;flex-shrink:0;text-align:center;
+  background:#f1f5f9;border:1px solid var(--ods-line,#e2e8f0);border-radius:10px;
+  padding:10px 0;
+}
+.suggest-event-card .sec-card-date .d{
+  display:block;font-family:'Inter',-apple-system,sans-serif;font-size:24px;font-weight:700;
+  color:var(--ods-text,#0f172a);line-height:1;letter-spacing:-.01em;
+}
+.suggest-event-card .sec-card-date .m{
+  display:block;font-family:ui-monospace,monospace;font-size:10px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ods-blue,#2563eb);margin-top:4px;
+}
+.suggest-event-card .sec-card-title{flex:1;min-width:0;}
+.suggest-event-card .sec-card-title h5{
+  font-family:'Inter',-apple-system,sans-serif;font-size:16px;font-weight:600;
+  color:var(--ods-text,#0f172a);margin:0 0 4px;letter-spacing:-.005em;line-height:1.3;
+}
+.suggest-event-card .sec-card-title .meta{
+  font-size:12px;color:var(--ods-text-mute,#64748b);letter-spacing:.01em;
+}
+.suggest-event-card .sec-card-status{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:ui-monospace,monospace;font-size:10px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 10px;border-radius:6px;flex-shrink:0;align-self:flex-start;
+}
+.suggest-event-card .sec-card-status.complete{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;}
+.suggest-event-card .sec-card-status.partial{background:#fef3c7;color:#92400e;border:1px solid #fde68a;}
+.suggest-event-card .sec-card-status.empty{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;}
+
+/* Slot preview thumbnails */
+.suggest-event-card .sec-slots{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+}
+.suggest-event-card .sec-slot{
+  position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;
+  background:#f8fafc;border:1px solid var(--ods-line,#e2e8f0);
+}
+.suggest-event-card .sec-slot img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.suggest-event-card .sec-slot.is-empty{
+  border-style:dashed;display:flex;align-items:center;justify-content:center;
+  color:#cbd5e1;background:#f8fafc;
+}
+.suggest-event-card .sec-slot.is-empty svg{width:18px;height:18px;}
+.suggest-event-card .sec-slot .slot-idx{
+  position:absolute;top:5px;left:5px;
+  width:20px;height:20px;border-radius:50%;
+  background:rgba(15,23,42,.78);color:#fff;
+  display:grid;place-items:center;
+  font-family:ui-monospace,monospace;font-size:10px;font-weight:700;
+  backdrop-filter:blur(4px);
+}
+.suggest-event-card .sec-slot.is-empty .slot-idx{
+  background:#fff;color:#94a3b8;border:1px solid #e2e8f0;
+}
+.suggest-event-card .sec-slot.is-picked::after{
+  content:"✓";position:absolute;top:5px;right:5px;
+  width:20px;height:20px;border-radius:50%;background:var(--ods-blue,#2563eb);color:#fff;
+  display:grid;place-items:center;font-size:11px;font-weight:700;
+  box-shadow:0 2px 6px -2px rgba(37,99,235,.5);
+}
+
+/* Madam-confirmed badge */
+.suggest-event-card .sec-picked-badge{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:#dcfce7;border:1px solid #86efac;border-radius:8px;
+  font-size:12px;color:#15803d;font-weight:500;
+}
+.suggest-event-card .sec-picked-badge svg{width:14px;height:14px;stroke-width:2.5;color:#15803d;flex-shrink:0;}
+.suggest-event-card .sec-picked-badge b{color:#14532d;}
+
+.suggest-event-card .sec-card-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-top:12px;border-top:1px solid #f1f5f9;margin-top:auto;
+}
+.suggest-event-card .sec-count{
+  font-family:ui-monospace,monospace;font-size:11px;color:var(--ods-text-mute,#64748b);
+  letter-spacing:.04em;
+}
+.suggest-event-card .sec-manage-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 16px;border-radius:8px;border:1px solid var(--ods-blue,#2563eb);
+  background:var(--ods-blue,#2563eb);color:#fff;cursor:pointer;
+  font-size:13px;font-weight:600;letter-spacing:.01em;
+  transition:all .15s;
+}
+.suggest-event-card .sec-manage-btn:hover{background:#1d4ed8;border-color:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px -4px rgba(37,99,235,.6);}
+.suggest-event-card .sec-manage-btn svg{stroke-width:2.4;width:13px;height:13px;}
+
+/* Responsive — tighter at narrow desktop / iPad landscape */
+@media(max-width:1180px){
+  body.role-ops-dashboard .suggest-hero{padding:28px 32px 24px!important;}
+  body.role-ops-dashboard #page-suggestions .suggest-board-wrap{padding:20px 32px 36px!important;}
+  .suggest-stats{grid-template-columns:repeat(4,1fr);gap:12px;}
+  .suggest-stat{padding:14px 16px;}
+  .suggest-stat .num{font-size:28px;}
+}
+@media(max-width:900px){
+  body.role-ops-dashboard .suggest-hero{padding:24px 22px 22px!important;}
+  body.role-ops-dashboard #page-suggestions .suggest-board-wrap{padding:18px 22px 32px!important;}
+  .suggest-stats{grid-template-columns:repeat(2,1fr);}
+  .suggest-board{grid-template-columns:1fr;gap:14px;}
+  .suggest-toolbar{gap:10px;}
+  .suggest-filter{padding:7px 12px;font-size:12.5px;}
+}
+@media(max-width:560px){
+  .suggest-hero-pill{align-self:flex-start;}
+  .suggest-stats{grid-template-columns:1fr 1fr;gap:10px;}
+  .suggest-event-card{padding:16px;}
+}
+
 /* Live Inventory pill in the ops dashboard hero — solid blue button.
    Jumps to the wardrobe page (the live, Realtime-synced inventory grid). */
 .ops-live-inv-btn{
@@ -7940,24 +8177,53 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
          page so ops can jump straight there from the sidebar without
          scrolling past the run-of-show / stats / activity feed. -->
     <div class="page" id="page-suggestions">
-      <section class="hero" style="padding:32px 40px 22px;">
-        <div class="hero-label">Curate · Madam's Picks</div>
-        <h1 class="hero-title" style="font-size:clamp(28px,3.6vw,42px);">Event Outfit <em>Suggestions</em></h1>
-        <p style="margin-top:8px;font-size:13px;color:var(--ods-text-soft,#475569);max-width:680px;">
-          Pick 3 outfits per upcoming event — Madam sees them when she taps the event in her calendar.
-        </p>
+      <section class="hero suggest-hero">
+        <div class="suggest-hero-inner">
+          <div class="suggest-hero-text">
+            <div class="hero-label">Curate · Madam's Picks</div>
+            <h1 class="hero-title">Event Outfit <em>Suggestions</em></h1>
+            <p class="suggest-hero-sub">Pick 3 outfits per upcoming event — Madam sees them when she taps the event in her calendar.</p>
+          </div>
+          <div class="suggest-hero-pill" id="suggestHeroPill">
+            <span class="dot"></span>
+            <span class="lbl"><b id="suggestHeroPillNum">0</b> events queued</span>
+          </div>
+        </div>
+        <!-- Stats bar -->
+        <div class="suggest-stats" id="suggestStats">
+          <div class="suggest-stat is-total">
+            <div class="num" id="suggestStatTotal">0</div>
+            <div class="lbl">Upcoming events</div>
+          </div>
+          <div class="suggest-stat is-complete">
+            <div class="num" id="suggestStatComplete">0</div>
+            <div class="lbl">Ready · 3 / 3</div>
+          </div>
+          <div class="suggest-stat is-partial">
+            <div class="num" id="suggestStatPartial">0</div>
+            <div class="lbl">In progress</div>
+          </div>
+          <div class="suggest-stat is-empty">
+            <div class="num" id="suggestStatEmpty">0</div>
+            <div class="lbl">Not started</div>
+          </div>
+        </div>
       </section>
-      <section class="section" style="padding:0 40px 40px;">
-        <div class="ops-card" id="opsEventSuggestions">
-          <div class="ops-card-head">
-            <div>
-              <h4>Upcoming events</h4>
-              <div class="sub">Tap Manage on any event to assign 3 wardrobe picks for Madam.</div>
-            </div>
+      <section class="section suggest-board-wrap">
+        <!-- Filter tabs + count -->
+        <div class="suggest-toolbar">
+          <div class="suggest-filters" role="tablist" aria-label="Filter events">
+            <button class="suggest-filter active" data-suggest-filter="all"      type="button" role="tab" aria-selected="true">All</button>
+            <button class="suggest-filter" data-suggest-filter="empty"           type="button" role="tab">Not started</button>
+            <button class="suggest-filter" data-suggest-filter="partial"         type="button" role="tab">In progress</button>
+            <button class="suggest-filter" data-suggest-filter="complete"        type="button" role="tab">Complete</button>
+          </div>
+          <div class="suggest-toolbar-right">
             <span class="badge" id="suggestEventCount">0 events</span>
           </div>
-          <div id="suggestEventList" style="display:flex;flex-direction:column;gap:10px;padding-top:6px;"></div>
         </div>
+        <!-- Event card grid -->
+        <div class="suggest-board" id="suggestEventList" aria-live="polite"></div>
       </section>
     </div>
 
@@ -11898,55 +12164,150 @@ function onEnterGuests(){
 window.onEnterGuests = onEnterGuests;
 
 /* ---- OPS DASHBOARD — render the upcoming-event list with suggestion status ---- */
+/* Filter state — persists across renders so the user's tab choice
+   survives Realtime repaints and route round-trips. */
+let _suggestFilter = 'all';
+
 function renderSuggestEventList(){
   const list = document.getElementById('suggestEventList');
   const badge = document.getElementById('suggestEventCount');
   if (!list) return;
   const today = new Date('2026-05-21');
+
+  // Pull every upcoming event, attach status + suggestions for each
   const upcoming = (state.events || [])
     .filter(e => new Date(e.date) >= today)
     .sort((a,b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 12);
-  if (badge) badge.textContent = `${upcoming.length} event${upcoming.length===1?'':'s'}`;
-  if (upcoming.length === 0){
-    list.innerHTML = `<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No upcoming events.</div>`;
+    .slice(0, 24)
+    .map(e => {
+      const suggestions = _getSuggestionsFor(e.id);
+      const filled = suggestions.filter(s => s && s.pieceId).length;
+      let status = 'empty';
+      if (filled === 3) status = 'complete';
+      else if (filled > 0) status = 'partial';
+      return { e, suggestions, filled, status };
+    });
+
+  // Update stats (always show counts across ALL events, not just filtered)
+  const counts = { total: upcoming.length, complete: 0, partial: 0, empty: 0 };
+  upcoming.forEach(x => { counts[x.status]++; });
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setText('suggestStatTotal',    counts.total);
+  setText('suggestStatComplete', counts.complete);
+  setText('suggestStatPartial',  counts.partial);
+  setText('suggestStatEmpty',    counts.empty);
+  setText('suggestHeroPillNum',  counts.total);
+
+  // Apply the active filter
+  const filtered = upcoming.filter(x => _suggestFilter === 'all' ? true : x.status === _suggestFilter);
+  if (badge) badge.textContent = `${filtered.length} event${filtered.length === 1 ? '' : 's'}`;
+
+  if (filtered.length === 0){
+    const label = _suggestFilter === 'all' ? 'upcoming events' : (
+      _suggestFilter === 'complete' ? 'events with all 3 picks ready' :
+      _suggestFilter === 'partial'  ? 'events in progress' :
+      'events still to start'
+    );
+    list.innerHTML = `
+      <div class="suggest-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+        <div>No ${label}.</div>
+      </div>`;
     return;
   }
-  list.innerHTML = upcoming.map(e => {
+
+  // itemImage src resolver — same cascade used elsewhere, returns raw src
+  const _picSrc = (it) => {
+    if (!it) return '';
+    if (it.capturedPhoto) return it.capturedPhoto;
+    if (it.photo) return it.photo;
+    if (typeof PHOTO_MAP !== 'undefined' && PHOTO_MAP[it.id]) return PHOTO_MAP[it.id];
+    return `img/${it.id}.png`;
+  };
+
+  list.innerHTML = filtered.map(({ e, suggestions, filled, status }) => {
     const d = new Date(e.date);
-    const suggestions = _getSuggestionsFor(e.id);
-    const filledCount = suggestions.filter(s => s && s.pieceId).length;
-    let status, statusLabel;
-    if (filledCount === 3){ status = 'complete'; statusLabel = '✓ 3 / 3 ready'; }
-    else if (filledCount > 0){ status = 'partial'; statusLabel = `${filledCount} / 3 set`; }
-    else { status = 'empty'; statusLabel = 'Not started'; }
-    // Madam-selected outfit badge — appears once she taps Confirm on her side
+    const statusLabel = status === 'complete' ? '✓ 3 / 3 ready'
+                      : status === 'partial'  ? `${filled} / 3 set`
+                      : 'Not started';
+    // Madam-confirmed banner (once she taps Confirm on her side)
     const pickedPiece = e.outfitItemId
       ? (INVENTORY.find(p => p.id === e.outfitItemId) || null)
       : null;
     const pickedBadge = pickedPiece
-      ? `<span class="picked-by-madam" title="Madam confirmed: ${pickedPiece.name.replace(/"/g,'&quot;')}">
-           <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg>
-           Outfit selected · <b>${pickedPiece.name}</b>
-         </span>`
+      ? `<div class="sec-picked-badge" title="Madam confirmed: ${pickedPiece.name.replace(/"/g,'&quot;')}">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5 9-11"/></svg>
+           Madam confirmed · <b>${pickedPiece.name.replace(/</g,'&lt;')}</b>
+         </div>`
       : '';
+    // Three slot previews (filled or empty placeholder)
+    const slots = [0,1,2].map(i => {
+      const s = suggestions[i];
+      const piece = s && s.pieceId ? INVENTORY.find(p => p.id === s.pieceId) : null;
+      if (piece){
+        const src = _picSrc(piece);
+        const isPicked = pickedPiece && piece.id === pickedPiece.id;
+        return `
+          <div class="sec-slot is-filled ${isPicked ? 'is-picked' : ''}" title="${piece.name.replace(/"/g,'&quot;')} · ${piece.designer.replace(/"/g,'&quot;')}">
+            <span class="slot-idx">${i+1}</span>
+            <img src="${src}" alt="${piece.name.replace(/"/g,'&quot;')}" loading="lazy" onerror="this.onerror=null;this.src='img/${piece.id}.jpg';"/>
+          </div>`;
+      }
+      return `
+        <div class="sec-slot is-empty">
+          <span class="slot-idx">${i+1}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
+        </div>`;
+    }).join('');
+
     return `
-      <div class="suggest-event-row">
-        <div class="date"><span class="d">${d.getDate()}</span><span class="m">${MONTH_SHORT[d.getMonth()]}</span></div>
-        <div class="info">
-          <h5>${e.name}</h5>
-          <div class="meta">${e.time} · ${e.dress}</div>
-          ${pickedBadge}
+      <div class="suggest-event-card is-${status}">
+        <div class="sec-card-head">
+          <div class="sec-card-date">
+            <span class="d">${d.getDate()}</span>
+            <span class="m">${MONTH_SHORT[d.getMonth()]}</span>
+          </div>
+          <div class="sec-card-title">
+            <h5>${(e.name || '').replace(/</g,'&lt;')}</h5>
+            <div class="meta">${(e.time || '')} · ${(e.dress || '').replace(/</g,'&lt;')}</div>
+          </div>
+          <span class="sec-card-status ${status}">${statusLabel}</span>
         </div>
-        <span class="status ${status}">${statusLabel}</span>
-        <button class="manage-btn" data-suggest-event="${e.id}" type="button">Manage →</button>
+        <div class="sec-slots">${slots}</div>
+        ${pickedBadge}
+        <div class="sec-card-foot">
+          <span class="sec-count">${filled} of 3 picks${pickedPiece ? ' · confirmed' : ''}</span>
+          <button class="sec-manage-btn" data-suggest-event="${e.id}" type="button">
+            ${status === 'complete' ? 'Edit picks' : status === 'partial' ? 'Continue' : 'Start picks'}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
       </div>`;
   }).join('');
-  // Wire Manage buttons
+  // Wire Manage buttons — supports both numeric (hardcoded) and UUID event ids
   list.querySelectorAll('[data-suggest-event]').forEach(btn => {
-    btn.addEventListener('click', () => openSuggestBuilder(Number(btn.dataset.suggestEvent)));
+    btn.addEventListener('click', () => {
+      const raw = btn.dataset.suggestEvent;
+      const ev = (state.events || []).find(x => String(x.id) === String(raw));
+      openSuggestBuilder(ev ? ev.id : raw);
+    });
   });
 }
+
+// Wire filter tabs once on first DOM ready — they re-render the board
+// without re-fetching state.events.
+(function wireSuggestFilters(){
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.suggest-filter[data-suggest-filter]');
+    if (!tab) return;
+    _suggestFilter = tab.dataset.suggestFilter || 'all';
+    document.querySelectorAll('.suggest-filter').forEach(t => {
+      t.classList.toggle('active', t === tab);
+      t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+    });
+    renderSuggestEventList();
+  });
+})();
 
 /* ---- BUILDER MODAL — ops fills 3 slots per event ---- */
 let _suggestingEventId = null;
