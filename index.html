@@ -5868,6 +5868,31 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 .wlayout-close svg{width:14px;height:14px;stroke:#000;stroke-width:2;fill:none;}
 .wlayout-close:hover{background:#dbeafe;border-color:#2563eb;}
 
+/* Floating close pill — sits anchored to the viewport top-right of the
+   wardrobe-layout modal so ops can dismiss the map even after scrolling
+   far down or after expanding the editor over the original header. */
+.wlayout-close-floating{
+  position:fixed;top:16px;right:20px;z-index:2710;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px 8px 12px;border-radius:999px;
+  background:#0f172a;color:#ffffff;
+  border:1px solid #0f172a;cursor:pointer;
+  font-family:'Inter',-apple-system,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.01em;
+  box-shadow:0 8px 22px -8px rgba(15,23,42,.6),0 2px 4px rgba(15,23,42,.18);
+  transition:all .18s ease;
+}
+.wlayout-close-floating:hover{
+  background:#b91c1c;border-color:#b91c1c;
+  transform:translateY(-1px);
+  box-shadow:0 10px 26px -8px rgba(185,28,28,.55),0 2px 4px rgba(185,28,28,.2);
+}
+.wlayout-close-floating:active{transform:translateY(0);}
+.wlayout-close-floating svg{stroke-width:2.4;}
+.wlayout-close-floating:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+/* Only visible when the modal is actually open */
+.wlayout-modal:not(.show) .wlayout-close-floating,
+.wlayout-modal:not(.show) ~ .wlayout-close-floating{display:none;}
+
 .wlayout-body{flex:1;display:grid;grid-template-columns:1fr 280px;gap:0;overflow:hidden;min-height:0;}
 .wlayout-body.no-side{grid-template-columns:1fr;}
 .wlayout-stage{padding:24px 28px;overflow-y:auto;min-width:0;background:#f8fafc;}
@@ -9173,6 +9198,12 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 
 <!-- Wardrobe Layout modal — large workspace with side panel listing zones -->
 <div class="wlayout-modal" id="wlayoutModal" aria-hidden="true" role="dialog">
+  <!-- Floating close pill — anchored to the viewport's top-right so it
+       stays visible no matter how far ops scrolls through the layout. -->
+  <button class="wlayout-close-floating" id="wlayoutCloseFloating" type="button" aria-label="Close layout" title="Close (Esc)">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    <span>Close</span>
+  </button>
   <div class="wlayout-card">
     <div class="wlayout-head">
       <div class="title-block">
@@ -16187,6 +16218,13 @@ function closeWardrobeLayout(){
 
 document.getElementById('wlayoutClose')?.addEventListener('click', closeWardrobeLayout);
 document.getElementById('wlayoutClose2')?.addEventListener('click', closeWardrobeLayout);
+document.getElementById('wlayoutCloseFloating')?.addEventListener('click', closeWardrobeLayout);
+// Escape closes the layout too — matches the title="Close (Esc)" hint
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const m = document.getElementById('wlayoutModal');
+  if (m && m.classList.contains('show')) closeWardrobeLayout();
+});
 document.getElementById('wlayoutModal')?.addEventListener('click', (e) => {
   if (e.target.id === 'wlayoutModal') closeWardrobeLayout();
 });
