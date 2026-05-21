@@ -9207,9 +9207,9 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
         <div class="wlayout-stat"><span class="v" id="wlayoutZoneCount">0</span><span class="l">Zones</span></div>
         <div class="wlayout-stat"><span class="v" id="wlayoutMappedCount">0</span><span class="l">Mapped</span></div>
       </div>
-      <!-- Original in-header close removed — the floating "Close" pill
-           at the top-right of the modal now handles dismissal. -->
-      <button class="wlayout-close" id="wlayoutClose" aria-label="Close" hidden></button>
+      <!-- Original in-header × removed — the floating red "Close" pill
+           at the top-right of the modal is the single close affordance. -->
+
     </div>
     <!-- Direction tabs — one map per direction (Floor / N / S / E / W) -->
     <div class="wlayout-dir-tabs" id="wlayoutDirTabs"></div>
@@ -9245,7 +9245,8 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
     <div class="wlayout-foot">
       <button class="wlayout-btn danger" id="wlayoutRemove" style="display:none;">Remove layout</button>
       <div class="spacer"></div>
-      <button class="wlayout-btn" id="wlayoutClose2">Close</button>
+      <!-- Bottom Close button removed — the floating red Close pill at
+           the top-right is the only close affordance now. -->
       <button class="wl-edit-toggle" id="wlayoutEditToggle" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         <span id="wlayoutEditToggleLabel">Add zones</span>
