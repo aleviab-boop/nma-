@@ -4114,10 +4114,9 @@ body.role-madame .app{grid-template-columns:1fr;}
 
 /* Topbar — tighter for tablet */
 body.role-madame .topbar{padding:18px 24px;gap:14px;min-height:74px;}
-/* NMA Mam doesn't need the global wardrobe search — she discovers pieces
-   via the home hero meta blocks, calendar event picker, and Anaita chat.
-   Hide it across all viewports (was only hidden below 743 px). */
-body.role-madame .topbar .search-bar{display:none!important;}
+body.role-madame .topbar .search-bar{height:46px;}
+body.role-madame .topbar .search-bar input{font-size:13px;padding:13px 16px 13px 42px;}
+body.role-madame .topbar .search-bar > svg{left:14px;width:16px;height:16px;}
 body.role-madame .topbar .date-chip{font-size:10px;padding:8px 12px;}
 /* Madam Nita's home — clean topbar without date or back button */
 body.role-madame .topbar .date-chip{display:none!important;}
@@ -13430,17 +13429,130 @@ document.addEventListener('click',(e)=>{
   });
 })();
 
-// Global search
+/* Global search — smart router.
+   Recognises page keywords ("calendar", "lookbook"…), category names
+   ("sarees", "bags"…) and designer names from the wardrobe, then routes
+   accordingly. Falls through to a plain wardrobe search for anything
+   that doesn't match a known route. */
+const _SEARCH_PAGE_ROUTES = [
+  { page:'home',     keys:['home','dashboard'] },
+  { page:'wardrobe', keys:['wardrobe','archive','closet','garments','clothes','collection'] },
+  { page:'builder',  keys:['stylist','builder','canvas','compose','outfit builder'] },
+  { page:'lookbook', keys:['lookbook','looks','outfits','ensembles'] },
+  { page:'calendar', keys:['calendar','calender','events','schedule','agenda'] },
+  { page:'requests', keys:['requests','pick list','pick-list','picks','wardrobe team'] },
+];
+const _SEARCH_CATEGORY_KEYS = {
+  saree:'saree', sarees:'saree',
+  lehenga:'lehenga', lehengas:'lehenga',
+  gown:'gown', gowns:'gown',
+  anarkali:'anarkali', anarkalis:'anarkali', suits:'anarkali', suit:'anarkali', sharara:'anarkali',
+  jewelry:'jewelry', jewellery:'jewelry',
+  bag:'bag', bags:'bag', clutch:'bag', purse:'bag',
+  shoe:'shoe', shoes:'shoe', footwear:'shoe', heels:'shoe', juttis:'shoe',
+};
+
+function _resolveSearchIntent(query){
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return { kind:'none' };
+  // 1. Exact page keyword?
+  for (const route of _SEARCH_PAGE_ROUTES){
+    if (route.keys.some(k => k === q || q === k + 's')) return { kind:'page', page:route.page, label:route.page };
+  }
+  // 2. Category keyword?
+  if (_SEARCH_CATEGORY_KEYS[q]) return { kind:'category', cat:_SEARCH_CATEGORY_KEYS[q], label:q };
+  // 3. Designer name (substring match against INVENTORY designers)?
+  if (typeof INVENTORY !== 'undefined' && Array.isArray(INVENTORY)){
+    const designers = new Set();
+    INVENTORY.forEach(i => { if (i && i.designer) designers.add(String(i.designer).toLowerCase()); });
+    // exact match
+    for (const d of designers){ if (d === q) return { kind:'designer', designer:d, label:d }; }
+    // prefix match (e.g. "ritu" → "ritu kumar")
+    for (const d of designers){ if (d.startsWith(q) || q.startsWith(d)) return { kind:'designer', designer:d, label:d }; }
+    // substring (e.g. "kumar" → "ritu kumar")
+    for (const d of designers){ if (d.includes(q) || q.includes(d)) return { kind:'designer', designer:d, label:d }; }
+  }
+  // 4. Loose page keyword match — e.g. "look" → lookbook
+  for (const route of _SEARCH_PAGE_ROUTES){
+    if (route.keys.some(k => k.includes(q) || q.includes(k))) return { kind:'page', page:route.page, label:route.page };
+  }
+  return { kind:'query', q };
+}
+
+function _runSearchIntent(intent, opts){
+  const silent = opts && opts.silent;
+  if (!intent || intent.kind === 'none') return;
+  if (intent.kind === 'page'){
+    if (typeof navigateTo === 'function') navigateTo(intent.page);
+    if (!silent && typeof showToast === 'function') showToast('Opening ' + intent.page);
+    return;
+  }
+  if (intent.kind === 'category'){
+    if (typeof navigateTo === 'function') navigateTo('wardrobe');
+    // Activate the matching category chip + repaint
+    setTimeout(() => {
+      const chip = document.querySelector(`#filters .filter-chip[data-filter="${intent.cat}"]`);
+      if (chip){
+        document.querySelectorAll('#filters .filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+      }
+      if (typeof paintWardrobe === 'function') paintWardrobe(intent.cat, '');
+    }, 280);
+    if (!silent && typeof showToast === 'function') showToast(`Showing ${intent.label}`);
+    return;
+  }
+  if (intent.kind === 'designer'){
+    if (typeof navigateTo === 'function') navigateTo('wardrobe');
+    setTimeout(() => {
+      document.querySelectorAll('#filters .filter-chip').forEach(c => c.classList.remove('active'));
+      document.querySelector('#filters .filter-chip[data-filter="all"]')?.classList.add('active');
+      if (typeof paintWardrobe === 'function') paintWardrobe('all', intent.designer);
+    }, 280);
+    if (!silent && typeof showToast === 'function') showToast(`By ${intent.designer.replace(/\b\w/g, c => c.toUpperCase())}`);
+    return;
+  }
+  // Generic query — drop into wardrobe with the raw search
+  if (typeof navigateTo === 'function') navigateTo('wardrobe');
+  setTimeout(() => {
+    const active = document.querySelector('#filters .filter-chip.active')?.dataset.filter || 'all';
+    if (typeof paintWardrobe === 'function') paintWardrobe(active, intent.q);
+  }, 280);
+}
+
+// Live-filter while typing IF the user is already on wardrobe; otherwise
+// preview the route once they pause typing (debounced 250ms).
+let _searchDebounce = null;
 document.getElementById('globalSearch')?.addEventListener('input',(e)=>{
   const q = e.target.value;
-  const active = document.querySelector('#filters .filter-chip.active')?.dataset.filter || 'all';
-  if(document.getElementById('page-wardrobe').classList.contains('active')){
+  const onWardrobe = document.getElementById('page-wardrobe').classList.contains('active');
+  if (onWardrobe){
+    const active = document.querySelector('#filters .filter-chip.active')?.dataset.filter || 'all';
     paintWardrobe(active, q);
-  } else if(q){
-    navigateTo('wardrobe');
-    paintWardrobe('all', q);
+    return;
   }
+  // Not on wardrobe — wait until the user pauses, then route silently so
+  // typing "calendar" doesn't keep toasting after every keystroke.
+  clearTimeout(_searchDebounce);
+  _searchDebounce = setTimeout(() => {
+    if (!q.trim()) return;
+    _runSearchIntent(_resolveSearchIntent(q), { silent:true });
+  }, 280);
 });
+// Enter commits the intent loudly (with toast confirmation).
+document.getElementById('globalSearch')?.addEventListener('keydown',(e)=>{
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const q = e.target.value;
+  clearTimeout(_searchDebounce);
+  _runSearchIntent(_resolveSearchIntent(q));
+  // Blur so the iPad keyboard collapses after the action lands
+  try { e.target.blur(); } catch(_){}
+});
+// Refresh the placeholder so the user sees what they can search for
+(() => {
+  const inp = document.getElementById('globalSearch');
+  if (inp) inp.placeholder = "Search — try 'calendar', 'lookbook', 'ritu kumar', 'sarees'…";
+})();
 
 // Drag & drop
 let dragItem = null;
