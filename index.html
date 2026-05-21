@@ -1388,6 +1388,9 @@ body.tablet-view .bottom-nav{display:flex;}
 .nav-item:hover{background:rgba(255,255,255,.04);color:var(--froth);}
 .nav-item.active{background:var(--cinna);color:var(--ink);font-weight:500;}
 .nav-item .count{margin-left:auto;font-family:var(--mono);font-size:10px;padding:2px 6px;background:rgba(255,255,255,.1);border-radius:10px;}
+/* Hide the count pill when its value is empty / zero — avoids the "0"
+   pill reading as noise next to nav labels. */
+.nav-item .count[data-empty="true"]{display:none;}
 .nav-item.active .count{background:rgba(43,34,29,.15);}
 
 .sidebar-footer{margin-top:auto;padding-top:24px;border-top:1px solid rgba(255,255,255,.08);position:relative;}
@@ -7099,7 +7102,7 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
       <div class="nav-item" data-page="requests">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M4 12h10M4 17h16"/><circle cx="19" cy="12" r="2"/></svg>
         <span>Requests</span>
-        <span class="count" id="navRequestsCount">3</span>
+        <span class="count" id="navRequestsCount" data-empty="true">0</span>
       </div>
     </div>
 
@@ -8005,16 +8008,13 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
       </section>
 
       <section class="lb2-section">
-        <!-- Filter chips + search row -->
+        <!-- Filter chips only — the standalone search was redundant
+             with the global topbar search Madam uses everywhere. -->
         <div class="lb2-toolbar">
           <div class="lb2-filters" id="lbFilters">
             <button class="lb2-chip is-active" data-lb-filter="all" type="button">All</button>
             <button class="lb2-chip" data-lb-filter="recent" type="button">Recent</button>
             <button class="lb2-chip" data-lb-filter="multi" type="button">3+ pieces</button>
-          </div>
-          <div class="lb2-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input type="text" id="lbSearch" placeholder="Search looks, designers…"/>
           </div>
         </div>
 
@@ -9978,6 +9978,13 @@ function updateGlobalCounters(){
     .filter(e => new Date(e.date) >= today && !e.outfit).length;
   setText('opsStatRequests',  fmt(openRequests));
   setText('navRequestsCount', fmt(openRequests));
+  // Hide the sidebar badge entirely when there are no open requests —
+  // an empty "0" pill next to a nav label reads as noise.
+  const navReqBadge = document.getElementById('navRequestsCount');
+  if (navReqBadge){
+    if (openRequests > 0) navReqBadge.removeAttribute('data-empty');
+    else navReqBadge.setAttribute('data-empty', 'true');
+  }
   const reqSub = document.getElementById('opsStatRequestsSub');
   if (reqSub) reqSub.textContent = openRequests === 0
     ? 'All events styled'
