@@ -5868,27 +5868,53 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 .wlayout-close svg{width:14px;height:14px;stroke:#000;stroke-width:2;fill:none;}
 .wlayout-close:hover{background:#dbeafe;border-color:#2563eb;}
 
-/* Floating close pill — sits anchored to the viewport top-right of the
-   wardrobe-layout modal so ops can dismiss the map even after scrolling
-   far down or after expanding the editor over the original header. */
+/* Floating close pill — anchored top-right of the viewport so ops can
+   dismiss the layout from anywhere. Refined glass-card look with a
+   subtle bordered ring; turns destructive red on hover. */
 .wlayout-close-floating{
-  position:fixed;top:16px;right:20px;z-index:2710;
-  display:inline-flex;align-items:center;gap:8px;
-  padding:8px 14px 8px 12px;border-radius:999px;
-  background:#0f172a;color:#ffffff;
-  border:1px solid #0f172a;cursor:pointer;
-  font-family:'Inter',-apple-system,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.01em;
-  box-shadow:0 8px 22px -8px rgba(15,23,42,.6),0 2px 4px rgba(15,23,42,.18);
-  transition:all .18s ease;
+  position:fixed;top:18px;right:22px;z-index:2710;
+  display:inline-flex;align-items:center;gap:9px;
+  padding:9px 16px 9px 14px;border-radius:12px;
+  background:#ffffff;color:#0f172a;
+  border:1px solid #e2e8f0;cursor:pointer;
+  font-family:'Inter',-apple-system,sans-serif;font-size:13px;font-weight:600;letter-spacing:.005em;
+  box-shadow:
+    0 1px 0 #fff inset,
+    0 1px 2px rgba(15,23,42,.06),
+    0 12px 28px -10px rgba(15,23,42,.32);
+  backdrop-filter:saturate(1.1);
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+.wlayout-close-floating .wlcf-icon{
+  width:22px;height:22px;border-radius:6px;
+  background:#f1f5f9;color:#475569;
+  display:grid;place-items:center;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+.wlayout-close-floating .wlcf-icon svg{width:11px;height:11px;stroke-width:2.6;display:block;}
+.wlayout-close-floating .wlcf-kbd{
+  display:inline-block;padding:1px 6px;border-radius:4px;
+  background:#f1f5f9;border:1px solid #e2e8f0;
+  font-family:ui-monospace,monospace;font-size:10px;font-weight:500;color:#64748b;
+  letter-spacing:.04em;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
 }
 .wlayout-close-floating:hover{
-  background:#b91c1c;border-color:#b91c1c;
+  background:#fef2f2;border-color:#fecaca;color:#991b1b;
   transform:translateY(-1px);
-  box-shadow:0 10px 26px -8px rgba(185,28,28,.55),0 2px 4px rgba(185,28,28,.2);
+  box-shadow:
+    0 1px 0 #fff inset,
+    0 2px 4px rgba(185,28,28,.08),
+    0 16px 32px -10px rgba(185,28,28,.35);
+}
+.wlayout-close-floating:hover .wlcf-icon{
+  background:#dc2626;color:#fff;transform:rotate(90deg);
+}
+.wlayout-close-floating:hover .wlcf-kbd{
+  background:#fff;border-color:#fecaca;color:#991b1b;
 }
 .wlayout-close-floating:active{transform:translateY(0);}
-.wlayout-close-floating svg{stroke-width:2.4;}
-.wlayout-close-floating:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+.wlayout-close-floating:focus-visible{outline:2px solid #2563eb;outline-offset:3px;}
 /* Only visible when the modal is actually open */
 .wlayout-modal:not(.show) .wlayout-close-floating,
 .wlayout-modal:not(.show) ~ .wlayout-close-floating{display:none;}
@@ -9201,8 +9227,11 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
   <!-- Floating close pill — anchored to the viewport's top-right so it
        stays visible no matter how far ops scrolls through the layout. -->
   <button class="wlayout-close-floating" id="wlayoutCloseFloating" type="button" aria-label="Close layout" title="Close (Esc)">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    <span>Close</span>
+    <span class="wlcf-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </span>
+    <span>Close layout</span>
+    <span class="wlcf-kbd" aria-hidden="true">Esc</span>
   </button>
   <div class="wlayout-card">
     <div class="wlayout-head">
@@ -9214,9 +9243,9 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
         <div class="wlayout-stat"><span class="v" id="wlayoutZoneCount">0</span><span class="l">Zones</span></div>
         <div class="wlayout-stat"><span class="v" id="wlayoutMappedCount">0</span><span class="l">Mapped</span></div>
       </div>
-      <button class="wlayout-close" id="wlayoutClose" aria-label="Close">
-        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
+      <!-- Original in-header close removed — the floating "Close" pill
+           at the top-right of the modal now handles dismissal. -->
+      <button class="wlayout-close" id="wlayoutClose" aria-label="Close" hidden></button>
     </div>
     <!-- Direction tabs — one map per direction (Floor / N / S / E / W) -->
     <div class="wlayout-dir-tabs" id="wlayoutDirTabs"></div>
