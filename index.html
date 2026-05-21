@@ -4142,6 +4142,61 @@ body.role-madame .back-btn:disabled{display:none!important;}
    one that has no logical "back" — for Madam, that's the home page. */
 .back-btn.is-hidden-by-page{display:none!important;}
 
+/* =============================================================
+   NMA Mam — interaction polish per user feedback
+   - Back button gone across ALL screens (bottom-nav + swipe only)
+   - Inline trash icon on garment cards hidden (no destructive
+     wardrobe edits from her side)
+   - Hero section + section-rise animations made instant so the
+     hero never "disappears" mid-swipe between pages
+   - Disable heavy backdrop-filter blurs to stop the iPad flicker
+   - Extra breathing room between home sections so the meta block
+     doesn't visually overlap the climate / triptych cards
+   ============================================================= */
+body.role-madame .back-btn{display:none!important;}
+body.role-madame .garment .garment-delete{display:none!important;}
+
+/* Lock the hero / sections at their final animated state so swiping
+   between pages doesn't replay the "rise" animation each time —
+   that was making the hero appear to fade out and back in. */
+body.role-madame .page.active .hero,
+body.role-madame .page.active .section,
+body.role-madame .page.active .event-card,
+body.role-madame .page.active .concierge-triptych,
+body.role-madame .page.active .recently-added,
+body.role-madame .page.active .hero-meta{
+  animation:none!important;
+  opacity:1!important;
+  transform:none!important;
+}
+body.role-madame .hero-label,
+body.role-madame .hero-title,
+body.role-madame .hero-meta{
+  animation:none!important;
+  opacity:1!important;
+  transform:none!important;
+}
+/* iPad flicker — stacked backdrop-filter blurs across topbar, modal
+   overlays, climate card and stylist hero were forcing repaints on
+   every scroll. Drop them on madame; the gold/serif aesthetic still
+   holds without the blur. */
+body.role-madame .topbar,
+body.role-madame .hero-meta,
+body.role-madame .concierge-triptych .ct-card,
+body.role-madame .madame-pick-modal,
+body.role-madame .modal-overlay{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+/* Home-page spacing — the hero-meta block and the concierge triptych
+   were sitting flush against the next "Curated ensembles" / "Rediscover"
+   sections. Give them clear vertical separation. */
+body.role-madame #page-home .hero-meta{margin-bottom:34px!important;}
+body.role-madame #page-home .concierge-triptych{margin-bottom:36px!important;}
+body.role-madame #page-home .section{margin-bottom:32px;}
+body.role-madame #page-home .section + .section{margin-top:8px;}
+body.role-madame #page-home .recently-added{margin-bottom:32px!important;}
+
 /* The wardrobe cart icon (top-right of the global topbar) was a holdover
    from the original boutique-style scaffolding — it never had a real
    purpose in the three current role flows. Hide it everywhere. */
