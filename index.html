@@ -11118,21 +11118,71 @@ function initGuestListsPage(){
     if (ocrLabel) ocrLabel.textContent = label || 'Reading image…';
   }
 
-  /* Tesseract returns one big block of text. Split by lines; each line
-     usually maps to one guest. Strip obvious non-name junk (numbers,
-     trailing punctuation, very short lines, all-caps role headers like
-     "GUEST LIST"). */
+  /* Tesseract returns one big block of text. Split by lines (then by
+     other plausible separators if line-splitting yields too few names)
+     and clean each candidate down to something that could be a person's
+     name. Less aggressive than before — we'd rather over-extract and
+     let ops delete junk than miss real names. */
   function _cleanOcrOutput(text){
-    return String(text || '').split(/\r?\n/)
-      .map(s => s.replace(/[•·*\-—–\u2013\u2014]/g, ' ').replace(/\s+/g, ' ').trim())
+    const raw = String(text || '');
+    let candidates = raw.split(/\r?\n/);
+    // Fallback split if line-splitting collapses to <5 lines but the
+    // text has many name-like tokens — common when Tesseract returns a
+    // single PSM=auto block. Try splitting on 2+ spaces, then commas,
+    // then semicolons.
+    if (candidates.filter(s => s.trim()).length < 5){
+      const altSpace = raw.split(/\s{2,}/);
+      if (altSpace.length > candidates.length) candidates = altSpace;
+      if (raw.includes(',')){
+        const altComma = raw.split(/[,;]+/);
+        if (altComma.length > candidates.length) candidates = altComma;
+      }
+    }
+    return candidates
+      .map(s => s
+        .replace(/^[\s\d\)\.\:#•·*\-—–\u2013\u2014]+/, '')    // strip leading numbering / bullets
+        .replace(/[•·*\u2013\u2014]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim())
       .filter(s => {
         if (!s) return false;
-        if (s.length < 3) return false;
+        if (s.length < 2) return false;
         if (/^\d+[\)\.]?$/.test(s)) return false;             // pure numbers / numbering
-        if (/^(guest|guests|name|names|list|attendees?)\s*:?$/i.test(s)) return false;
-        if (!/[a-z]/i.test(s)) return false;                  // no letters at all
+        if (/^(guest|guests|name|names|list|attendees?|sl no|s\.?no|rsvp)\s*:?$/i.test(s)) return false;
+        if (!/[A-Za-z]/.test(s)) return false;                // must contain at least one letter
         return true;
       });
+  }
+
+  /* Upscale tiny images before OCR — Tesseract recognition quality drops
+     sharply below ~1500 px on the long side. Returns a canvas-rendered
+     blob suitable for handing to Tesseract.recognize. */
+  async function _preprocessImageForOCR(file){
+    const targetMinDim = 2000;
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = URL.createObjectURL(file);
+    });
+    const longSide = Math.max(img.naturalWidth, img.naturalHeight);
+    // If the image is already big enough, hand the original file back —
+    // saves a canvas round-trip and keeps colour info intact.
+    if (longSide >= targetMinDim){
+      URL.revokeObjectURL(img.src);
+      return file;
+    }
+    const scale = targetMinDim / longSide;
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(img.src);
+    return await new Promise(resolve => c.toBlob(b => resolve(b || file), 'image/png'));
   }
 
   imgInput && imgInput.addEventListener('change', async (e) => {
@@ -11151,19 +11201,31 @@ function initGuestListsPage(){
     try {
       _ocrSetProgress(2, 'Loading OCR engine…');
       const Tesseract = await _ensureTesseract();
+      _ocrSetProgress(6, 'Preparing image…');
+      // Tesseract recognises printed text best when the long side is
+      // ≥2000 px. Up-scale tiny photos before recognition.
+      const upscaled = await _preprocessImageForOCR(file);
       _ocrSetProgress(10, 'Reading image…');
-      const result = await Tesseract.recognize(file, 'eng', {
+      // Build a worker with list-friendly page-segmentation mode (PSM 6
+      // = "single uniform block of text"). The default auto-mode often
+      // collapsed multi-line guest lists into a single paragraph, which
+      // is why only 2-3 names were coming through earlier.
+      const worker = await Tesseract.createWorker('eng', 1, {
         logger: (m) => {
-          // m.status: 'loading tesseract core' | 'initializing api' | 'recognizing text' | …
-          // m.progress: 0..1 for the current phase
           if (m.status === 'recognizing text'){
-            const pct = 10 + Math.round(m.progress * 88);
+            const pct = 10 + Math.round(m.progress * 86);
             _ocrSetProgress(pct, `Reading text · ${Math.round(m.progress * 100)}%`);
           } else if (m.status){
             _ocrSetProgress(8, m.status.charAt(0).toUpperCase() + m.status.slice(1) + '…');
           }
         }
       });
+      await worker.setParameters({
+        tessedit_pageseg_mode: '6',           // single uniform block of text
+        preserve_interword_spaces: '1',
+      });
+      const result = await worker.recognize(upscaled);
+      try { await worker.terminate(); } catch(_){}
       const lines = _cleanOcrOutput(result && result.data && result.data.text);
       if (!lines.length){
         if (msg){ msg.textContent = 'No readable names found. Try a clearer photo or paste names manually.'; msg.className = 'guest-empty-msg is-err'; }
