@@ -4218,6 +4218,20 @@ body.role-madame .back-btn:disabled{display:none!important;}
 .guest-empty-msg{font-size:12px;color:var(--ods-text-mute,#64748b);min-height:14px;}
 .guest-empty-msg.is-ok{color:#15803d;font-weight:500;}
 .guest-empty-msg.is-err{color:#b91c1c;font-weight:500;}
+.guest-ocr-progress{
+  display:flex;flex-direction:column;gap:6px;
+  padding:10px 12px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;
+}
+.guest-ocr-progress .ocr-bar{
+  width:100%;height:4px;background:#dbeafe;border-radius:2px;overflow:hidden;
+}
+.guest-ocr-progress .ocr-fill{
+  height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#3b82f6);
+  border-radius:2px;transition:width .3s ease;
+}
+.guest-ocr-progress .ocr-label{
+  font-size:11px;color:#1d4ed8;font-weight:500;letter-spacing:.02em;
+}
 
 /* Archive list */
 .guest-archive-list{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto;}
@@ -7827,16 +7841,25 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
               <span class="guest-label">Guests <span class="guest-count" id="guestNamesCount">0 names</span></span>
               <textarea id="guestNamesInput" rows="8" placeholder="Mukesh Ambani&#10;Isha Ambani&#10;Anand Piramal&#10;…"></textarea>
             </label>
-            <div class="guest-row guest-row-flex">
+            <div class="guest-row guest-row-flex" style="flex-wrap:wrap;">
               <label class="guest-upload-btn" for="guestFileInput">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4M16 8l-4-4-4 4M12 4v12"/></svg>
                 Upload .csv / .txt
               </label>
               <input type="file" id="guestFileInput" accept=".csv,.txt,text/plain,text/csv" hidden/>
+              <label class="guest-upload-btn" for="guestImageInput" title="OCR — extract names from a photo or scan of a guest list">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="1.7"/><path d="M21 17l-5-5-9 9"/></svg>
+                Upload image (OCR)
+              </label>
+              <input type="file" id="guestImageInput" accept="image/*" capture="environment" hidden/>
               <button id="guestSaveBtn" class="guest-save-btn" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>
                 Save &amp; analyse
               </button>
+            </div>
+            <div class="guest-ocr-progress" id="guestOcrProgress" style="display:none;">
+              <div class="ocr-bar"><div class="ocr-fill" id="guestOcrFill"></div></div>
+              <div class="ocr-label" id="guestOcrLabel">Reading image…</div>
             </div>
             <div class="guest-empty-msg" id="guestSaveMsg"></div>
           </div>
@@ -11061,6 +11084,106 @@ function initGuestListsPage(){
     };
     reader.onerror = () => { if (msg){ msg.textContent = 'Could not read file.'; msg.className = 'guest-empty-msg is-err'; } };
     reader.readAsText(file);
+  });
+
+  /* Image upload + OCR.
+     Lazy-loads Tesseract.js from CDN on the first attempt only so we
+     don't bloat boot for ops users who never use this feature. The
+     ~3 MB library is then cached by the browser for subsequent uploads.
+     Names are appended to the textarea so ops can review/edit before
+     saving — OCR is rarely 100% clean. */
+  const imgInput = document.getElementById('guestImageInput');
+  const ocrWrap  = document.getElementById('guestOcrProgress');
+  const ocrFill  = document.getElementById('guestOcrFill');
+  const ocrLabel = document.getElementById('guestOcrLabel');
+
+  let _tesseractLoading = null;
+  function _ensureTesseract(){
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (_tesseractLoading) return _tesseractLoading;
+    _tesseractLoading = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.async = true;
+      s.onload  = () => resolve(window.Tesseract);
+      s.onerror = () => reject(new Error('Could not load OCR library'));
+      document.head.appendChild(s);
+    });
+    return _tesseractLoading;
+  }
+
+  function _ocrSetProgress(pct, label){
+    if (ocrWrap)  ocrWrap.style.display = pct >= 0 ? 'flex' : 'none';
+    if (ocrFill)  ocrFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    if (ocrLabel) ocrLabel.textContent = label || 'Reading image…';
+  }
+
+  /* Tesseract returns one big block of text. Split by lines; each line
+     usually maps to one guest. Strip obvious non-name junk (numbers,
+     trailing punctuation, very short lines, all-caps role headers like
+     "GUEST LIST"). */
+  function _cleanOcrOutput(text){
+    return String(text || '').split(/\r?\n/)
+      .map(s => s.replace(/[•·*\-—–\u2013\u2014]/g, ' ').replace(/\s+/g, ' ').trim())
+      .filter(s => {
+        if (!s) return false;
+        if (s.length < 3) return false;
+        if (/^\d+[\)\.]?$/.test(s)) return false;             // pure numbers / numbering
+        if (/^(guest|guests|name|names|list|attendees?)\s*:?$/i.test(s)) return false;
+        if (!/[a-z]/i.test(s)) return false;                  // no letters at all
+        return true;
+      });
+  }
+
+  imgInput && imgInput.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)){
+      if (msg){ msg.textContent = 'Please pick an image file (jpg / png / heic).'; msg.className = 'guest-empty-msg is-err'; }
+      imgInput.value = '';
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024){
+      if (msg){ msg.textContent = 'Image is too large (>12 MB). Try a smaller photo.'; msg.className = 'guest-empty-msg is-err'; }
+      imgInput.value = '';
+      return;
+    }
+    try {
+      _ocrSetProgress(2, 'Loading OCR engine…');
+      const Tesseract = await _ensureTesseract();
+      _ocrSetProgress(10, 'Reading image…');
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: (m) => {
+          // m.status: 'loading tesseract core' | 'initializing api' | 'recognizing text' | …
+          // m.progress: 0..1 for the current phase
+          if (m.status === 'recognizing text'){
+            const pct = 10 + Math.round(m.progress * 88);
+            _ocrSetProgress(pct, `Reading text · ${Math.round(m.progress * 100)}%`);
+          } else if (m.status){
+            _ocrSetProgress(8, m.status.charAt(0).toUpperCase() + m.status.slice(1) + '…');
+          }
+        }
+      });
+      const lines = _cleanOcrOutput(result && result.data && result.data.text);
+      if (!lines.length){
+        if (msg){ msg.textContent = 'No readable names found. Try a clearer photo or paste names manually.'; msg.className = 'guest-empty-msg is-err'; }
+      } else {
+        const joined = lines.join('\n');
+        if (txt) txt.value = txt.value ? (txt.value.replace(/\s+$/, '') + '\n' + joined) : joined;
+        refreshCount();
+        if (msg){
+          const conf = result && result.data && typeof result.data.confidence === 'number' ? Math.round(result.data.confidence) : null;
+          msg.textContent = `Extracted ${lines.length} line${lines.length === 1 ? '' : 's'} from ${file.name}${conf != null ? ` · ${conf}% confidence` : ''}. Review and edit before saving.`;
+          msg.className = 'guest-empty-msg is-ok';
+        }
+      }
+    } catch (err){
+      console.warn('OCR failed', err);
+      if (msg){ msg.textContent = 'OCR failed — ' + (err && err.message || 'unknown error'); msg.className = 'guest-empty-msg is-err'; }
+    } finally {
+      _ocrSetProgress(-1);
+      imgInput.value = '';
+    }
   });
 
   // Save & analyse.
