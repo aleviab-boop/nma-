@@ -4249,6 +4249,94 @@ body.role-madame .topbar::after{animation:none!important;opacity:0!important;}
    the verdict reads positive ("here's what to wear") only. */
 body.role-madame .cl-verdict-avoid{display:none!important;}
 
+/* =============================================================
+   Full-screen garment-detail modal for Madame
+   The default modal opened as a centred 980×90vh card. Open it edge-
+   to-edge with a single prominent red Close button at top-right.
+   ============================================================= */
+body.role-madame .modal-overlay{padding:0!important;align-items:stretch!important;justify-content:stretch!important;}
+body.role-madame .modal{
+  width:100vw!important;max-width:100vw!important;
+  height:100vh!important;max-height:100vh!important;
+  border-radius:0!important;
+  display:flex!important;flex-direction:column!important;
+  grid-template-columns:none!important;
+  background:#ffffff!important;overflow-y:auto!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+body.role-madame .modal-overlay.show .modal{transform:none!important;}
+/* Promote the existing small ✕ into a prominent red "Close" pill
+   anchored at the viewport's top-right when the modal is full-screen. */
+body.role-madame .modal .modal-close{
+  position:fixed!important;top:18px!important;right:22px!important;
+  width:auto!important;height:auto!important;border-radius:10px!important;
+  padding:10px 22px!important;
+  background:#dc2626!important;color:#ffffff!important;
+  border:1px solid #b91c1c!important;cursor:pointer;
+  font-family:'Inter',-apple-system,sans-serif!important;font-size:13.5px!important;font-weight:600!important;letter-spacing:.01em;
+  box-shadow:0 6px 18px -4px rgba(220,38,38,.55),0 2px 4px rgba(15,23,42,.15)!important;
+  transition:all .18s ease;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  z-index:1100!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+body.role-madame .modal .modal-close::after{
+  content:"Close";
+}
+body.role-madame .modal .modal-close svg{display:none!important;}
+body.role-madame .modal .modal-close:hover{
+  background:#b91c1c!important;border-color:#991b1b!important;
+  transform:none!important;
+}
+/* Modal image area — large hero on the page, contained so the full
+   garment is always visible. */
+body.role-madame .modal-img{
+  width:100%!important;flex:0 0 auto!important;
+  max-height:60vh!important;aspect-ratio:auto!important;
+  background:linear-gradient(180deg,#fafafa 0%,#f0eee9 100%)!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  overflow:hidden!important;
+}
+body.role-madame .modal-img img{
+  width:auto!important;height:auto!important;
+  max-width:90%!important;max-height:60vh!important;
+  object-fit:contain!important;display:block!important;
+}
+body.role-madame .modal-body{
+  width:100%!important;flex:1 1 auto!important;
+  padding:32px clamp(20px,4vw,56px)!important;max-width:880px;margin:0 auto;
+}
+body.role-madame .modal-body h2{font-size:clamp(24px,3.6vw,34px)!important;}
+
+/* Remove the "IMAGEN 3 / DEMO PREVIEW" quality badge label from the
+   VTO result — Madam doesn't need the model branding visible. */
+body.role-madame #vtoQualityBadge,
+body.role-madame .vto-result-badge{display:none!important;}
+
+/* VTO toggle row — sits below the result image; lets Madam flip
+   between her VTO render and the original garment photo. */
+.vto-toggle-row{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px;border-radius:999px;
+  background:rgba(28,18,12,.7);border:1px solid rgba(212,168,74,.28);
+  box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
+  margin:14px auto 6px;
+}
+.vto-toggle-btn{
+  border:0;background:transparent;cursor:pointer;
+  padding:7px 16px;border-radius:999px;
+  font-family:'Inter',-apple-system,sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;
+  color:rgba(255,250,237,.7);
+  transition:all .18s ease;
+}
+.vto-toggle-btn:hover{color:var(--ivory);}
+.vto-toggle-btn.is-active{
+  background:linear-gradient(135deg,var(--gold-bright,#F5D477),var(--gold-metal,#D4A84A));
+  color:var(--ink,#1A0F08);
+  box-shadow:0 4px 12px -4px rgba(245,212,119,.55);
+}
+
 /* The wardrobe cart icon (top-right of the global topbar) was a holdover
    from the original boutique-style scaffolding — it never had a real
    purpose in the three current role flows. Hide it everywhere. */
@@ -8882,12 +8970,17 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
         <img id="vtoResultImg" alt="virtual try-on result"/>
         <div class="vto-result-badge" id="vtoQualityBadge">PREVIEW</div>
       </div>
+      <!-- Toggle: flip between "How it looks on me" (VTO) and "Original piece" -->
+      <div class="vto-toggle-row" role="tablist" aria-label="View toggle">
+        <button class="vto-toggle-btn is-active" id="vtoToggleMe" type="button" role="tab" aria-selected="true">On me</button>
+        <button class="vto-toggle-btn" id="vtoToggleGarment" type="button" role="tab" aria-selected="false">Original piece</button>
+      </div>
       <div class="vto-result-meta" id="vtoResultMeta">—</div>
       <div class="vto-result-actions">
         <button class="vto-pick-btn ghost" id="vtoRetryBtn" type="button">Try another</button>
         <button class="vto-pick-btn primary" id="vtoFinaliseBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          Finalise & save look
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events:none;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span style="pointer-events:none;">Finalise &amp; save look</span>
         </button>
       </div>
     </div>
@@ -10641,8 +10734,22 @@ function paintWardrobe(filter='all', q=''){
   let items = INVENTORY;
   if(filter!=='all') items = items.filter(i=>i.cat===filter);
   if(q){
-    q = q.toLowerCase();
-    items = items.filter(i => i.name.toLowerCase().includes(q) || i.designer.toLowerCase().includes(q) || i.cat.toLowerCase().includes(q));
+    q = q.toLowerCase().trim();
+    // Designer-strict match: if the query matches one or more designers
+    // in the inventory (exact OR substring), filter ONLY by designer.
+    // Avoids name/cat false positives when Madam searches "Ritu Kumar"
+    // — she expects only Ritu Kumar pieces, not anything else with
+    // "ritu" or "kumar" in the name.
+    const designersHit = new Set();
+    INVENTORY.forEach(i => {
+      const d = String(i.designer || '').toLowerCase();
+      if (d && (d === q || d.includes(q) || q.includes(d))) designersHit.add(d);
+    });
+    if (designersHit.size > 0){
+      items = items.filter(i => designersHit.has(String(i.designer || '').toLowerCase()));
+    } else {
+      items = items.filter(i => i.name.toLowerCase().includes(q) || i.designer.toLowerCase().includes(q) || i.cat.toLowerCase().includes(q));
+    }
   }
   // Optional status filter set by the home hero meta blocks (Available /
   // Unworn / Cleaning / New). Cleared when the user changes the category
@@ -14937,8 +15044,12 @@ function renderVtoResultThumbs(items){
   }).join('');
 }
 
-// Finalise → save the rendered result into the Lookbook as a new entry
-document.getElementById('vtoFinaliseBtn')?.addEventListener('click', ()=>{
+// Finalise → save the rendered result into the Lookbook AND append the
+// underlying garment to her Requests pick list so wardrobe team prepares it.
+// Use a delegated handler instead of a direct element click — survives
+// any case where the button has been re-rendered/replaced (e.g. iPad
+// safari sometimes loses the listener after the VTO swap-in completes).
+function _finaliseVtoLook(){
   if(!_vtoLastResult) return closeVtoModal();
   const { dataUrl, item } = _vtoLastResult;
   const newId = 'LB' + Date.now().toString(36).toUpperCase();
@@ -14960,11 +15071,71 @@ document.getElementById('vtoFinaliseBtn')?.addEventListener('click', ()=>{
     if(typeof persistLooks === 'function') persistLooks();
     if(typeof renderLookbook === 'function') renderLookbook();
   }
+  // Also append the piece to PICK_IDS so it lands in Requests for the
+  // wardrobe team — Madam expects "Finalise" to commit, not just file.
+  try {
+    if (typeof PICK_IDS !== 'undefined' && Array.isArray(PICK_IDS)){
+      if (!PICK_IDS.includes(item.id)) PICK_IDS.push(item.id);
+      if (typeof persistPickList === 'function') persistPickList();
+      if (typeof broadcastStateChange === 'function') broadcastStateChange();
+      if (typeof renderPickList === 'function') renderPickList();
+      if (typeof logAudit === 'function')
+        logAudit('request', `Outfit confirmed via VTO — ${item.name}`, item.designer);
+    }
+  } catch(_){}
   closeVtoModal();
   if (typeof showCombinationSavedPop === 'function') showCombinationSavedPop(`${item.name} · Try-on`, 1);
-  else showToast('Saved to Lookbook');
+  else showToast('Saved to Lookbook + Requests');
   setTimeout(()=>navigateTo('lookbook'), 1200);
+}
+// Delegated click — works even if the button DOM is swapped under us.
+// Click event on iPad fires reliably when touch-action is set on the
+// button and pointer-events:none on its inner SVG/span (set inline).
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('#vtoFinaliseBtn')){
+    e.preventDefault();
+    _finaliseVtoLook();
+  }
 });
+// Toggle wiring — flips the result image between the VTO render and
+// the original garment photo, lets Madam compare them.
+document.addEventListener('click', (e) => {
+  const tMe   = e.target.closest && e.target.closest('#vtoToggleMe');
+  const tGarm = e.target.closest && e.target.closest('#vtoToggleGarment');
+  if (!tMe && !tGarm) return;
+  const img = document.getElementById('vtoResultImg');
+  if (!img || !_vtoLastResult) return;
+  if (tMe){
+    img.src = _vtoLastResult.dataUrl;
+    document.getElementById('vtoToggleMe')?.classList.add('is-active');
+    document.getElementById('vtoToggleMe')?.setAttribute('aria-selected','true');
+    document.getElementById('vtoToggleGarment')?.classList.remove('is-active');
+    document.getElementById('vtoToggleGarment')?.setAttribute('aria-selected','false');
+  } else {
+    const item = _vtoLastResult.item;
+    let src = item && item.capturedPhoto ? item.capturedPhoto
+            : item && item.photo ? item.photo
+            : (typeof PHOTO_MAP !== 'undefined' && item && PHOTO_MAP[item.id]) ? PHOTO_MAP[item.id]
+            : item ? ('img/' + item.id + '.png') : '';
+    img.src = src;
+    document.getElementById('vtoToggleGarment')?.classList.add('is-active');
+    document.getElementById('vtoToggleGarment')?.setAttribute('aria-selected','true');
+    document.getElementById('vtoToggleMe')?.classList.remove('is-active');
+    document.getElementById('vtoToggleMe')?.setAttribute('aria-selected','false');
+  }
+});
+// Ensure the toggle resets to "On me" each time a fresh result lands.
+(function wireVtoToggleReset(){
+  const obs = new MutationObserver(() => {
+    const wrap = document.getElementById('vtoResultWrap');
+    if (wrap && wrap.style.display !== 'none'){
+      document.getElementById('vtoToggleMe')?.classList.add('is-active');
+      document.getElementById('vtoToggleGarment')?.classList.remove('is-active');
+    }
+  });
+  const wrap = document.getElementById('vtoResultWrap');
+  if (wrap) obs.observe(wrap, { attributes:true, attributeFilter:['style'] });
+})();
 
 // Cart button
 document.getElementById('cartBtn')?.addEventListener('click',()=>{
