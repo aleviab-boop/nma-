@@ -4323,6 +4323,136 @@ body.role-madame .vto-result-badge{display:none!important;}
   box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
   margin:14px auto 6px;
 }
+
+/* =============================================================
+   Round-2 polish from user feedback:
+   - Garment full-screen modal goes DARK (was white)
+   - Curated ensembles + Lookbook grids go 3-col on iPad
+   - Climate card shrinks (smaller stat numbers + tighter padding)
+   - Bigger Anaita chat panel on open
+   - Final flicker hunt — kill the climate icon drift, humid-fill
+     replay animation, marquee, and pulse loops on non-home pages
+   ============================================================= */
+
+/* Dark full-screen modal — was white, swap to deep cinammon-black
+   with gold accents matching the rest of Madame's chrome. */
+body.role-madame .modal{
+  background:linear-gradient(180deg,#1C120C 0%,#0B0604 100%)!important;
+  color:var(--ivory)!important;
+}
+body.role-madame .modal-img{
+  background:linear-gradient(180deg,#0E0706 0%,#1C120C 100%)!important;
+  border-bottom:1px solid rgba(212,168,74,.22);
+}
+body.role-madame .modal-body{color:var(--ivory)!important;}
+body.role-madame .modal-body h2{color:var(--ivory)!important;}
+body.role-madame .modal-body .designer-line{color:var(--champagne)!important;}
+body.role-madame .modal-tag{color:var(--gold-bright)!important;}
+body.role-madame .modal-chips span{
+  background:rgba(212,168,74,.12)!important;
+  border:1px solid rgba(212,168,74,.3)!important;
+  color:var(--champagne)!important;
+}
+body.role-madame .modal-meta-grid{
+  background:rgba(28,18,12,.6)!important;
+  border:1px solid rgba(212,168,74,.18)!important;
+}
+body.role-madame .modal-meta-grid .k{color:var(--gold-bright)!important;}
+body.role-madame .modal-meta-grid .v{color:var(--ivory)!important;}
+body.role-madame .modal-loc-row{
+  background:rgba(28,18,12,.6)!important;
+  border:1px solid rgba(212,168,74,.22)!important;
+}
+body.role-madame .modal-loc-label,
+body.role-madame .modal-loc-code{color:var(--champagne)!important;}
+body.role-madame .modal-loc-edit{
+  background:rgba(212,168,74,.12)!important;
+  border:1px solid rgba(212,168,74,.3)!important;
+  color:var(--gold-bright)!important;
+}
+body.role-madame .modal-history{
+  background:rgba(28,18,12,.55)!important;
+  border:1px solid rgba(212,168,74,.16)!important;
+}
+body.role-madame .modal-history h5{color:var(--gold-bright)!important;}
+body.role-madame .modal-history .history-line{color:var(--ivory)!important;border-color:rgba(212,168,74,.1)!important;}
+body.role-madame .modal-history .history-line .date{color:var(--champagne)!important;}
+body.role-madame .m-btn,
+body.role-madame .modal-actions .m-btn{
+  background:rgba(212,168,74,.08)!important;
+  border:1px solid rgba(212,168,74,.3)!important;
+  color:var(--ivory)!important;
+}
+body.role-madame .m-btn:hover{
+  background:rgba(212,168,74,.18)!important;border-color:var(--gold-bright)!important;
+}
+body.role-madame .m-btn.primary{
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold-metal))!important;
+  color:var(--ink)!important;
+  border-color:var(--gold-bright)!important;
+}
+
+/* 3-col grids for Curated Ensembles (home page) + Lookbook on iPad */
+@media(min-width:744px){
+  body.role-madame .outfit-grid{grid-template-columns:repeat(3,1fr)!important;gap:14px!important;}
+  body.role-madame .lb2-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;}
+}
+/* Phone: stays 1-col since 3 thumbs would be too cramped */
+@media(max-width:743px){
+  body.role-madame .outfit-grid{grid-template-columns:1fr!important;}
+  body.role-madame .lb2-grid{grid-template-columns:repeat(2,1fr)!important;}
+}
+
+/* Climate card — shrink padding + numbers so it doesn't tower over
+   the rest of the home page. */
+body.role-madame .concierge-triptych .ct-climate{padding:16px 22px 14px!important;}
+body.role-madame .cl-header{margin-bottom:10px!important;gap:8px!important;}
+body.role-madame .cl-title em{font-size:11.5px!important;}
+body.role-madame .cl-weather-icon{
+  width:54px!important;height:54px!important;margin:0 auto 8px!important;
+}
+body.role-madame .cl-weather-icon svg{width:38px!important;height:38px!important;}
+body.role-madame .cl-stats{margin-bottom:8px!important;}
+body.role-madame .cl-stat{padding:0 8px!important;gap:2px!important;}
+body.role-madame .cl-stat-num{font-size:26px!important;}
+body.role-madame .cl-stat-num .cl-deg-c small{font-size:.5em!important;}
+body.role-madame .cl-stat-cap{font-size:6.5px!important;letter-spacing:.22em!important;}
+body.role-madame .cl-stat-sub{font-size:9px!important;}
+body.role-madame .cl-divider-v{height:42px!important;}
+body.role-madame .cl-humid-meter{width:54px!important;}
+body.role-madame .cl-rule{margin-bottom:8px!important;gap:10px!important;}
+body.role-madame .cl-verdict-eyebrow{font-size:7.5px!important;}
+body.role-madame .cl-verdict{font-size:26px!important;margin:2px 0 4px!important;}
+body.role-madame .cl-verdict-by{font-size:9.5px!important;margin-bottom:6px!important;}
+body.role-madame .cl-also-list,
+body.role-madame .cl-avoid-list{font-size:10px!important;}
+body.role-madame .cl-corner{width:9px!important;height:9px!important;}
+body.role-madame .cl-seal{width:24px!important;height:24px!important;bottom:10px!important;right:14px!important;}
+
+/* Bigger Anaita chat panel on open — was a small bottom-right card,
+   the user asked for a larger initial size. */
+body.role-madame .stylist-hero.is-open,
+.stylist-hero.is-open{
+  width:min(560px,calc(100vw - 32px))!important;
+  max-height:min(1100px,calc(100vh - 90px))!important;
+  /* Lift it up a touch so a bigger panel doesn't get clipped at the
+     bottom on shorter iPad viewports. */
+  bottom:60px!important;
+  right:24px!important;
+}
+.stylist-hero.is-open .sh-msg{font-size:14px!important;}
+
+/* Final flicker hunt — kill the climate weather-icon drift and the
+   humidity meter's fill/marker entry animation on every render. These
+   were the last continuously animating elements on the home page. */
+body.role-madame .cl-weather-icon{animation:none!important;}
+body.role-madame .cl-humid-fill{animation:none!important;}
+body.role-madame .cl-humid-marker{animation:none!important;}
+body.role-madame .marquee-track{animation:none!important;}
+/* Hover lifts on meta blocks were running translateY transitions on
+   every render — the scroll layer was forced to repaint each frame */
+body.role-madame .meta-block{transition:none!important;}
+body.role-madame .meta-block:hover{transform:none!important;background:radial-gradient(ellipse at center,rgba(245,212,119,.07),transparent 70%)!important;}
 .vto-toggle-btn{
   border:0;background:transparent;cursor:pointer;
   padding:7px 16px;border-radius:999px;
