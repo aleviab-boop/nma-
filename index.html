@@ -10117,20 +10117,33 @@ async function initSupabaseLive(){
     .on('postgres_changes',
         { event: '*', schema: 'public', table: 'items' },
         async (payload) => {
-          try {
-            const state = await fetchSharedState();
-            if (state) applySharedState(state);
-            if (typeof rerenderInventoryViews === 'function') rerenderInventoryViews();
-            if (payload.eventType === 'INSERT' && typeof _addLocalNotification === 'function'){
-              const row = payload.new || {};
+          // Fire the notification FIRST so the toast/bell-shake always
+          // lands the moment Realtime delivers an INSERT — even if the
+          // subsequent state refresh fails (slow /api/state, offline,
+          // etc.) the user still sees "✨ New piece in your wardrobe".
+          // Previous logic ran fetchSharedState() first; if that threw,
+          // the surrounding try/catch swallowed the error and the
+          // notification call never ran.
+          const isInsert = payload && (payload.eventType === 'INSERT' || payload.type === 'INSERT' || payload.event === 'INSERT');
+          if (isInsert && typeof _addLocalNotification === 'function'){
+            try {
+              const row = (payload && payload.new) || {};
               _addLocalNotification({
                 id: 'sb-' + (row.id || Date.now()),
                 kind: 'garment-added',
                 name: row.name,
                 designer: row.designer,
+                photo: row.photo || row.photo_url || null,
                 addedAt: Date.now()
               });
-            }
+            } catch(e){ console.warn('[supabase] notif fire failed', e); }
+          }
+          // Then refresh state separately — its failure no longer
+          // gates the notification.
+          try {
+            const fresh = await fetchSharedState();
+            if (fresh) applySharedState(fresh);
+            if (typeof rerenderInventoryViews === 'function') rerenderInventoryViews();
           } catch (e){ console.warn('[supabase] items live refresh failed', e); }
         })
     // Events table — ops dashboard's outfit-combination saves arrive here
