@@ -1604,6 +1604,15 @@ body.role-ops-mobile .notif-panel{width:100%;}
 /* Page wipe veil */
 .page-veil{position:fixed;top:0;left:220px;right:0;bottom:0;background:linear-gradient(135deg,var(--cinna),var(--chai));pointer-events:none;z-index:500;transform:translateY(100%);opacity:0;}
 .page-veil.sweep{animation:veilSweep .9s var(--ease-out);}
+/* Madame has no sidebar, so the veil's `left:220px` clip left a black
+   strip on the left while the rest of the screen flashed gold — half
+   yellow, half black on every swipe. Two fixes: (1) make the veil span
+   the entire viewport on Madame, (2) swap the gold gradient for a solid
+   black surface so the transition reads as a clean fade, not a colour
+   wash. Animation is also stripped since the cross-page swipe handles
+   its own visual movement. */
+body.role-madame .page-veil{left:0!important;background:#0B0604!important;}
+body.role-madame .page-veil.sweep{animation:none!important;}
 @keyframes veilSweep{
   0%{transform:translateY(100%);opacity:0;}
   35%{transform:translateY(0);opacity:.55;}
