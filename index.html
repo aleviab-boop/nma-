@@ -4603,10 +4603,19 @@ body.role-madame .m-btn.primary{
 /* Climate card — shrink padding + numbers so it doesn't tower over
    the rest of the home page. */
 body.role-madame .concierge-triptych .ct-climate{
-  padding:14px 18px 12px!important;
-  max-width:420px!important;
+  /* Wider than before but shorter vertically — Madam wanted the panel
+     to span more of the page with a slimmer top/bottom profile. */
+  padding:6px 22px 10px!important;
+  max-width:760px!important;
   margin:0 auto!important;
 }
+/* Tighten the upper chrome too — header gap + weather icon shrink
+   so the card reads as a wide, low strip rather than a tall block. */
+body.role-madame .cl-header{margin-bottom:6px!important;gap:8px!important;}
+body.role-madame .cl-weather-icon{
+  width:36px!important;height:36px!important;margin:0 auto 4px!important;
+}
+body.role-madame .cl-weather-icon svg{width:26px!important;height:26px!important;}
 /* Drop the cloud + sun-glow animations entirely on Madam — user
    wanted the climate panel quiet without the drifting decoration. */
 body.role-madame .cl-weather-bg{display:none!important;}
