@@ -4604,9 +4604,12 @@ body.role-madame .m-btn.primary{
    the rest of the home page. */
 body.role-madame .concierge-triptych .ct-climate{
   padding:14px 18px 12px!important;
-  max-width:520px!important;
+  max-width:420px!important;
   margin:0 auto!important;
 }
+/* Drop the cloud + sun-glow animations entirely on Madam — user
+   wanted the climate panel quiet without the drifting decoration. */
+body.role-madame .cl-weather-bg{display:none!important;}
 body.role-madame .cl-header{margin-bottom:10px!important;gap:8px!important;}
 body.role-madame .cl-title em{font-size:11.5px!important;}
 body.role-madame .cl-weather-icon{
