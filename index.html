@@ -4335,14 +4335,45 @@ body.role-madame .vto-result-badge{display:none!important;}
    ============================================================= */
 
 /* Dark full-screen modal — was white, swap to deep cinammon-black
-   with gold accents matching the rest of Madame's chrome. */
+   with gold accents matching the rest of Madame's chrome. Opens as
+   a true new "screen" rather than a floating popup: no centring
+   animation, no scale-in, sticky header bar with breadcrumb +
+   Close pill, framed image area with a thin gold border. */
+body.role-madame .modal-overlay{
+  background:#0B0604!important;
+  transition:none!important;animation:none!important;
+}
+body.role-madame .modal-overlay.show{opacity:1!important;}
 body.role-madame .modal{
   background:linear-gradient(180deg,#1C120C 0%,#0B0604 100%)!important;
   color:var(--ivory)!important;
+  border:0!important;
+  /* Inset gold ring so the screen feels framed like a tablet UI */
+  box-shadow:inset 0 0 0 1px rgba(212,168,74,.22)!important;
+}
+/* Sticky top bar — "back to Wardrobe" breadcrumb + Close pill. The
+   ::before pseudo holds the breadcrumb; the existing .modal-close
+   (already styled red) sits next to it. */
+body.role-madame .modal::before{
+  content:"Wardrobe  ·  Piece detail";
+  position:sticky;top:0;left:0;right:0;z-index:60;
+  display:flex;align-items:center;
+  padding:14px 24px;
+  background:linear-gradient(180deg,#0E0706 0%,rgba(14,7,6,.92) 100%);
+  border-bottom:1px solid rgba(212,168,74,.22);
+  font-family:'Inter',-apple-system,sans-serif;font-size:11px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--gold-bright);
+  flex-shrink:0;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
 }
 body.role-madame .modal-img{
   background:linear-gradient(180deg,#0E0706 0%,#1C120C 100%)!important;
   border-bottom:1px solid rgba(212,168,74,.22);
+  /* Subtle gold frame around the image area */
+  margin:18px clamp(20px,4vw,56px) 0!important;
+  border-radius:14px!important;
+  border:1px solid rgba(212,168,74,.18)!important;
+  max-width:880px;margin-left:auto!important;margin-right:auto!important;
 }
 body.role-madame .modal-body{color:var(--ivory)!important;}
 body.role-madame .modal-body h2{color:var(--ivory)!important;}
@@ -4429,18 +4460,26 @@ body.role-madame .cl-avoid-list{font-size:10px!important;}
 body.role-madame .cl-corner{width:9px!important;height:9px!important;}
 body.role-madame .cl-seal{width:24px!important;height:24px!important;bottom:10px!important;right:14px!important;}
 
-/* Bigger Anaita chat panel on open — was a small bottom-right card,
-   the user asked for a larger initial size. */
+/* Anaita chat panel — opens at a generous fixed size and stays there.
+   The thread inside scrolls; the panel frame doesn't grow with each
+   new message. */
 body.role-madame .stylist-hero.is-open,
 .stylist-hero.is-open{
-  width:min(560px,calc(100vw - 32px))!important;
-  max-height:min(1100px,calc(100vh - 90px))!important;
-  /* Lift it up a touch so a bigger panel doesn't get clipped at the
-     bottom on shorter iPad viewports. */
+  width:min(580px,calc(100vw - 32px))!important;
+  height:min(720px,calc(100vh - 110px))!important;
+  max-height:min(720px,calc(100vh - 110px))!important;
   bottom:60px!important;
   right:24px!important;
 }
 .stylist-hero.is-open .sh-msg{font-size:14px!important;}
+/* Thread fills remaining space below header and above the input row,
+   and is the only scrolling region — panel itself stays put. */
+body .stylist-hero.is-open > .sh-thread-wrap{height:100%!important;}
+body .stylist-hero.is-open .sh-thread{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;-webkit-overflow-scrolling:touch;
+}
 
 /* Final flicker hunt — kill the climate weather-icon drift and the
    humidity meter's fill/marker entry animation on every render. These
@@ -6914,17 +6953,20 @@ body.role-ops-mobile #page-ops{display:none!important;}
 }
 
 /* --- NMA Mam (Madame) — fluid across all iPad sizes --- */
-/* iPad landscape (1024-1180) — restore 3-col wardrobe grid + 2-col outfits */
+/* iPad landscape (1024-1180) — 3-col across wardrobe + outfit + lookbook */
 @media(min-width:1024px) and (max-width:1180px){
   body.role-madame .wardrobe-grid{grid-template-columns:repeat(3,1fr)!important;}
-  body.role-madame .outfit-grid{grid-template-columns:repeat(2,1fr)!important;}
+  body.role-madame .outfit-grid{grid-template-columns:repeat(3,1fr)!important;}
+  body.role-madame .lb2-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
   body.role-madame .gallery-grid{grid-template-columns:repeat(4,1fr)!important;}
 }
-/* iPad portrait + iPad mini (744-1023) — 3-col wardrobe (denser, less
-   scrolling), 2-col outfits */
+/* iPad portrait + iPad mini (744-1023) — denser 3-col layout across all
+   wardrobe-style grids (curated ensembles + rediscover + lookbook) so
+   Madam sees more pieces per row and scrolls less */
 @media(min-width:744px) and (max-width:1023px){
   body.role-madame .wardrobe-grid{grid-template-columns:repeat(3,1fr)!important;}
-  body.role-madame .outfit-grid{grid-template-columns:repeat(2,1fr)!important;}
+  body.role-madame .outfit-grid{grid-template-columns:repeat(3,1fr)!important;gap:14px!important;}
+  body.role-madame .lb2-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;}
   body.role-madame .gallery-grid{grid-template-columns:repeat(3,1fr)!important;}
   body.role-madame .calendar-grid,
   body.role-madame .cal-wrap{grid-template-columns:1fr!important;}
