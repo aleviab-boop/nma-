@@ -4603,46 +4603,46 @@ body.role-madame .m-btn.primary{
 /* Climate card — shrink padding + numbers so it doesn't tower over
    the rest of the home page. */
 body.role-madame .concierge-triptych .ct-climate{
-  /* Slim horizontal strip — much shorter top/bottom, narrower than the
-     previous full-canvas span. */
-  padding:2px 18px 2px!important;
-  max-width:600px!important;
+  /* Ultra-thin horizontal strip — bare minimum vertical footprint. */
+  padding:6px 16px!important;
+  max-width:560px!important;
   margin:0 auto!important;
 }
-/* Tighten the upper chrome aggressively so the card reads as a thin
-   wide info strip under the hero meta blocks. */
+/* Header → single tiny line, no breathing room */
 body.role-madame .cl-header{
-  margin-bottom:0!important;gap:6px!important;padding-top:0!important;
+  margin-bottom:2px!important;gap:5px!important;padding-top:0!important;
 }
-body.role-madame .cl-title{font-size:8.5px!important;letter-spacing:.3em!important;}
-body.role-madame .cl-title em{font-size:10px!important;}
-body.role-madame .cl-ornament{font-size:8px!important;}
-body.role-madame .cl-weather-icon{
-  width:22px!important;height:22px!important;margin:0 auto 0!important;
-}
-body.role-madame .cl-weather-icon svg{width:16px!important;height:16px!important;}
-/* Slim out the stats row vertically too — smaller numbers, tighter divider */
-body.role-madame .cl-stats{margin-bottom:2px!important;}
-body.role-madame .cl-stat{padding:0 8px!important;gap:0!important;}
-body.role-madame .cl-stat-num{font-size:22px!important;line-height:1!important;}
-body.role-madame .cl-stat-cap{font-size:6.5px!important;letter-spacing:.22em!important;margin-top:2px!important;}
-body.role-madame .cl-stat-sub{font-size:8.5px!important;margin-top:1px!important;}
-body.role-madame .cl-divider-v{height:32px!important;}
-body.role-madame .cl-humid-meter{height:2px!important;margin:4px 0 1px!important;}
-/* Rule + verdict block also slim */
-body.role-madame .cl-rule{margin-bottom:2px!important;gap:8px!important;}
-body.role-madame .cl-verdict-wrap{gap:1px!important;}
-body.role-madame .cl-verdict-eyebrow{font-size:7px!important;}
-body.role-madame .cl-verdict{font-size:20px!important;margin:1px 0 2px!important;}
-body.role-madame .cl-verdict-by{font-size:9px!important;margin-bottom:2px!important;}
-body.role-madame .cl-also-list,body.role-madame .cl-avoid-list{font-size:9px!important;}
+body.role-madame .cl-title{font-size:7.5px!important;letter-spacing:.26em!important;}
+body.role-madame .cl-title em{font-size:9px!important;}
+body.role-madame .cl-ornament{font-size:7px!important;}
+/* Weather icon, ornamental rule, "by way of weather" subtitle, and
+   the monogram seal — all hidden. They're decorative; on a slim
+   info strip the numerics + drape verdict are the only essentials. */
+body.role-madame .cl-weather-icon,
+body.role-madame .cl-rule,
+body.role-madame .cl-verdict-by,
 body.role-madame .cl-seal{display:none!important;}
-/* Corner brackets shrink too so they hug the slimmer card */
-body.role-madame .cl-corner{width:7px!important;height:7px!important;}
-body.role-madame .cl-corner-tl,body.role-madame .cl-corner-tr{top:4px!important;}
-body.role-madame .cl-corner-bl,body.role-madame .cl-corner-br{bottom:4px!important;}
-body.role-madame .cl-corner-tl,body.role-madame .cl-corner-bl{left:4px!important;}
-body.role-madame .cl-corner-tr,body.role-madame .cl-corner-br{right:4px!important;}
+/* Stats row even tighter */
+body.role-madame .cl-stats{margin-bottom:2px!important;}
+body.role-madame .cl-stat{padding:0 6px!important;gap:0!important;}
+body.role-madame .cl-stat-num{font-size:18px!important;line-height:1!important;}
+body.role-madame .cl-stat-cap{font-size:6px!important;letter-spacing:.2em!important;margin-top:1px!important;}
+body.role-madame .cl-stat-sub{font-size:8px!important;margin-top:0!important;}
+body.role-madame .cl-divider-v{height:24px!important;}
+body.role-madame .cl-humid-meter{height:2px!important;margin:2px 0 0!important;width:46px!important;}
+/* Verdict — single-line headline with the "also" list flowed inline */
+body.role-madame .cl-verdict-wrap{gap:0!important;margin-top:2px!important;}
+body.role-madame .cl-verdict-eyebrow{font-size:6.5px!important;letter-spacing:.22em!important;}
+body.role-madame .cl-verdict{font-size:15px!important;margin:0!important;line-height:1.1!important;}
+body.role-madame .cl-verdict-line{margin-top:1px!important;gap:6px!important;}
+body.role-madame .cl-also-lbl{font-size:6.5px!important;letter-spacing:.18em!important;}
+body.role-madame .cl-also-list{font-size:8.5px!important;line-height:1.2!important;}
+/* Corner brackets — tiny so they hug the now-paper-thin card */
+body.role-madame .cl-corner{width:6px!important;height:6px!important;}
+body.role-madame .cl-corner-tl,body.role-madame .cl-corner-tr{top:3px!important;}
+body.role-madame .cl-corner-bl,body.role-madame .cl-corner-br{bottom:3px!important;}
+body.role-madame .cl-corner-tl,body.role-madame .cl-corner-bl{left:3px!important;}
+body.role-madame .cl-corner-tr,body.role-madame .cl-corner-br{right:3px!important;}
 /* Drop the cloud + sun-glow animations entirely on Madam — user
    wanted the climate panel quiet without the drifting decoration. */
 body.role-madame .cl-weather-bg{display:none!important;}
