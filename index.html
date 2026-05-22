@@ -6046,7 +6046,30 @@ body.role-ops-dashboard #page-suggestions .suggest-board-wrap{
 .suggest-event-card .sec-slot{
   position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;
   background:#f8fafc;border:1px solid var(--ods-line,#e2e8f0);
+  /* Render as a real button: no native chrome, fill the cell, pointer cursor */
+  padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;
+  width:100%;display:block;text-align:left;
+  transition:all .18s ease;
 }
+.suggest-event-card .sec-slot:hover{
+  border-color:var(--ods-blue,#2563eb);
+  transform:translateY(-1px);
+  box-shadow:0 6px 14px -6px rgba(37,99,235,.35);
+}
+.suggest-event-card .sec-slot.is-empty:hover{
+  background:#eff6ff;color:var(--ods-blue,#2563eb);
+}
+.suggest-event-card .sec-slot:focus-visible{
+  outline:2px solid var(--ods-blue,#2563eb);outline-offset:2px;
+}
+/* Focused slot inside the builder — pulses briefly after the user taps
+   a slot tile so they can tell which one is being edited. */
+@keyframes suggestSlotFocus{
+  0%   {box-shadow:0 0 0 0 rgba(37,99,235,.55);}
+  60%  {box-shadow:0 0 0 8px rgba(37,99,235,0);}
+  100% {box-shadow:0 0 0 0 rgba(37,99,235,0);}
+}
+#suggestSlots .suggest-slot.is-focused{animation:suggestSlotFocus 1.4s ease-out;}
 .suggest-event-card .sec-slot img{
   width:100%;height:100%;object-fit:cover;display:block;
 }
@@ -13415,7 +13438,9 @@ function renderSuggestEventList(){
            Madam confirmed · <b>${pickedPiece.name.replace(/</g,'&lt;')}</b>
          </div>`
       : '';
-    // Three slot previews (filled or empty placeholder)
+    // Three slot previews (filled or empty placeholder). Each tile is
+    // tappable — opens the suggest builder and scrolls / focuses the
+    // matching slot so ops can drop straight into "pick piece N".
     const slots = [0,1,2].map(i => {
       const s = suggestions[i];
       const piece = s && s.pieceId ? INVENTORY.find(p => p.id === s.pieceId) : null;
@@ -13423,16 +13448,20 @@ function renderSuggestEventList(){
         const src = _picSrc(piece);
         const isPicked = pickedPiece && piece.id === pickedPiece.id;
         return `
-          <div class="sec-slot is-filled ${isPicked ? 'is-picked' : ''}" title="${piece.name.replace(/"/g,'&quot;')} · ${piece.designer.replace(/"/g,'&quot;')}">
+          <button type="button" class="sec-slot is-filled ${isPicked ? 'is-picked' : ''}"
+                  data-suggest-slot-event="${e.id}" data-suggest-slot="${i}"
+                  title="${piece.name.replace(/"/g,'&quot;')} · ${piece.designer.replace(/"/g,'&quot;')} · tap to edit slot ${i+1}">
             <span class="slot-idx">${i+1}</span>
             <img src="${src}" alt="${piece.name.replace(/"/g,'&quot;')}" loading="lazy" onerror="this.onerror=null;this.src='img/${piece.id}.jpg';"/>
-          </div>`;
+          </button>`;
       }
       return `
-        <div class="sec-slot is-empty">
+        <button type="button" class="sec-slot is-empty"
+                data-suggest-slot-event="${e.id}" data-suggest-slot="${i}"
+                title="Tap to add a piece to slot ${i+1}">
           <span class="slot-idx">${i+1}</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
-        </div>`;
+        </button>`;
     }).join('');
 
     return `
@@ -13465,6 +13494,30 @@ function renderSuggestEventList(){
       const raw = btn.dataset.suggestEvent;
       const ev = (state.events || []).find(x => String(x.id) === String(raw));
       openSuggestBuilder(ev ? ev.id : raw);
+    });
+  });
+  // Slot tiles also open the builder, and pass the slot index so the
+  // builder can scroll / highlight that exact slot for "pick piece N".
+  list.querySelectorAll('[data-suggest-slot-event]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const raw  = btn.dataset.suggestSlotEvent;
+      const slot = parseInt(btn.dataset.suggestSlot, 10);
+      const ev = (state.events || []).find(x => String(x.id) === String(raw));
+      openSuggestBuilder(ev ? ev.id : raw);
+      // Scroll the targeted slot into view + flash a focus ring once the
+      // builder modal has finished its open animation.
+      setTimeout(() => {
+        const slotEl = document.querySelector(`#suggestSlots .suggest-slot[data-slot="${slot}"]`);
+        if (slotEl){
+          slotEl.scrollIntoView({ behavior:'smooth', block:'center' });
+          slotEl.classList.add('is-focused');
+          setTimeout(() => slotEl.classList.remove('is-focused'), 1400);
+          // Move keyboard focus into the slot's search input so ops can
+          // start typing the piece name immediately.
+          const inp = slotEl.querySelector('input[data-picker-search]');
+          if (inp) try { inp.focus(); } catch(_){}
+        }
+      }, 180);
     });
   });
 }
