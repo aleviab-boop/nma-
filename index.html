@@ -5441,6 +5441,92 @@ body.role-ops-dashboard #page-requests > .hero .hero-title em{
   background:none!important;background-image:none!important;
 }
 body.role-ops-dashboard #page-requests .section{padding:24px 40px 40px;width:100%;box-sizing:border-box;}
+/* =============================================================
+   Pick List card — light theme override for ops-dashboard.
+   The inline gold/dark styling on the markup needed an !important
+   sweep so the card reads like every other ops surface (white
+   panel, slate text, blue accents).
+   ============================================================= */
+body.role-ops-dashboard #page-requests .section > div{
+  background:var(--ods-card,#ffffff)!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 22px -10px rgba(15,23,42,.10)!important;
+}
+body.role-ops-dashboard #page-requests h4{
+  font-family:'Inter',-apple-system,sans-serif!important;
+  color:var(--ods-text,#0f172a)!important;
+  font-weight:700!important;letter-spacing:-.005em;
+}
+body.role-ops-dashboard #page-requests #pickListMeta{
+  font-family:ui-monospace,monospace!important;
+  color:var(--ods-text-mute,#64748b)!important;
+  letter-spacing:.12em!important;
+}
+body.role-ops-dashboard #page-requests #pickListMeta strong{color:var(--ods-blue,#2563eb)!important;}
+body.role-ops-dashboard #page-requests #pickEmpty{
+  color:var(--ods-text-mute,#64748b)!important;
+}
+body.role-ops-dashboard #page-requests #pickEmpty strong{color:var(--ods-blue,#2563eb)!important;}
+/* Border between header row and the pick grid */
+body.role-ops-dashboard #page-requests .section > div > div[style*="border-top"]{
+  border-top:1px solid var(--ods-line,#e2e8f0)!important;
+}
+/* Add-piece form */
+body.role-ops-dashboard #page-requests .lb-add-form{
+  background:#f8fafc!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+  border-radius:12px!important;padding:14px!important;
+}
+body.role-ops-dashboard #page-requests .lb-row label{
+  color:var(--ods-text-soft,#475569)!important;
+  font-family:'Inter',-apple-system,sans-serif!important;
+}
+body.role-ops-dashboard #page-requests .lb-row input{
+  background:#ffffff!important;color:var(--ods-text,#0f172a)!important;
+  border:1px solid var(--ods-line,#cbd5e1)!important;border-radius:8px!important;
+  font-family:'Inter',-apple-system,sans-serif!important;
+}
+body.role-ops-dashboard #page-requests #pickSearchResults{
+  background:#ffffff!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+}
+body.role-ops-dashboard #page-requests .lb-add-btn{
+  background:var(--ods-blue,#2563eb)!important;color:#fff!important;
+  border:1px solid var(--ods-blue,#2563eb)!important;border-radius:8px!important;
+  font-family:'Inter',-apple-system,sans-serif!important;font-weight:600!important;
+}
+body.role-ops-dashboard #page-requests .lb-add-btn:hover{background:#1d4ed8!important;border-color:#1d4ed8!important;}
+body.role-ops-dashboard #page-requests .lb-cancel{
+  background:#f1f5f9!important;color:var(--ods-text-soft,#475569)!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+}
+/* Pick tiles inside the grid */
+body.role-ops-dashboard #page-requests .pick-tile-full{
+  background:#ffffff!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04),0 4px 12px -6px rgba(15,23,42,.08)!important;
+}
+body.role-ops-dashboard #page-requests .pick-tile-full:hover{
+  border-color:#bfdbfe!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 22px -8px rgba(37,99,235,.18)!important;
+}
+body.role-ops-dashboard #page-requests .pick-tile-full .pick-thumb{
+  background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%)!important;
+}
+body.role-ops-dashboard #page-requests .pick-name{
+  color:var(--ods-text,#0f172a)!important;
+  font-family:'Inter',-apple-system,sans-serif!important;font-weight:600!important;
+}
+body.role-ops-dashboard #page-requests .pick-meta{
+  color:var(--ods-blue,#2563eb)!important;
+  font-family:ui-monospace,monospace!important;letter-spacing:.12em!important;
+}
+body.role-ops-dashboard #page-requests .pick-tile-full .pick-info > div{color:var(--ods-text-mute,#64748b)!important;}
+body.role-ops-dashboard #page-requests .pick-remove{
+  background:#ffffff!important;border:1px solid #fecaca!important;
+}
+body.role-ops-dashboard #page-requests .pick-remove svg{stroke:#dc2626!important;}
+body.role-ops-dashboard #page-requests .pick-remove:hover{background:#fee2e2!important;}
 
 /* Same treatment for the Event Outfit Suggestions page (sidebar entry) */
 body.role-ops-dashboard #page-suggestions > .hero{
