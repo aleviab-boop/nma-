@@ -1919,7 +1919,12 @@ function paintInventoryPage(){
     function _catTemplate(it){
       const arr = CAT_PHOTOS[String(it.cat||'').toLowerCase()];
       if (!arr || !arr.length) return null;
-      return 'img/' + arr[_hashIdx(it.id || it.name, arr.length)] + '.png';
+      // Leading "/" → resolve relative to site root, NOT relative to
+      // /admin/. The image files live at /img/… so without the leading
+      // slash the browser would request /admin/img/… (which 404s) and
+      // the cascade would fall to the initials chip even when the
+      // template exists.
+      return '/img/' + arr[_hashIdx(it.id || it.name, arr.length)] + '.png';
     }
     const photoCell = (it) => {
       const escName = (it.name||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
@@ -1937,9 +1942,10 @@ function paintInventoryPage(){
       if (typeof window.PHOTO_MAP === 'object' && window.PHOTO_MAP && window.PHOTO_MAP[it.id]){
         chain.push(window.PHOTO_MAP[it.id]);
       }
-      // 4. Auto-detect img/<id>.{ext} on disk
-      chain.push(`img/${it.id}.png`, `img/${it.id}.jpg`, `img/${it.id}.jpeg`, `img/${it.id}.webp`);
-      // 5. Per-category template
+      // 4. Auto-detect /img/<id>.{ext} on disk — leading slash so the path
+      //    resolves to site root (/img/…) not admin-scoped (/admin/img/…).
+      chain.push(`/img/${it.id}.png`, `/img/${it.id}.jpg`, `/img/${it.id}.jpeg`, `/img/${it.id}.webp`);
+      // 5. Per-category template (also rooted)
       const tmpl = _catTemplate(it);
       if (tmpl) chain.push(tmpl);
       // Dedupe consecutive duplicates and any falsy entries
