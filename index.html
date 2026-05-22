@@ -5528,6 +5528,37 @@ body.role-ops-dashboard #page-requests .pick-remove{
 body.role-ops-dashboard #page-requests .pick-remove svg{stroke:#dc2626!important;}
 body.role-ops-dashboard #page-requests .pick-remove:hover{background:#fee2e2!important;}
 
+/* Add-piece search result rows — the inline styles paint name + designer
+   in cream ivory + gold (Madame's palette) which is unreadable on the
+   ops-dashboard white panel. Force slate text / slate-bg row / blue
+   designer label so the rows are visible. */
+body.role-ops-dashboard #page-requests #pickSearchResults > .pick-search-row{
+  background:#ffffff!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+  color:var(--ods-text,#0f172a)!important;
+}
+body.role-ops-dashboard #page-requests #pickSearchResults > .pick-search-row > div > div:first-child{
+  color:var(--ods-text,#0f172a)!important;
+  font-family:'Inter',-apple-system,sans-serif!important;font-weight:600!important;
+}
+body.role-ops-dashboard #page-requests #pickSearchResults > .pick-search-row > div > div:last-child{
+  color:var(--ods-blue,#2563eb)!important;
+  font-family:ui-monospace,monospace!important;letter-spacing:.1em!important;
+}
+body.role-ops-dashboard #page-requests #pickSearchResults > .pick-search-row svg{stroke:var(--ods-blue,#2563eb)!important;}
+body.role-ops-dashboard #page-requests #pickSearchResults > .pick-search-row:hover{
+  background:#eff6ff!important;border-color:#bfdbfe!important;
+}
+/* Thumb wrapper inside the row — drop the cinnamon bg */
+body.role-ops-dashboard #page-requests #pickSearchResults > .pick-search-row > div:first-child{
+  background:#f1f5f9!important;
+}
+/* Empty-state line ("No matches") was using var(--pearl) too */
+body.role-ops-dashboard #page-requests #pickSearchResults > div[style*="No matches"],
+body.role-ops-dashboard #page-requests #pickSearchResults > div:only-child{
+  color:var(--ods-text-mute,#64748b)!important;
+}
+
 /* Same treatment for the Event Outfit Suggestions page (sidebar entry) */
 body.role-ops-dashboard #page-suggestions > .hero{
   padding:32px 40px 22px!important;
