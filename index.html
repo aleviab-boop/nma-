@@ -16454,9 +16454,19 @@ function renderCameraPreview(){
 function renderRecentCaptures(){
   const el = document.getElementById('recentCaptures');
   if(!el) return;
-  // Show session captures first, then a slice of the curated inventory
+  // Show session captures first, then a slice of the curated inventory.
+  // Dedupe by id — captured items are pushed into BOTH mobileCapturedToday
+  // AND INVENTORY, so without this guard each fresh capture would appear
+  // twice in the strip (once as session, once as seeded).
   const seeded = INVENTORY.slice(0,6);
-  const all = [...mobileCapturedToday, ...seeded].slice(0,10);
+  const seen = new Set();
+  const all = [];
+  for (const i of [...mobileCapturedToday, ...seeded]){
+    if (!i || !i.id || seen.has(i.id)) continue;
+    seen.add(i.id);
+    all.push(i);
+    if (all.length >= 10) break;
+  }
   if(all.length===0){
     el.innerHTML = `<div style="font-family:var(--mono);font-size:9px;color:var(--latte);letter-spacing:.18em;text-transform:uppercase;padding:16px 0;">No captures yet</div>`;
     return;
