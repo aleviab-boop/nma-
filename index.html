@@ -6205,7 +6205,30 @@ body.role-ops-dashboard .sidebar .logo span{color:var(--ods-blue)!important;}
 body.role-ops-dashboard .sidebar .logo-sub{color:var(--ods-text-mute)!important;font-size:10px!important;letter-spacing:.16em!important;font-weight:500!important;}
 body.role-ops-dashboard .sidebar .nav-label{color:var(--ods-text-mute)!important;font-size:10px!important;letter-spacing:.16em!important;font-weight:600!important;}
 body.role-ops-dashboard .sidebar .nav-item{color:var(--ods-text-soft)!important;background:transparent!important;border-radius:8px;padding:10px 14px;font-family:'Inter',-apple-system,sans-serif!important;font-size:14px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;}
-body.role-ops-dashboard .sidebar .nav-item svg{stroke:var(--ods-text-mute)!important;}
+/* Ops-dashboard sidebar icons → black/slate (was inheriting gold from
+   the base .sidebar rule which forces stroke: gold-bright on every
+   nested path/circle/rect via !important). Override every nested SVG
+   primitive too so the child shapes don't keep their gold stroke. */
+body.role-ops-dashboard .sidebar .nav-item svg,
+body.role-ops-dashboard .sidebar .nav-item svg path,
+body.role-ops-dashboard .sidebar .nav-item svg circle,
+body.role-ops-dashboard .sidebar .nav-item svg rect,
+body.role-ops-dashboard .sidebar .nav-item svg line,
+body.role-ops-dashboard .sidebar .nav-item svg polyline,
+body.role-ops-dashboard .sidebar .nav-item svg polygon{
+  stroke:var(--ods-text,#0f172a)!important;
+}
+/* Active nav item — icon flips to white so it stays legible on the
+   solid blue pill. */
+body.role-ops-dashboard .sidebar .nav-item.active svg,
+body.role-ops-dashboard .sidebar .nav-item.active svg path,
+body.role-ops-dashboard .sidebar .nav-item.active svg circle,
+body.role-ops-dashboard .sidebar .nav-item.active svg rect,
+body.role-ops-dashboard .sidebar .nav-item.active svg line,
+body.role-ops-dashboard .sidebar .nav-item.active svg polyline,
+body.role-ops-dashboard .sidebar .nav-item.active svg polygon{
+  stroke:#ffffff!important;
+}
 body.role-ops-dashboard .sidebar .nav-item:hover{background:var(--ods-blue-tint)!important;color:var(--ods-text)!important;}
 body.role-ops-dashboard .sidebar .nav-item.active{background:var(--ods-blue)!important;color:#fff!important;font-weight:600!important;}
 body.role-ops-dashboard .sidebar .nav-item.active svg{stroke:#fff!important;}
