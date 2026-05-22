@@ -6206,6 +6206,27 @@ body.role-ops-dashboard #page-suggestions .suggest-board-wrap{
   .suggest-event-card{padding:16px;}
 }
 
+/* Force white text on the Live Inventory pill — the ops-dashboard
+   hero text colour rules paint #page-ops .hero descendants slate
+   via -webkit-text-fill-color, which beats the plain-class rule
+   below. Higher-specificity override with #page-ops prefix wins. */
+body.role-ops-dashboard #page-ops .ops-live-inv-btn,
+body.role-ops-dashboard #page-ops .ops-live-inv-btn *,
+body.role-ops-dashboard #page-ops .ops-live-inv-btn .lbl,
+body.role-ops-dashboard #page-ops .ops-live-inv-btn span,
+body.role-ops-dashboard #page-ops .ops-live-inv-btn b{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  background:transparent;
+  background-image:none!important;
+}
+body.role-ops-dashboard #page-ops .ops-live-inv-btn{
+  background:var(--ods-blue,#2563eb)!important;
+}
+body.role-ops-dashboard #page-ops .ops-live-inv-btn svg{
+  stroke:#ffffff!important;color:#ffffff!important;
+}
+
 /* Live Inventory pill in the ops dashboard hero — solid blue button.
    Jumps to the wardrobe page (the live, Realtime-synced inventory grid). */
 .ops-live-inv-btn{
