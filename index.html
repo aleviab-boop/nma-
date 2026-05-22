@@ -4504,6 +4504,49 @@ body.role-madame .pick-tile-full{
   background:linear-gradient(180deg,rgba(28,18,12,.85),rgba(11,6,4,.92))!important;
   border-color:rgba(212,168,74,.22)!important;
 }
+
+/* Hide the "Edit shelf location" button on the wardrobe item modal —
+   Madam doesn't manage zone codes; ops handles that side. */
+body.role-madame .modal-loc-edit{display:none!important;}
+
+/* Softer rounded corners across all card surfaces in Madame's UI. The
+   original spec used 2-6 px square boxes which feel dated. Bump to a
+   consistent 14-18 px so the cards feel more like a modern app. */
+body.role-madame .ct-card,
+body.role-madame .concierge-triptych .ct-climate,
+body.role-madame .mood-strip,
+body.role-madame .hero-meta,
+body.role-madame .meta-block,
+body.role-madame .event-card,
+body.role-madame .outfit-card,
+body.role-madame .garment,
+body.role-madame .stylist-hero.is-open,
+body.role-madame .pick-tile,
+body.role-madame .pick-tile-full,
+body.role-madame .lb2-card,
+body.role-madame .lb2-stat,
+body.role-madame .modal-meta-grid,
+body.role-madame .modal-loc-row,
+body.role-madame .modal-history,
+body.role-madame .modal-chips span,
+body.role-madame .reminder-card,
+body.role-madame .vto-result-stage,
+body.role-madame .vto-empty,
+body.role-madame .recently-added,
+body.role-madame .section.recently-added,
+body.role-madame .up-event,
+body.role-madame .cal-event{
+  border-radius:16px!important;
+}
+body.role-madame .modal-chips span{border-radius:999px!important;padding:5px 12px!important;}
+body.role-madame .meta-block{border-radius:14px!important;}
+body.role-madame .cal-event{border-radius:10px!important;}
+body.role-madame .lb2-card{border-radius:18px!important;}
+/* The garment thumbs within cards — rounder corners on the image too */
+body.role-madame .garment-visual,
+body.role-madame .pick-tile-full .pick-thumb,
+body.role-madame .lb2-visual{border-radius:14px 14px 0 0!important;}
+body.role-madame .lb2-visual{border-radius:18px 18px 0 0!important;}
 .vto-toggle-btn{
   border:0;background:transparent;cursor:pointer;
   padding:7px 16px;border-radius:999px;
