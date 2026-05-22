@@ -1893,11 +1893,19 @@ function paintInventoryPage(){
       .filter(i => !q || (i.name + ' ' + i.designer + ' ' + i.cat + ' ' + i.id).toLowerCase().includes(q))
       .sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
     const body = document.getElementById('invTableBody');
-    // Photo resolver — tries (in order):
-    //   1. it.photo            (Supabase Storage URL from /api/items)
-    //   2. img/<it.id>.png     (per-id file on disk for catalogued items)
-    //   3. img/M-<CAT>-*.png   (per-category template — covers baseline M001-M047)
-    //   4. Initials chip with the item's swatch colour
+    // Photo resolver — full cascade mirroring the role-app's itemImage():
+    //   1. it.capturedPhoto    (in-memory base64 from a just-captured camera shot,
+    //                           rides on the Realtime payload before the Supabase
+    //                           Storage URL is ready — important for "JUST ADDED"
+    //                           rows where it.photo hasn't populated yet)
+    //   2. it.photo            (Supabase Storage URL from /api/items)
+    //   3. PHOTO_MAP[it.id]    (the 17 hand-curated baseline IDs that map to
+    //                           paths like img/B3001.png — synced from the role
+    //                           app's PHOTO_MAP via /api/state, falls back to
+    //                           img/<id>.png when the map isn't loaded yet)
+    //   4. img/<it.id>.{png,jpg,jpeg,webp}  (per-id file on disk)
+    //   5. img/M-<CAT>-*.png   (per-category template — covers baseline M001-M047)
+    //   6. Initials chip with the item's swatch colour
     const CAT_PHOTOS = {
       saree:    ['M-SAREE-CLASSIC','M-SAREE-EDITORIAL','M-SAREE-EVENING','M-SAREE-FESTIVE','M-SAREE-HERITAGE','M-SAREE-SIGNATURE'],
       lehenga:  ['M-LEHENGA-EDITORIAL','M-LEHENGA-FESTIVE','M-LEHENGA-HERITAGE','M-LEHENGA-SIGNATURE','M-LEHENGA-WEDDING'],
@@ -1914,18 +1922,30 @@ function paintInventoryPage(){
       return 'img/' + arr[_hashIdx(it.id || it.name, arr.length)] + '.png';
     }
     const photoCell = (it) => {
-      const escName = (it.name||'').replace(/"/g,'&quot;');
+      const escName = (it.name||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
       const initial = (it.name||'?').slice(0,1).toUpperCase();
       const swatch  = it.c1 || '#3A2A20';
-      // Build a fallback chain — each onerror hops to the next source. The
-      // last hop reveals the initials chip.
+      // Build a fallback chain — each onerror hops to the next source.
+      // The last hop reveals the initials chip.
       const chain = [];
+      // 1. In-memory captured photo (base64) — present on just-captured items
+      //    before the Storage URL round-trips back
+      if (it.capturedPhoto) chain.push(it.capturedPhoto);
+      // 2. Supabase Storage URL
       if (it.photo) chain.push(it.photo);
+      // 3. Hand-curated PHOTO_MAP entry (if the global map is available)
+      if (typeof window.PHOTO_MAP === 'object' && window.PHOTO_MAP && window.PHOTO_MAP[it.id]){
+        chain.push(window.PHOTO_MAP[it.id]);
+      }
+      // 4. Auto-detect img/<id>.{ext} on disk
       chain.push(`img/${it.id}.png`, `img/${it.id}.jpg`, `img/${it.id}.jpeg`, `img/${it.id}.webp`);
+      // 5. Per-category template
       const tmpl = _catTemplate(it);
       if (tmpl) chain.push(tmpl);
-      const srcs = chain.join('|');
-      return `<img class="inv-thumb" src="${chain[0]}" data-srcs="${srcs}" data-i="0"
+      // Dedupe consecutive duplicates and any falsy entries
+      const dedupedChain = chain.filter((s, i) => s && s !== chain[i-1]);
+      const srcs = dedupedChain.join('|');
+      return `<img class="inv-thumb" src="${dedupedChain[0]}" data-srcs="${srcs}" data-i="0"
                    alt="${escName}" loading="lazy"
                    onerror="var s=this.dataset.srcs.split('|');var n=parseInt(this.dataset.i,10)+1;if(n<s.length){this.dataset.i=n;this.src=s[n];}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">
               <div class="inv-thumb-fallback" style="display:none;background:${swatch};">${initial}</div>`;
