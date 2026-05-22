@@ -2665,6 +2665,11 @@ async function initAdminSupabaseLive(){
   _adminSupabaseClient
     .channel('admin-live-all')
     .on('postgres_changes', { event:'*', schema:'public', table:'items' },          () => liveSyncTick())
+    // Item photos arrive as a separate INSERT on the item_photos table —
+    // when ops uploads a photo after the item row was created (or replaces
+    // an existing photo), the items row itself doesn't change but the
+    // joined photo URL flips. Re-fetch on any item_photos change too.
+    .on('postgres_changes', { event:'*', schema:'public', table:'item_photos' },    () => liveSyncTick())
     .on('postgres_changes', { event:'*', schema:'public', table:'members' },        () => refreshActive())
     .on('postgres_changes', { event:'*', schema:'public', table:'audit_log' },      () => _refreshAuditEverywhere())
     .on('postgres_changes', { event:'*', schema:'public', table:'events' },         () => { if (_currentAdminPage() === 'events') paintEventsPage(); })
