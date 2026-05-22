@@ -5533,22 +5533,11 @@ body.role-ops-dashboard .ops-stat .num{font-size:42px;}
    the user a clear way back to the dashboard landing from any sub-page. */
 /* (no hide rule — see applyOpsDashboardSidebar which relabels to "Home") */
 
-/* Working back button — light theme styling for ops-dashboard. */
-body.role-ops-dashboard .back-btn{
-  display:inline-flex!important;
-  background:#ffffff!important;
-  border:1px solid var(--ods-line,#cbd5e1)!important;
-  color:var(--ods-text,#0f172a)!important;
-}
-body.role-ops-dashboard .back-btn svg{stroke:var(--ods-text,#0f172a)!important;}
-body.role-ops-dashboard .back-btn:hover:not(:disabled){
-  background:var(--ods-blue-tint,#eff6ff)!important;
-  border-color:var(--ods-blue,#2563eb)!important;
-  color:var(--ods-blue,#2563eb)!important;
-  transform:translateX(-2px);
-}
-body.role-ops-dashboard .back-btn:hover:not(:disabled) svg{stroke:var(--ods-blue,#2563eb)!important;}
-body.role-ops-dashboard .back-btn:disabled{opacity:.4;background:#f8fafc!important;}
+/* Back button hidden for ops-dashboard — navigation flows through the
+   sidebar (Home / Wardrobe Layout / Event Suggestions / Guest Lists /
+   Requests / Logout); a topbar back arrow was redundant noise on a
+   flat sidebar-driven layout. */
+body.role-ops-dashboard .back-btn{display:none!important;}
 
 /* Requests page (Pick List) — give the hero a proper full-width
    ops-dashboard header. The default 40/40/20 inline padding on the
