@@ -1795,14 +1795,14 @@ body.role-madame .qr-action{font-size:8.5px;padding:7px 11px;}
   border-radius:inherit;
 }
 .cl-weather-bg .cl-cloud{
-  position:absolute;width:32%;height:auto;
-  filter:blur(.4px) drop-shadow(0 0 18px rgba(245,212,119,.18));
+  position:absolute;width:18%;height:auto;
+  filter:blur(.4px) drop-shadow(0 0 12px rgba(245,212,119,.16));
   will-change:transform;
 }
-.cl-cloud-1{top:6%; left:-20%;animation:clDrift1 38s linear infinite;}
-.cl-cloud-2{top:36%;left:-25%;animation:clDrift2 52s linear infinite;}
-.cl-cloud-3{top:68%;left:-20%;animation:clDrift1 44s linear infinite -10s;}
-.cl-cloud-4{top:20%;left:-15%;animation:clDrift2 60s linear infinite -22s;}
+.cl-cloud-1{top:8%; left:-22%;width:20%;animation:clDrift1 44s linear infinite;}
+.cl-cloud-2{top:42%;left:-26%;width:16%;animation:clDrift2 58s linear infinite;}
+.cl-cloud-3{top:72%;left:-22%;width:18%;animation:clDrift1 50s linear infinite -12s;}
+.cl-cloud-4{top:24%;left:-18%;width:14%;animation:clDrift2 64s linear infinite -24s;}
 @keyframes clDrift1{
   0%  {transform:translateX(0)   translateY(0);}
   50% {transform:translateX(70vw) translateY(-2px);}
@@ -4553,7 +4553,11 @@ body.role-madame .m-btn.primary{
 
 /* Climate card — shrink padding + numbers so it doesn't tower over
    the rest of the home page. */
-body.role-madame .concierge-triptych .ct-climate{padding:16px 22px 14px!important;}
+body.role-madame .concierge-triptych .ct-climate{
+  padding:14px 18px 12px!important;
+  max-width:520px!important;
+  margin:0 auto!important;
+}
 body.role-madame .cl-header{margin-bottom:10px!important;gap:8px!important;}
 body.role-madame .cl-title em{font-size:11.5px!important;}
 body.role-madame .cl-weather-icon{
