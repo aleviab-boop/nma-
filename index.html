@@ -8839,7 +8839,13 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             </div>
             <label class="guest-row">
               <span class="guest-label">Event</span>
-              <select id="guestEventSelect"><option value="">— Select event —</option></select>
+              <div style="display:flex;gap:8px;align-items:stretch;">
+                <select id="guestEventSelect" style="flex:1;"><option value="">— Select event —</option></select>
+                <button id="guestNewEventBtn" class="guest-upload-btn" type="button" title="Create a new event">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                  New event
+                </button>
+              </div>
             </label>
             <label class="guest-row">
               <span class="guest-label">Or label manually</span>
@@ -12116,16 +12122,20 @@ function renderGuestAnalysisFor(listId){
   panel.style.display = '';
 }
 
-/* Populate the event dropdown from state.events. */
+/* Populate the event dropdown from state.events. The date is kept on
+   the option's data-date attribute (so save still pre-fills it) but
+   intentionally NOT rendered in the visible label — Madam asked for
+   the labels to read as clean event names only. */
 function _populateGuestEventSelect(){
   const sel = document.getElementById('guestEventSelect');
   if (!sel || !state || !state.events) return;
+  // Preserve whatever the user currently has selected through the repopulate
+  const prev = sel.value;
   const upcoming = state.events.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
   sel.innerHTML = '<option value="">— Select event —</option>' + upcoming.map(e => {
-    const d = new Date(e.date);
-    const ds = !isNaN(d) ? `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}` : '';
-    return `<option value="${e.id}" data-name="${(e.name || '').replace(/"/g,'&quot;')}" data-date="${e.date || ''}">${(e.name || '').replace(/</g,'&lt;')} · ${ds}</option>`;
+    return `<option value="${e.id}" data-name="${(e.name || '').replace(/"/g,'&quot;')}" data-date="${e.date || ''}">${(e.name || '').replace(/</g,'&lt;')}</option>`;
   }).join('');
+  if (prev && Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
 }
 
 /* Wire all DOM interactions once. */
@@ -12156,6 +12166,51 @@ function initGuestListsPage(){
     if (!opt || !opt.value) return;
     if (eventName && !eventName.value) eventName.value = opt.dataset.name || '';
     if (eventDate && !eventDate.value) eventDate.value = opt.dataset.date || '';
+  });
+
+  // "+ New event" button — opens the global event modal in create-new
+  // mode. After save, repopulates the dropdown and auto-selects the
+  // newly-added event so ops can keep filling the guest list inline.
+  const newEvBtn = document.getElementById('guestNewEventBtn');
+  newEvBtn && newEvBtn.addEventListener('click', () => {
+    if (typeof state !== 'undefined') state.editingEventId = null;
+    const beforeIds = new Set((state && state.events ? state.events : []).map(x => String(x.id)));
+    // Reset + prefill the event form
+    ['evName','evTime','evType','evDress','evNotes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const evDate = document.getElementById('evDate');
+    if (evDate){
+      const t = new Date();
+      evDate.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    }
+    const modal = document.getElementById('eventModal');
+    if (modal) modal.classList.add('show');
+    // Watch for save to land, then auto-pick the new event
+    const saveBtn = document.getElementById('evSave');
+    if (saveBtn && !saveBtn._guestWired){
+      saveBtn._guestWired = true;
+      saveBtn.addEventListener('click', () => {
+        setTimeout(() => {
+          _populateGuestEventSelect();
+          const after = (state && state.events ? state.events : []);
+          const fresh = after.find(x => !beforeIds.has(String(x.id)));
+          if (fresh){
+            const sel = document.getElementById('guestEventSelect');
+            if (sel) sel.value = String(fresh.id);
+            // Trigger the same prefill the change listener does
+            if (sel){
+              const opt = sel.options[sel.selectedIndex];
+              if (opt && opt.value){
+                if (eventName) eventName.value = opt.dataset.name || '';
+                if (eventDate) eventDate.value = opt.dataset.date || '';
+              }
+            }
+          }
+        }, 60);
+      });
+    }
   });
 
   // File upload — read text content, drop into the textarea.
@@ -13260,6 +13315,12 @@ function saveEventFromForm(){
   }
   closeEventModal();
   renderCalendar();
+  // Re-run the global counter pass so the sidebar Requests badge,
+  // Ops Dashboard stat, and any other dependent KPI reflect the new
+  // event immediately — previously these only refreshed on boot.
+  if (typeof updateGlobalCounters === 'function') updateGlobalCounters();
+  if (typeof renderSuggestEventList === 'function') renderSuggestEventList();
+  if (typeof _populateGuestEventSelect === 'function') _populateGuestEventSelect();
 }
 
 function deleteEvent(id){
