@@ -1656,6 +1656,55 @@ body.role-madame .page-veil.sweep{animation:none!important;}
    "y" in "today", etc. A small inline-end padding + display:inline-block
    reserves room for the slant so the last letter renders in full. */
 display:inline-block;padding-right:.12em;}
+
+/* ===========================================================
+   UNIVERSAL italic-glyph clip fix
+   Every italic display span inside a heading / title / display
+   element across the app reserves a small inline-end padding so
+   the final glyph never gets cropped by overflow:hidden on a
+   parent. Applies to every italic em / italic span the app
+   uses for emphasis in titles, modal heads, card heads, picker
+   labels, climate verdict, etc. Inline-block ensures the
+   padding actually creates space (inline elements ignore it on
+   line boundaries).
+   =========================================================== */
+.hero-title em,
+.hero-label em,
+.section-head h3 em,
+.modal-body h2 em,
+.event-left h2 em,
+.reminder-card h2 em,
+.auth-card h3 em,
+.cal-head h3 em,
+.canvas-head h3 em,
+.event-pill .pill-txt .name em,
+.mood-copy h4 em,
+.event-card em,
+.recently-added .section-head h3 em,
+.cl-title em,
+.cl-verdict,
+.lb2-title em,
+.lb2-eyebrow em,
+.gallery-head-left h2 em,
+.ops-card-head h4 em,
+.suggest-eyebrow em,
+.suggest-head h3 em,
+.gn-eyebrow em,
+.gate-title em,
+.login-card h2 em,
+.look-pieces-head h3 em,
+.capture-confirm-head h3 em,
+.lb-empty h4 em,
+.vto-empty h3 em,
+.mp-eyebrow em,
+.madame-pick-head h2 em,
+.cl-stat-num em,
+.intake-title em,
+.suggest-hero h1.hero-title em,
+.lb2-section h3 em{
+  display:inline-block;
+  padding-right:.14em;
+}
 .hero-meta{display:flex;justify-content:center;align-items:stretch;gap:0;margin:40px auto 0;padding:22px 32px;max-width:920px;background:linear-gradient(180deg,rgba(28,18,12,.55) 0%,rgba(11,6,4,.35) 100%);border:1px solid rgba(212,168,74,.22);border-radius:2px;box-shadow:0 1px 0 rgba(245,212,119,.08) inset,0 24px 60px -28px rgba(0,0,0,.7);opacity:0;animation:slideUp 1s var(--ease-out) .4s forwards;flex-wrap:wrap;position:relative;z-index:2;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
 .hero-meta::before,.hero-meta::after{content:"";position:absolute;left:14%;right:14%;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(245,212,119,.45) 50%,transparent 100%);}
 .hero-meta::before{top:-1px;}
