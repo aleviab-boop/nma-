@@ -5356,6 +5356,38 @@ body.role-madame .pick-tile-full .pick-name{font-size:13.5px;}
 body.role-madame .pick-tile-full .pick-meta{font-size:8.5px;letter-spacing:.16em;}
 body.role-madame #page-requests .section > div{padding:18px!important;}
 body.role-madame #page-requests .section{box-sizing:border-box;width:100%;}
+
+/* Tighten the entire Requests page — header, card chrome, meta line,
+   add-piece form — so the page reads as a compact action panel above
+   the collage instead of a tall scroll. */
+body.role-madame #page-requests > .hero{padding:14px 18px 4px!important;}
+body.role-madame #page-requests > .hero .hero-label{font-size:8.5px!important;letter-spacing:.24em!important;margin-bottom:6px!important;}
+body.role-madame #page-requests > .hero .hero-title{font-size:24px!important;line-height:1.1!important;margin-bottom:0!important;}
+body.role-madame #page-requests .section{padding:0 14px 24px!important;}
+body.role-madame #page-requests .section > div{padding:14px 14px 16px!important;border-radius:14px!important;}
+/* Pick List header row (h4 + meta + Add Piece button) shrinks */
+body.role-madame #page-requests .section > div > div:first-child h4{
+  font-size:16px!important;margin-bottom:2px!important;
+}
+body.role-madame #page-requests #pickListMeta{font-size:8.5px!important;letter-spacing:.16em!important;}
+body.role-madame #page-requests .lb-add-btn{padding:7px 12px!important;font-size:11px!important;border-radius:8px!important;}
+body.role-madame #page-requests .lb-add-btn svg{width:13px!important;height:13px!important;}
+/* The "border-top" divider above the pick grid tightens too */
+body.role-madame #page-requests .section > div > div[style*="border-top"]{
+  padding-top:12px!important;margin-top:10px!important;
+}
+/* Add-piece form: tighter inputs + spacing */
+body.role-madame #page-requests .lb-add-form{padding:10px!important;border-radius:10px!important;gap:8px!important;}
+body.role-madame #page-requests .lb-row label{font-size:9px!important;letter-spacing:.14em!important;margin-bottom:3px!important;}
+body.role-madame #page-requests .lb-row input{padding:7px 10px!important;font-size:12px!important;border-radius:6px!important;}
+body.role-madame #page-requests #pickSearchResults{max-height:200px!important;padding:6px!important;}
+body.role-madame #page-requests .lb-cancel{padding:6px 12px!important;font-size:10px!important;}
+/* Pick tile thumbnails — smaller again on Madam */
+body.role-madame #pickItemsGrid{gap:8px!important;}
+body.role-madame .pick-tile-full{border-radius:10px!important;}
+body.role-madame .pick-tile-full .pick-info{padding:6px 7px 7px!important;}
+body.role-madame .pick-tile-full .pick-name{font-size:10.5px!important;}
+body.role-madame .pick-tile-full .pick-meta{font-size:7.5px!important;}
 @media(max-width:560px){
   body.role-madame #pickItemsGrid{grid-template-columns:1fr!important;}
 }
