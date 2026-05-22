@@ -1091,7 +1091,7 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
             <table class="data-table" id="invTable">
               <thead>
                 <tr>
-                  <th style="width:60px;">Photo</th><th>ID</th><th>Name</th><th>Designer</th><th>Category</th><th>Status</th><th>Added</th>
+                  <th style="width:60px;">Photo</th><th>Name</th><th>Designer</th><th>Category</th><th>Status</th><th>Added</th>
                 </tr>
               </thead>
               <tbody id="invTableBody"></tbody>
@@ -1964,10 +1964,9 @@ function paintInventoryPage(){
         <tr class="${isNew ? 'inv-row-new' : ''}">
           <td class="inv-photo-cell">${photoCell(i)}</td>
           <td>
-            <span class="muted">${i.id}</span>
-            ${isNew ? '<span class="pill pill-new">NEW</span>' : ''}
+            <b>${i.name}</b>
+            ${isNew ? '<span class="pill pill-new" style="margin-left:8px;">NEW</span>' : ''}
           </td>
-          <td><b>${i.name}</b></td>
           <td>${i.designer}</td>
           <td style="text-transform:capitalize;">${i.cat}</td>
           <td><span class="pill pill-status-${i.status}">${i.status === 'in-wardrobe' ? 'Available' : 'Cleaning'}</span></td>
