@@ -1480,6 +1480,23 @@ body.tablet-view .bottom-nav{display:flex;}
 .look-pieces-head h3{font-family:var(--serif);font-weight:400;font-size:22px;color:var(--ivory);letter-spacing:-.01em;margin-bottom:4px;}
 .look-pieces-head h3 em{font-style:italic;color:var(--gold-bright);}
 .look-pieces-head .sub{font-size:11.5px;color:var(--latte);margin-top:2px;}
+/* Collage hero inside the "Pieces in this look" popup — sits at the
+   top of the list so the user sees the full combination before the
+   per-piece detail rows. Cells re-use the same .lb2-collage grammar
+   the lookbook card uses, but constrained to a fixed height here so
+   it doesn't push the rows below off-screen. */
+.look-pieces-collage-wrap{
+  padding:0 0 10px;
+}
+.look-pieces-collage{
+  position:relative;width:100%;aspect-ratio:4 / 3;
+  border-radius:14px;overflow:hidden;
+  border:1px solid rgba(212,168,74,.22);
+  box-shadow:inset 0 0 0 1px rgba(245,212,119,.08),0 8px 22px -10px rgba(0,0,0,.55);
+  margin-bottom:12px;
+}
+.look-pieces-collage .lb2-collage-cell{cursor:pointer;transition:transform .25s var(--ease);}
+.look-pieces-collage .lb2-collage-cell:hover{transform:scale(1.02);z-index:1;}
 .look-pieces-close{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;background:rgba(212,168,74,.12);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--gold-bright);transition:all .2s var(--ease);z-index:5;}
 .look-pieces-close:hover{background:rgba(212,168,74,.22);transform:rotate(90deg);}
 /* pointer-events:none on the SVG so iPad taps land on the button itself
@@ -13713,8 +13730,34 @@ function openLookPiecesModal(lookId){
   if (tiles.length === 0){
     list.innerHTML = `<div style="padding:30px 10px;text-align:center;color:var(--latte);font-size:12px;">No pieces in this look — items may have been removed from inventory.</div>`;
   } else {
-    list.innerHTML = tiles.map(({slot, item}) => `
-      <div class="look-piece-tile" data-item-id="${item.id}">
+    // Build a collage hero at the top — adapts to piece count (1 / 2 / 3 / 4+)
+    // so the user sees the whole combination at a glance. Same layout
+    // grammar as the lookbook card collage. Each cell is tappable and
+    // routes to that piece's detail modal.
+    const collageClass = tiles.length === 1 ? 'lb2-collage-1'
+                       : tiles.length === 2 ? 'lb2-collage-2'
+                       : tiles.length === 3 ? 'lb2-collage-3'
+                       : 'lb2-collage-4';
+    const collageVisible = tiles.slice(0, tiles.length >= 4 ? 4 : tiles.length);
+    const collageExtra = tiles.length > 4 ? tiles.length - 4 : 0;
+    const escAttr = s => String(s || '').replace(/"/g,'&quot;');
+    const collageCells = collageVisible.map(({item}, i) => {
+      const isMain = tiles.length === 3 && i === 0;
+      const isLast = i === 3 && collageExtra > 0;
+      return `<div class="lb2-collage-cell ${isMain ? 'lb2-collage-main' : ''} ${isLast ? 'is-more' : ''}"
+                   data-item-id="${escAttr(item.id)}" title="${escAttr(item.name)}">
+        ${itemImage(item)}
+        ${isLast ? `<span class="lb2-collage-more-badge">+${collageExtra}</span>` : ''}
+      </div>`;
+    }).join('');
+    const collageHtml = `
+      <div class="look-pieces-collage-wrap">
+        <div class="lb2-collage ${collageClass} look-pieces-collage">${collageCells}</div>
+      </div>`;
+    // The detail-row list stays below the collage so the user can read
+    // each piece's slot label / designer at a glance.
+    const rowsHtml = tiles.map(({slot, item}) => `
+      <div class="look-piece-tile" data-item-id="${escAttr(item.id)}">
         <div class="thumb">${itemImage(item)}</div>
         <div class="info">
           <div class="slot">${SLOT_LABEL[slot] || slot}</div>
@@ -13724,7 +13767,10 @@ function openLookPiecesModal(lookId){
         <div class="arrow">›</div>
       </div>
     `).join('');
-    // Each tile → opens the item modal for that piece
+    list.innerHTML = collageHtml + rowsHtml;
+    // Delegated click — handles both collage cells and row tiles
+    list.addEventListener('click', _lookPiecesItemHandler, { once:false });
+    // Replace any prior bindings cleanly by also wiring per-tile (legacy)
     list.querySelectorAll('.look-piece-tile').forEach(tile => {
       tile.addEventListener('click', () => {
         const id = tile.dataset.itemId;
@@ -13738,6 +13784,18 @@ function openLookPiecesModal(lookId){
 function closeLookPiecesModal(){
   document.getElementById('lookPiecesModal').classList.remove('show');
   _lookPiecesCurrentId = null;
+}
+// Delegated handler for the collage at the top of the popup — tapping
+// any cell opens that piece's detail modal. Lives at function scope so
+// the listener attaches once per render rather than stacking.
+function _lookPiecesItemHandler(e){
+  const cell = e.target.closest && e.target.closest('.look-pieces-collage .lb2-collage-cell[data-item-id]');
+  if (!cell) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = cell.dataset.itemId;
+  closeLookPiecesModal();
+  setTimeout(() => { try { openItemModal(id); } catch(_){} }, 220);
 }
 // Delegated close handler — bound at document level so it survives any
 // re-render of the modal DOM and works even when the click lands on a
