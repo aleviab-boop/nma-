@@ -3820,6 +3820,48 @@ body.cam-on .cam-cta-dock,
   position:relative;aspect-ratio:1 / 1;overflow:hidden;
   background:linear-gradient(180deg,#FAF6EC 0%,#F0E7D2 100%);
 }
+
+/* Lookbook collage — composes 1-4 pieces into a single hero tile so
+   the card shows the whole combination, not just the main garment.
+   Each cell is its own grid-area; the dividing gap renders as a thin
+   gold seam against the dark card background. */
+.lb2-collage{
+  position:absolute;inset:0;width:100%;height:100%;
+  display:grid;gap:2px;
+  background:rgba(212,168,74,.28);  /* dividing seam colour */
+}
+.lb2-collage-1{grid-template-columns:1fr;grid-template-rows:1fr;}
+.lb2-collage-2{grid-template-columns:1fr 1fr;grid-template-rows:1fr;}
+.lb2-collage-3{grid-template-columns:1.4fr 1fr;grid-template-rows:1fr 1fr;}
+.lb2-collage-3 .lb2-collage-main{grid-row:1 / 3;}
+.lb2-collage-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;}
+.lb2-collage-cell{
+  position:relative;overflow:hidden;background:#1C120C;
+  display:flex;align-items:center;justify-content:center;
+}
+.lb2-collage-cell img,
+.lb2-collage-cell svg,
+.lb2-collage-cell > *{
+  width:100%!important;height:100%!important;
+  object-fit:cover!important;display:block;
+}
+/* +N overlay on the 4th cell when the look has more than 4 pieces */
+.lb2-collage-cell.is-more::after{
+  content:"";position:absolute;inset:0;
+  background:rgba(11,6,4,.6);
+  backdrop-filter:blur(2px);
+}
+.lb2-collage-more-badge{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;
+  font-family:'Inter',-apple-system,sans-serif;font-size:22px;font-weight:700;
+  color:var(--ivory);letter-spacing:.02em;
+  text-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+/* Light-card variant for the cells in case any cell falls back to the
+   garment SVG which has a light background — keep cells dark so the
+   gold seam reads. */
+body.role-madame .lb2-collage{background:rgba(245,212,119,.32);}
+body.role-madame .lb2-collage-cell{background:#0E0706;}
 .lb2-hero-img{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;
   transition:transform .6s var(--ease);
@@ -13675,27 +13717,55 @@ function renderLookbook(){
       .map(slot => items[slot] ? INVENTORY.find(i=>i.id===items[slot]) : null)
       .filter(Boolean);
 
-    // Hero = the main piece; secondaries become the thumbnail strip overlay
-    let heroHtml, secondaries = [];
-    if(tiles.length === 0){
+    // Collage hero — replaces the single-image hero so Madam sees every
+    // piece in the combination, not just the main garment. Layout adapts
+    // to the number of pieces:
+    //   1     → full bleed (legacy single image)
+    //   2     → main left, second right (50/50)
+    //   3     → main left full-height, two stacked on the right
+    //   4+    → 2×2 grid, +N badge in the last cell when over 4
+    let heroHtml = '';
+    if (tiles.length === 0){
       // Legacy fallback (looks saved before the items-shape migration)
-      heroHtml = l.photo
-        ? `<img src="${l.photo}" alt="${l.name}"/>`
-        : `<img src="${svgFallback(l.c1||'#3A2A20', l.c2||'#1A0E08', l.cat||'gown')}" alt="${l.name}"/>`;
+      heroHtml = `<div class="lb2-collage lb2-collage-1">
+        <div class="lb2-collage-cell">${l.photo
+          ? `<img src="${l.photo}" alt="${l.name}"/>`
+          : `<img src="${svgFallback(l.c1||'#3A2A20', l.c2||'#1A0E08', l.cat||'gown')}" alt="${l.name}"/>`
+        }</div>
+      </div>`;
+    } else if (tiles.length === 1){
+      heroHtml = `<div class="lb2-collage lb2-collage-1">
+        <div class="lb2-collage-cell">${itemImage(tiles[0])}</div>
+      </div>`;
+    } else if (tiles.length === 2){
+      heroHtml = `<div class="lb2-collage lb2-collage-2">
+        <div class="lb2-collage-cell" title="${(tiles[0].name||'').replace(/"/g,'&quot;')}">${itemImage(tiles[0])}</div>
+        <div class="lb2-collage-cell" title="${(tiles[1].name||'').replace(/"/g,'&quot;')}">${itemImage(tiles[1])}</div>
+      </div>`;
+    } else if (tiles.length === 3){
+      heroHtml = `<div class="lb2-collage lb2-collage-3">
+        <div class="lb2-collage-cell lb2-collage-main" title="${(tiles[0].name||'').replace(/"/g,'&quot;')}">${itemImage(tiles[0])}</div>
+        <div class="lb2-collage-cell" title="${(tiles[1].name||'').replace(/"/g,'&quot;')}">${itemImage(tiles[1])}</div>
+        <div class="lb2-collage-cell" title="${(tiles[2].name||'').replace(/"/g,'&quot;')}">${itemImage(tiles[2])}</div>
+      </div>`;
     } else {
-      heroHtml = itemImage(tiles[0]);
-      secondaries = tiles.slice(1);
+      // 4 or more — show first 4 cells; if >4, the last cell becomes a +N overlay
+      const visible = tiles.slice(0, 4);
+      const extra = tiles.length - 4;
+      heroHtml = `<div class="lb2-collage lb2-collage-4">${
+        visible.map((t, i) => {
+          const isLast = i === 3 && extra > 0;
+          return `<div class="lb2-collage-cell ${isLast ? 'is-more' : ''}" title="${(t.name||'').replace(/"/g,'&quot;')}">
+            ${itemImage(t)}
+            ${isLast ? `<span class="lb2-collage-more-badge">+${extra}</span>` : ''}
+          </div>`;
+        }).join('')
+      }</div>`;
     }
-
-    // Thumb strip overlay — up to 4 visible, +N badge if more
-    let thumbsHtml = '';
-    if(secondaries.length > 0){
-      const visible = secondaries.slice(0,4);
-      const extra = secondaries.length - visible.length;
-      thumbsHtml = `<div class="lb2-thumb-strip">${
-        visible.map(t=>`<div class="lb2-thumb" title="${t.name}">${itemImage(t)}</div>`).join('')
-      }${ extra > 0 ? `<div class="lb2-thumb-more">+${extra}</div>` : ''}</div>`;
-    }
+    // Thumb strip overlay no longer needed — the collage already shows the
+    // full combination. Variable retained as empty so existing markup hook
+    // still renders cleanly.
+    const thumbsHtml = '';
 
     const realCount = tiles.length || 1;
     const designerLine = tiles[0] ? tiles[0].designer : (l.designer || '—');
