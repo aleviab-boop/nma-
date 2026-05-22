@@ -9774,7 +9774,7 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
   <div class="vto-card">
     <div class="vto-head">
       <div>
-        <div class="vto-lbl"><span class="dot"></span>Virtual Try-On · Imagen 3</div>
+        <div class="vto-lbl"><span class="dot"></span>Virtual Try-On</div>
         <h3>See it on <em>you</em></h3>
       </div>
       <button class="vto-close" id="vtoCloseBtn" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -16224,23 +16224,23 @@ async function startVtoFlow(item, bodyDataUrl, extraItems){
     _vtoLastResult = { dataUrl: resultDataUrl, item, items: chainItems, mode };
     const resultImg = document.getElementById('vtoResultImg');
     resultImg.src = resultDataUrl;
-    document.getElementById('vtoQualityBadge').textContent = mode === 'live' ? 'IMAGEN 3' : 'DEMO PREVIEW';
+    document.getElementById('vtoQualityBadge').textContent = mode === 'live' ? 'AI PREVIEW' : 'DEMO PREVIEW';
     document.getElementById('vtoResultMeta').textContent = mode === 'live'
-      ? `${chainItems.map(i=>i.name).join(' · ')}  ·  Vertex AI · virtual-try-on-001`
-      : `${chainItems.map(i=>i.name).join(' · ')}  ·  Client composite — set GCP_SERVICE_ACCOUNT_KEY for live VTO`;
+      ? `${chainItems.map(i=>i.name).join(' · ')}  ·  Virtual try-on render`
+      : `${chainItems.map(i=>i.name).join(' · ')}  ·  Client composite — set GCP_SERVICE_ACCOUNT_KEY for live render`;
     renderVtoResultThumbs(chainItems);
     showVtoState('vtoResultWrap');
 
     // Deferred HD upscale — non-blocking, swap in when ready (only for live results)
     if (mode === 'live'){
       const badge = document.getElementById('vtoQualityBadge');
-      badge.textContent = 'IMAGEN 3 · UPSCALING…';
+      badge.textContent = 'UPSCALING…';
       upscaleInBackground(resultDataUrl, (hdUrl)=>{
         // Only swap in if the result modal is still showing the same render
         if (_vtoLastResult && _vtoLastResult.dataUrl === resultDataUrl){
           _vtoLastResult.dataUrl = hdUrl;
           resultImg.src = hdUrl;
-          badge.textContent = 'IMAGEN 3 · HD';
+          badge.textContent = 'HD';
         }
       });
     }
