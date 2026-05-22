@@ -4266,28 +4266,27 @@ body.role-madame .modal{
   transform:none!important;
 }
 body.role-madame .modal-overlay.show .modal{transform:none!important;}
-/* Promote the existing small ✕ into a prominent red "Close" pill
+/* Promote the existing small ✕ into a clean red × icon button
    anchored at the viewport's top-right when the modal is full-screen. */
 body.role-madame .modal .modal-close{
   position:fixed!important;top:18px!important;right:22px!important;
-  width:auto!important;height:auto!important;border-radius:10px!important;
-  padding:10px 22px!important;
+  width:44px!important;height:44px!important;
+  border-radius:50%!important;padding:0!important;
   background:#dc2626!important;color:#ffffff!important;
   border:1px solid #b91c1c!important;cursor:pointer;
-  font-family:'Inter',-apple-system,sans-serif!important;font-size:13.5px!important;font-weight:600!important;letter-spacing:.01em;
-  box-shadow:0 6px 18px -4px rgba(220,38,38,.55),0 2px 4px rgba(15,23,42,.15)!important;
+  box-shadow:0 6px 18px -4px rgba(220,38,38,.55),0 2px 4px rgba(15,23,42,.18)!important;
   transition:all .18s ease;
-  display:flex!important;align-items:center!important;justify-content:center!important;
+  display:grid!important;place-items:center!important;
   z-index:1100!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
 }
-body.role-madame .modal .modal-close::after{
-  content:"Close";
+body.role-madame .modal .modal-close svg{
+  display:block!important;width:18px!important;height:18px!important;
+  stroke:#fff!important;stroke-width:2.6!important;fill:none!important;
 }
-body.role-madame .modal .modal-close svg{display:none!important;}
 body.role-madame .modal .modal-close:hover{
   background:#b91c1c!important;border-color:#991b1b!important;
-  transform:none!important;
+  transform:rotate(90deg)!important;
 }
 /* Modal image area — large hero on the page, contained so the full
    garment is always visible. */
@@ -4492,6 +4491,19 @@ body.role-madame .marquee-track{animation:none!important;}
    every render — the scroll layer was forced to repaint each frame */
 body.role-madame .meta-block{transition:none!important;}
 body.role-madame .meta-block:hover{transform:none!important;background:radial-gradient(ellipse at center,rgba(245,212,119,.07),transparent 70%)!important;}
+
+/* Drop the cream/ivory tile backgrounds behind photos in Requests +
+   Lookbook — they read as ugly white pillars beside contained photos
+   in Madame's otherwise dark UI. Swap for the same deep cinnamon
+   surface used by the surrounding cards. */
+body.role-madame .pick-tile-full .pick-thumb,
+body.role-madame .lb2-visual{
+  background:linear-gradient(180deg,#1C120C 0%,#0E0706 100%)!important;
+}
+body.role-madame .pick-tile-full{
+  background:linear-gradient(180deg,rgba(28,18,12,.85),rgba(11,6,4,.92))!important;
+  border-color:rgba(212,168,74,.22)!important;
+}
 .vto-toggle-btn{
   border:0;background:transparent;cursor:pointer;
   padding:7px 16px;border-radius:999px;
@@ -4664,6 +4676,29 @@ body.role-madame .meta-block:hover{transform:none!important;background:radial-gr
 .guest-analysis-empty{
   padding:24px;text-align:center;color:#15803d;font-size:13px;
   background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+}
+/* Headline callout: outfits Madam already wore in front of overlapping
+   guests. Loud amber so ops doesn't suggest one of them again. */
+.guest-outfit-warn-head{
+  font-family:'Inter',-apple-system,sans-serif;font-size:12px;font-weight:600;
+  color:#92400e;letter-spacing:.02em;
+  margin:0 0 10px;padding:0 2px;
+}
+.guest-outfit-warn-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;
+  margin-bottom:18px;
+}
+.guest-outfit-warn{
+  padding:12px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);
+  border:1px solid #fbbf24;border-radius:10px;
+  box-shadow:0 4px 12px -6px rgba(180,83,9,.25);
+}
+.guest-outfit-warn .warn-outfit{
+  font-family:'Inter',-apple-system,sans-serif;font-size:13.5px;font-weight:700;
+  color:#7c2d12;line-height:1.25;
+}
+.guest-outfit-warn .warn-events{
+  font-size:11px;color:#92400e;margin-top:4px;letter-spacing:.01em;
 }
 /* Page-guests only renders for ops-dashboard. Hide for the other roles
    so it's not navigable via deep-linking. */
@@ -5491,11 +5526,24 @@ body.role-ops-dashboard #page-suggestions .suggest-board-wrap{
   background:var(--ods-blue,#2563eb);color:#fff;font-weight:600;
   box-shadow:0 2px 6px -2px rgba(37,99,235,.5);
 }
+.suggest-toolbar-right{display:flex;align-items:center;gap:12px;}
 .suggest-toolbar-right .badge{
   font-family:ui-monospace,monospace;font-size:11px;font-weight:500;
   padding:6px 12px;border-radius:6px;
   background:#fff;border:1px solid var(--ods-line,#e2e8f0);color:var(--ods-text-soft,#475569);
 }
+.suggest-new-event-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px 8px 12px;border-radius:8px;
+  background:var(--ods-blue,#2563eb);color:#fff;
+  border:1px solid var(--ods-blue,#2563eb);cursor:pointer;
+  font-family:'Inter',-apple-system,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.01em;
+  box-shadow:0 4px 12px -4px rgba(37,99,235,.55);
+  transition:all .15s ease;
+}
+.suggest-new-event-btn svg{width:14px;height:14px;flex-shrink:0;}
+.suggest-new-event-btn:hover{background:#1d4ed8;border-color:#1d4ed8;transform:translateY(-1px);box-shadow:0 8px 18px -6px rgba(37,99,235,.65);}
+.suggest-new-event-btn:active{transform:translateY(0);}
 
 /* Event card grid — auto-fill so card count scales naturally with the
    viewport width. The min track adapts for narrow vs wide viewports. */
@@ -6235,23 +6283,23 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 .wlayout-close svg{width:14px;height:14px;stroke:#000;stroke-width:2;fill:none;}
 .wlayout-close:hover{background:#dbeafe;border-color:#2563eb;}
 
-/* Floating close button — anchored top-right of the viewport. Single
-   solid red action, no icon, no extras. */
+/* Floating red × close button — anchored top-right of the viewport.
+   Pure icon, no text. */
 .wlayout-close-floating{
   position:fixed;top:18px;right:22px;z-index:2710;
-  padding:10px 22px;border-radius:10px;
+  width:44px;height:44px;border-radius:50%;
   background:#dc2626;color:#ffffff;
   border:1px solid #b91c1c;cursor:pointer;
-  font-family:'Inter',-apple-system,sans-serif;font-size:13.5px;font-weight:600;letter-spacing:.01em;
+  display:grid;place-items:center;
   box-shadow:0 6px 18px -4px rgba(220,38,38,.5),0 2px 4px rgba(15,23,42,.12);
   transition:all .18s ease;
 }
+.wlayout-close-floating svg{width:18px;height:18px;stroke:#fff;stroke-width:2.6;fill:none;}
 .wlayout-close-floating:hover{
   background:#b91c1c;border-color:#991b1b;
-  transform:translateY(-1px);
-  box-shadow:0 10px 24px -6px rgba(185,28,28,.6),0 2px 4px rgba(15,23,42,.15);
+  transform:rotate(90deg);
 }
-.wlayout-close-floating:active{transform:translateY(0);box-shadow:0 4px 12px -4px rgba(220,38,38,.5);}
+.wlayout-close-floating:active{transform:rotate(90deg) scale(.94);}
 .wlayout-close-floating:focus-visible{outline:2px solid #fff;outline-offset:3px;}
 /* Only visible when the modal is actually open */
 .wlayout-modal:not(.show) .wlayout-close-floating,
@@ -6696,6 +6744,16 @@ body.role-ops-mobile .main{
   position:relative;
   box-shadow:inset 0 0 0 1px rgba(212,168,74,.1),0 32px 90px rgba(0,0,0,.9);
 }
+/* Active page scrolls INSIDE the phone frame — was overflow:hidden
+   from .main which trapped long pages (Requests had no way to reveal
+   anything below the fold). Reserve bottom padding for the bottom-nav
+   pill so the last item doesn't get hidden under it. */
+body.role-ops-mobile .page.active{
+  height:100%!important;
+  overflow-y:auto!important;-webkit-overflow-scrolling:touch;
+  padding-bottom:90px;
+}
+body.role-ops-mobile .page#page-opsmobile.active{padding-bottom:0;overflow:hidden!important;}
 /* Faux phone notch — removed: ops mobile may be opened on Android too,
    where the iOS-style pill would look wrong. */
 body.role-ops-mobile .main::before{display:none;}
@@ -8622,7 +8680,7 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
         </div>
       </section>
       <section class="section suggest-board-wrap">
-        <!-- Filter tabs + count -->
+        <!-- Filter tabs + new-event CTA + count -->
         <div class="suggest-toolbar">
           <div class="suggest-filters" role="tablist" aria-label="Filter events">
             <button class="suggest-filter active" data-suggest-filter="all"      type="button" role="tab" aria-selected="true">All</button>
@@ -8631,6 +8689,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             <button class="suggest-filter" data-suggest-filter="complete"        type="button" role="tab">Complete</button>
           </div>
           <div class="suggest-toolbar-right">
+            <button class="suggest-new-event-btn" id="suggestNewEventBtn" type="button" title="Create a new event and assign 3 outfit picks">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+              New event
+            </button>
             <span class="badge" id="suggestEventCount">0 events</span>
           </div>
         </div>
@@ -8743,6 +8805,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             <label class="guest-row">
               <span class="guest-label">Event date</span>
               <input id="guestEventDate" type="date"/>
+            </label>
+            <label class="guest-row">
+              <span class="guest-label">Outfit Madam wore <span style="opacity:.55;font-weight:400;">(for past events)</span></span>
+              <input id="guestEventOutfit" type="text" placeholder="e.g. Maroon Sabya Saree · Polki choker" autocomplete="off"/>
             </label>
             <label class="guest-row guest-row-grow">
               <span class="guest-label">Guests <span class="guest-count" id="guestNamesCount">0 names</span></span>
@@ -9576,8 +9642,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 
 <!-- Wardrobe Layout modal — large workspace with side panel listing zones -->
 <div class="wlayout-modal" id="wlayoutModal" aria-hidden="true" role="dialog">
-  <!-- Floating close button — anchored top-right, single clean red action. -->
-  <button class="wlayout-close-floating" id="wlayoutCloseFloating" type="button" aria-label="Close" title="Close (Esc)">Close</button>
+  <!-- Floating red × button — anchored top-right. -->
+  <button class="wlayout-close-floating" id="wlayoutCloseFloating" type="button" aria-label="Close" title="Close (Esc)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
   <div class="wlayout-card">
     <div class="wlayout-head">
       <div class="title-block">
@@ -11877,20 +11945,37 @@ function analyzeGuestRepeats(currentGuests, allLists, currentId){
     if (k && !currentSet.has(k)) currentSet.set(k, n);
   });
   const repeats = new Map();
+  const wornOutfits = new Map();  // outfit string → set of past event names
   allLists.forEach(list => {
     if (!list || list.id === currentId) return;
+    let overlap = false;
     (list.guests || []).forEach(g => {
       const k = _normalizeGuestName(g);
       if (currentSet.has(k)){
+        overlap = true;
         if (!repeats.has(k)) repeats.set(k, { name: currentSet.get(k), events: [] });
-        repeats.get(k).events.push({ name: list.eventName || '(unnamed)', date: list.eventDate || null, id: list.id });
+        repeats.get(k).events.push({
+          name: list.eventName || '(unnamed)',
+          date: list.eventDate || null,
+          id: list.id,
+          outfit: list.outfit || ''
+        });
       }
     });
+    // Track outfits worn at overlapping past events so the analysis
+    // surfaces "you wore X in front of these people last time".
+    if (overlap && list.outfit){
+      if (!wornOutfits.has(list.outfit)) wornOutfits.set(list.outfit, new Set());
+      wornOutfits.get(list.outfit).add(list.eventName || '(unnamed)');
+    }
   });
   const arr = Array.from(repeats.values()).map(r => ({
     name: r.name, count: r.events.length, events: r.events
   })).sort((a,b) => b.count - a.count);
-  return { repeats: arr, totalRepeats: arr.length, totalGuests: currentSet.size };
+  const wornArr = Array.from(wornOutfits.entries()).map(([outfit, evSet]) => ({
+    outfit, events: Array.from(evSet)
+  }));
+  return { repeats: arr, totalRepeats: arr.length, totalGuests: currentSet.size, wornOutfits: wornArr };
 }
 
 /* Render the saved-lists column. */
@@ -11949,15 +12034,29 @@ function renderGuestAnalysisFor(listId){
     `;
   }
   if (tableEl){
+    let html = '';
+    // Top section: outfits Madam already wore in front of overlapping
+    // guests. This is the headline insight — "don't repeat these".
+    if (result.wornOutfits && result.wornOutfits.length){
+      html += '<div class="guest-outfit-warn-head">Outfits seen by repeat guests · don\'t repeat these</div>';
+      html += '<div class="guest-outfit-warn-grid">';
+      html += result.wornOutfits.map(w => `
+        <div class="guest-outfit-warn">
+          <div class="warn-outfit">${(w.outfit || '').replace(/</g,'&lt;')}</div>
+          <div class="warn-events">Worn at: ${w.events.map(e => e.replace(/</g,'&lt;')).join(' · ')}</div>
+        </div>`).join('');
+      html += '</div>';
+    }
     if (result.repeats.length === 0){
-      tableEl.innerHTML = '<div class="guest-analysis-empty">No repeat attendees — this is a fresh crowd. Wear whatever Madam likes best.</div>';
+      html += '<div class="guest-analysis-empty">No repeat attendees — this is a fresh crowd. Wear whatever Madam likes best.</div>';
     } else {
-      tableEl.innerHTML = result.repeats.map(r => {
+      html += result.repeats.map(r => {
         const cls = r.count >= 3 ? 'is-hot' : '';
         const eventLabels = r.events.map(e => {
           const d = e.date ? new Date(e.date) : null;
           const ds = d && !isNaN(d) ? ` (${d.getDate()} ${MONTH_SHORT[d.getMonth()]})` : '';
-          return `${e.name}${ds}`;
+          const fit = e.outfit ? ` · wore ${e.outfit.replace(/</g,'&lt;')}` : '';
+          return `${e.name}${ds}${fit}`;
         }).join(' · ');
         return `
           <div class="guest-analysis-row ${cls}">
@@ -11969,6 +12068,7 @@ function renderGuestAnalysisFor(listId){
           </div>`;
       }).join('');
     }
+    tableEl.innerHTML = html;
   }
   panel.style.display = '';
 }
@@ -12303,11 +12403,13 @@ function initGuestListsPage(){
       if (msg){ msg.textContent = 'Pick or label an event first.'; msg.className = 'guest-empty-msg is-err'; }
       return;
     }
+    const outfitEl = document.getElementById('guestEventOutfit');
     const entry = {
       id: 'g_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       eventId: (eventSel && eventSel.value) || null,
       eventName: evName,
       eventDate: evDate || null,
+      outfit: outfitEl ? outfitEl.value.trim() : '',
       guests: names,
       savedAt: Date.now()
     };
@@ -12333,6 +12435,7 @@ function initGuestListsPage(){
     try { openGuestNamesPopup({ listId: entry.id }); } catch(_){}
     // Reset form so they can do another
     if (txt) txt.value = '';
+    if (outfitEl) outfitEl.value = '';
     refreshCount();
   });
 
@@ -12760,6 +12863,52 @@ function renderSuggestEventList(){
       t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
     });
     renderSuggestEventList();
+  });
+})();
+
+// "New event" button — opens the existing event edit modal in
+// create-new mode; on save, immediately drops the user into the
+// suggestion builder for the freshly-added event so they can pick
+// the 3 outfits without an extra hop.
+(function wireSuggestNewEvent(){
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#suggestNewEventBtn')) return;
+    e.preventDefault();
+    // Reset the modal to "create new" mode
+    if (typeof state !== 'undefined') state.editingEventId = null;
+    // Pre-snapshot of event ids so we can detect which new one landed
+    const beforeIds = new Set((state && state.events ? state.events : []).map(x => String(x.id)));
+    // Open the modal — uses the same form the calendar page uses
+    const modal = document.getElementById('eventModal');
+    if (modal){
+      ['evName','evTime','evType','evDress','evNotes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const evDate = document.getElementById('evDate');
+      if (evDate){
+        // Pre-fill with today so the date input isn't blank
+        const t = new Date();
+        evDate.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+      }
+      modal.classList.add('show');
+    }
+    // Watch for the save → open the suggestion builder for the new row
+    const saveBtn = document.getElementById('evSave');
+    if (saveBtn && !saveBtn._suggestWired){
+      saveBtn._suggestWired = true;
+      saveBtn.addEventListener('click', () => {
+        // Run after saveEventFromForm has appended the new event
+        setTimeout(() => {
+          const after = (state && state.events ? state.events : []);
+          const fresh = after.find(x => !beforeIds.has(String(x.id)));
+          if (fresh && typeof openSuggestBuilder === 'function'){
+            openSuggestBuilder(fresh.id);
+          }
+          renderSuggestEventList();
+        }, 50);
+      });
+    }
   });
 })();
 
