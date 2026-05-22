@@ -10579,9 +10579,17 @@ async function deleteItemFromServer(id, _isCurated){
   } catch { return false; }
 }
 
-// Re-render any visible grid that depends on INVENTORY
+// Re-render any visible grid that depends on INVENTORY.
+// Preserves the user's current filter chip + search query so a Realtime
+// repaint (every few seconds) doesn't blow away "ritu" they just typed.
 function rerenderInventoryViews(){
-  if (typeof paintWardrobe === 'function') paintWardrobe();
+  if (typeof paintWardrobe === 'function'){
+    const activeChip = document.querySelector('#filters .filter-chip.active');
+    const filter = activeChip ? (activeChip.dataset.filter || 'all') : 'all';
+    const searchInput = document.getElementById('globalSearch');
+    const q = (searchInput && searchInput.value) ? searchInput.value : '';
+    paintWardrobe(filter, q);
+  }
   if (typeof paintRecentlyAdded === 'function') paintRecentlyAdded();
   if (typeof paintSuggestions === 'function') paintSuggestions();
   if (typeof paintRediscover === 'function') paintRediscover();
