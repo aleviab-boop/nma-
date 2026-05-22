@@ -10794,6 +10794,80 @@ function broadcastStateChange(){
   if (_stateChannel) _stateChannel.postMessage({ type: 'state-changed', at: Date.now() });
 }
 
+/* Compose the live state object passed to /api/stylist. Lets Anaita
+   reference real upcoming events, recent captures, the current pick
+   list, and live Mumbai weather instead of the static snapshot baked
+   into the system prompt. Called once per chat send. */
+function _composeStylistState(){
+  const out = {};
+  try {
+    out.todayISO = new Date().toISOString().slice(0, 10);
+  } catch(_){}
+  // Mumbai weather snapshot from the climate card
+  try {
+    const $ = sel => { const el = document.querySelector(sel); return el ? el.textContent.trim() : ''; };
+    const temp = parseInt($('[data-weather="temp"]'), 10);
+    const humid = parseInt($('[data-weather="humid"]'), 10);
+    const sunsetH = $('[data-weather="sunset-h"]');
+    const sunsetM = ($('[data-weather="sunset-m"]') || '').replace(/^[:\s]+/, '');
+    const tempSub = $('[data-weather="temp-sub"]');
+    const wind = $('[data-weather="wind"]');
+    const humidSub = $('[data-weather="humid-sub"]');
+    const drape = $('[data-weather="drape"]');
+    if (!isNaN(temp))  out.weather = Object.assign(out.weather || {}, { temp });
+    if (!isNaN(humid)) out.weather = Object.assign(out.weather || {}, { humidity: humid });
+    if (tempSub){
+      const m = tempSub.match(/Feels\s+(-?\d+)°C\s*·\s*(.+)/i);
+      if (m){
+        out.weather = Object.assign(out.weather || {}, { feels: parseInt(m[1], 10), condition: m[2] });
+      }
+    }
+    if (sunsetH && sunsetM) out.weather = Object.assign(out.weather || {}, { sunset: sunsetH + ':' + sunsetM });
+    if (wind) out.weather = Object.assign(out.weather || {}, { wind });
+    if (humidSub) out.weather = Object.assign(out.weather || {}, { season: humidSub });
+    if (drape) out.weather = Object.assign(out.weather || {}, { drape });
+  } catch(_){}
+  // Upcoming events (next 14 days, sorted)
+  try {
+    if (typeof state !== 'undefined' && Array.isArray(state.events)){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const horizon = today.getTime() + 14*86400000;
+      out.events = state.events
+        .filter(e => { const t = new Date(e.date).getTime(); return t >= today.getTime() && t <= horizon; })
+        .sort((a,b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 8)
+        .map(e => ({ name:e.name, date:e.date, time:e.time, dress:e.dress, outfit:e.outfit || null }));
+    }
+  } catch(_){}
+  // Recently captured / added (last 14 days)
+  try {
+    if (typeof INVENTORY !== 'undefined' && Array.isArray(INVENTORY)){
+      const cutoff = Date.now() - 14*86400000;
+      out.recentItems = INVENTORY
+        .filter(i => i.addedAt && i.addedAt >= cutoff)
+        .sort((a,b) => (b.addedAt || 0) - (a.addedAt || 0))
+        .slice(0, 8)
+        .map(i => ({ name:i.name, designer:i.designer, cat:i.cat }));
+      out.inventoryCount = INVENTORY.length;
+      if (typeof isUnworn60Days === 'function'){
+        out.unwornCount = INVENTORY.filter(i => isUnworn60Days(i)).length;
+      }
+    }
+  } catch(_){}
+  // Active pick list (what wardrobe team is preparing)
+  try {
+    if (typeof PICK_IDS !== 'undefined' && Array.isArray(PICK_IDS) && PICK_IDS.length){
+      out.pickList = PICK_IDS
+        .map(id => INVENTORY.find(i => i.id === id))
+        .filter(Boolean)
+        .slice(0, 12)
+        .map(i => ({ name:i.name, designer:i.designer, cat:i.cat }));
+    }
+  } catch(_){}
+  return out;
+}
+window._composeStylistState = _composeStylistState;
+
 /* ============================================================
    AUDIT LOG — fire-and-forget POST to /api/audit-log so the
    super-admin Activity feed picks up cross-role actions in real
@@ -18553,7 +18627,10 @@ document.getElementById('flashBtn')?.addEventListener('click',()=>{
       const res = await fetch('/api/stylist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({
+          messages: history,
+          state: (typeof _composeStylistState === 'function') ? _composeStylistState() : {}
+        }),
       });
       const payload = await res.json().catch(() => ({}));
       typingBubble.remove();
@@ -18904,7 +18981,10 @@ document.getElementById('flashBtn')?.addEventListener('click',()=>{
       const res = await fetch('/api/stylist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: _history.slice(-40) })
+        body: JSON.stringify({
+          messages: _history.slice(-40),
+          state: (typeof _composeStylistState === 'function') ? _composeStylistState() : {}
+        })
       });
       const data = await res.json().catch(() => ({}));
       typing?.remove();
@@ -19544,7 +19624,10 @@ document.getElementById('flashBtn')?.addEventListener('click',()=>{
       const res = await fetch('/api/stylist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history.slice(-40) })
+        body: JSON.stringify({
+          messages: history.slice(-40),
+          state: (typeof _composeStylistState === 'function') ? _composeStylistState() : {}
+        })
       });
       const data = await res.json().catch(() => ({}));
       typing.remove();

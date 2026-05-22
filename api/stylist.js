@@ -176,6 +176,92 @@ Major collections:
 Now respond to Madam.`;
 
 
+/**
+ * Compose a "LIVE CONTEXT" system message from whatever state the client
+ * sent along with the chat turn. Lets Anaita reference today's real date,
+ * the current Mumbai weather, the events actually on Madam's calendar,
+ * pieces she's recently captured, and the active pick list — instead of
+ * the static snippets that used to make every reply feel the same.
+ *
+ * Every field is optional; missing data simply drops out of the prompt
+ * so the model isn't anchored to stale facts.
+ */
+function _composeLiveContext(state) {
+  state = state || {};
+  const lines = ['## LIVE CONTEXT (refreshed each turn — prefer this over the snapshot above)\n'];
+
+  // Today's actual date — server-side fallback when the client doesn't send one
+  const todayISO = state.todayISO || new Date().toISOString().slice(0, 10);
+  const todayDate = new Date(todayISO + 'T12:00:00');
+  if (!isNaN(todayDate)){
+    const wk = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][todayDate.getDay()];
+    const m  = ['January','February','March','April','May','June','July','August','September','October','November','December'][todayDate.getMonth()];
+    lines.push(`- Today is ${wk}, ${todayDate.getDate()} ${m} ${todayDate.getFullYear()}.`);
+  }
+
+  // Mumbai weather
+  if (state.weather && typeof state.weather === 'object'){
+    const w = state.weather;
+    const bits = [];
+    if (w.temp != null)       bits.push(`${w.temp}°C`);
+    if (w.feels != null)      bits.push(`feels ${w.feels}°C`);
+    if (w.humidity != null)   bits.push(`humidity ${w.humidity}%`);
+    if (w.condition)          bits.push(w.condition);
+    if (w.wind)               bits.push(w.wind);
+    if (w.sunset)             bits.push(`sunset ${w.sunset}`);
+    if (bits.length) lines.push('- Mumbai right now: ' + bits.join(' · ') + '.');
+    if (w.drape)         lines.push(`- Tonight's drape (per weather): ${w.drape}.`);
+  }
+
+  // Upcoming events (next 14 days)
+  if (Array.isArray(state.events) && state.events.length){
+    const upcoming = state.events.slice(0, 6);
+    lines.push('- Upcoming events:');
+    upcoming.forEach(e => {
+      const date = e.date || '';
+      const time = e.time || '';
+      const name = e.name || 'Untitled';
+      const dress = e.dress ? ` · ${e.dress}` : '';
+      const outfit = e.outfit ? ` · outfit set: ${e.outfit}` : ' · NO outfit set yet';
+      lines.push(`  · ${date} ${time} — ${name}${dress}${outfit}`);
+    });
+  }
+
+  // Recently captured pieces (last 14 days)
+  if (Array.isArray(state.recentItems) && state.recentItems.length){
+    const recent = state.recentItems.slice(0, 8);
+    lines.push('- Recently added to her wardrobe:');
+    recent.forEach(it => {
+      const name = it.name || 'Untitled';
+      const designer = it.designer ? ` by ${it.designer}` : '';
+      const cat = it.cat ? ` (${it.cat})` : '';
+      lines.push(`  · ${name}${designer}${cat}`);
+    });
+  }
+
+  // Active pick list — what's already queued for the next event
+  if (Array.isArray(state.pickList) && state.pickList.length){
+    lines.push('- Current pick list (queued for the wardrobe team):');
+    state.pickList.slice(0, 12).forEach(it => {
+      const name = it.name || 'Untitled';
+      const designer = it.designer ? ` by ${it.designer}` : '';
+      lines.push(`  · ${name}${designer}`);
+    });
+  }
+
+  // Counts
+  if (state.inventoryCount != null){
+    lines.push(`- Total wardrobe pieces currently catalogued: ${state.inventoryCount}.`);
+  }
+  if (state.unwornCount != null){
+    lines.push(`- ${state.unwornCount} pieces flagged unworn for 60+ days (rediscover candidates).`);
+  }
+
+  // Use this context when relevant — don't blindly recite it
+  lines.push('\nDo not list this context back at Madam unprompted. Reference it naturally only when it sharpens your answer.');
+  return lines.join('\n');
+}
+
 async function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   return await new Promise((resolve, reject) => {
@@ -215,12 +301,39 @@ module.exports = async function handler(req, res) {
   // sensible token budgets.
   messages = messages.slice(-40);
 
+  // Live context — the client passes the current date, Mumbai weather,
+  // upcoming events, recently-captured items, and the active pick list
+  // so Anaita can reference real data instead of replaying the static
+  // snippets baked into the system prompt. Composed once per request
+  // and injected as a second system message right before the rolling
+  // user/assistant transcript so it never gets cached.
+  const liveContext = _composeLiveContext(body && body.state);
+
+  // Light anti-repetition nudge: a short rotating directive each turn so
+  // Anaita varies her opener and avoids "Madam, …" twice in a row.
+  const TURN_NUDGES = [
+    'Vary your opener — do not start with the same word as your previous reply.',
+    'Avoid repeating any sentence from earlier in this conversation.',
+    'If you already named a piece, name a different one this turn.',
+    'Lead with the most specific actionable answer; cut throat-clearing.',
+    'If Madam is asking the same thing twice, acknowledge it briefly and pivot.'
+  ];
+  const turnNudge = TURN_NUDGES[Math.floor(Math.random() * TURN_NUDGES.length)];
+
+  const systemBlocks = [
+    { role: 'system', content: STYLIST_SYSTEM },
+    { role: 'system', content: liveContext },
+    { role: 'system', content: '## VARIATION DIRECTIVE FOR THIS TURN\n\n' + turnNudge }
+  ];
+
   const requestBody = {
     model: GROQ_MODEL,
-    messages: [{ role: 'system', content: STYLIST_SYSTEM }, ...messages],
+    messages: [...systemBlocks, ...messages],
     max_tokens: 512,
-    temperature: 0.7,
-    top_p: 0.9,
+    temperature: 0.88,         // was 0.7 — looser sampling for varied phrasing
+    top_p: 0.92,
+    presence_penalty: 0.35,    // discourage repeating tokens already in the context
+    frequency_penalty: 0.45,   // discourage stock phrases ("Madam, the maroon…")
     stream: false
   };
 
