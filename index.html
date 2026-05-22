@@ -1480,9 +1480,11 @@ body.tablet-view .bottom-nav{display:flex;}
 .look-pieces-head h3{font-family:var(--serif);font-weight:400;font-size:22px;color:var(--ivory);letter-spacing:-.01em;margin-bottom:4px;}
 .look-pieces-head h3 em{font-style:italic;color:var(--gold-bright);}
 .look-pieces-head .sub{font-size:11.5px;color:var(--latte);margin-top:2px;}
-.look-pieces-close{position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:50%;background:rgba(212,168,74,.1);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--gold-bright);transition:all .2s var(--ease);}
-.look-pieces-close:hover{background:rgba(212,168,74,.18);transform:rotate(90deg);}
-.look-pieces-close svg{width:13px;height:13px;}
+.look-pieces-close{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;background:rgba(212,168,74,.12);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--gold-bright);transition:all .2s var(--ease);z-index:5;}
+.look-pieces-close:hover{background:rgba(212,168,74,.22);transform:rotate(90deg);}
+/* pointer-events:none on the SVG so iPad taps land on the button itself
+   rather than getting swallowed by the icon child. */
+.look-pieces-close svg{width:13px;height:13px;pointer-events:none;}
 .look-pieces-list{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
 .look-piece-tile{display:flex;align-items:center;gap:14px;padding:10px 12px;background:rgba(28,18,12,.7);border:1px solid rgba(212,168,74,.18);border-radius:12px;cursor:pointer;transition:all .22s var(--ease);}
 .look-piece-tile:hover{border-color:rgba(245,212,119,.45);background:rgba(28,18,12,.95);transform:translateX(-2px);}
@@ -13737,10 +13739,26 @@ function closeLookPiecesModal(){
   document.getElementById('lookPiecesModal').classList.remove('show');
   _lookPiecesCurrentId = null;
 }
-document.getElementById('lookPiecesClose')?.addEventListener('click', closeLookPiecesModal);
-document.getElementById('lookPiecesCloseBtn')?.addEventListener('click', closeLookPiecesModal);
+// Delegated close handler — bound at document level so it survives any
+// re-render of the modal DOM and works even when the click lands on a
+// child SVG (which would otherwise swallow the tap on iPad Safari).
+document.addEventListener('click', (e) => {
+  if (e.target.closest && (
+        e.target.closest('#lookPiecesClose') ||
+        e.target.closest('#lookPiecesCloseBtn'))){
+    e.preventDefault();
+    e.stopPropagation();
+    closeLookPiecesModal();
+  }
+});
 document.getElementById('lookPiecesModal')?.addEventListener('click', (e)=>{
   if (e.target.id === 'lookPiecesModal') closeLookPiecesModal();
+});
+// Escape key also dismisses the modal
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const m = document.getElementById('lookPiecesModal');
+  if (m && m.classList.contains('show')) closeLookPiecesModal();
 });
 document.getElementById('lookPiecesEditBtn')?.addEventListener('click', ()=>{
   if (!_lookPiecesCurrentId) return;
