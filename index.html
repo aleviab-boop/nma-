@@ -8761,15 +8761,18 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 
       </section>
 
-      <section class="section">
+      <!-- Recently added — last 14 days, synced from Ops. Replaces the
+           old "Curated ensembles" placeholder so Madam sees what's
+           actually new in her wardrobe right at the top of home. -->
+      <section class="section recently-added" id="homeRecentlyAddedSection" style="display:none;">
         <div class="section-head">
           <div>
-            <span class="sub">AI Stylist · For Tomorrow</span>
-            <h3>Curated <em>ensembles</em></h3>
+            <span class="sub">Last 14 days · synced from Ops</span>
+            <h3>Recently <em>added</em></h3>
           </div>
-          <a class="section-link" data-go="wardrobe">View All 12 →</a>
+          <span class="recently-added-count" id="homeRecentlyAddedCount">—</span>
         </div>
-        <div class="outfit-grid" id="suggestionsGrid"></div>
+        <div class="wardrobe-grid recently-added-grid" id="homeRecentlyAddedGrid"></div>
       </section>
 
       <section class="section">
@@ -11626,20 +11629,30 @@ function renderGarment(item){
 }
 
 function paintRecentlyAdded(){
-  const grid = document.getElementById('recentlyAddedGrid');
-  const section = document.getElementById('recentlyAddedSection');
-  const counter = document.getElementById('recentlyAddedCount');
-  if (!grid || !section) return;
   const cutoff = Date.now() - 14*24*60*60*1000;
   const recent = INVENTORY.filter(i => i.addedAt && i.addedAt >= cutoff)
                           .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
-  if (recent.length === 0){
-    section.style.display = 'none';
-    return;
-  }
-  section.style.display = '';
-  counter.textContent = `${recent.length} new piece${recent.length===1?'':'s'}`;
-  grid.innerHTML = recent.map(renderGarment).join('');
+  const html = recent.map(renderGarment).join('');
+  // Paint into the two possible locations: the wardrobe-page strip
+  // (legacy, hidden for Madam via CSS) AND the home-page section
+  // (new — replaces the old "Curated ensembles" placeholder).
+  const targets = [
+    { grid:'recentlyAddedGrid',     section:'recentlyAddedSection',     counter:'recentlyAddedCount' },
+    { grid:'homeRecentlyAddedGrid', section:'homeRecentlyAddedSection', counter:'homeRecentlyAddedCount' },
+  ];
+  targets.forEach(t => {
+    const grid    = document.getElementById(t.grid);
+    const section = document.getElementById(t.section);
+    const counter = document.getElementById(t.counter);
+    if (!grid || !section) return;
+    if (recent.length === 0){
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+    if (counter) counter.textContent = `${recent.length} new piece${recent.length===1?'':'s'}`;
+    grid.innerHTML = html;
+  });
 }
 
 function paintGrid(gridId, items){
@@ -11649,6 +11662,7 @@ function paintGrid(gridId, items){
 
 function paintSuggestions(){
   const g = document.getElementById('suggestionsGrid');
+  if (!g) return;  // Curated Ensembles slot was swapped for Recently Added on home
   const picks = [{id:'M1001',tag:'Gala · Evening',score:97,meta:'6 pieces · Never worn'},{id:'M1002',tag:'Wedding · Festive',score:94,meta:'5 pieces · Heritage'},{id:'M1003',tag:'Cocktail',score:91,meta:'7 pieces · Rediscovered'}];
   g.innerHTML = picks.map(p=>{
     const it = INVENTORY.find(i=>i.id===p.id);
@@ -14928,6 +14942,9 @@ document.addEventListener('mouseup', (e)=>{
 function onEnterHome(){
   if(typeof runCounters==='function') runCounters();
   if(typeof _refreshMumbaiWeather==='function') _refreshMumbaiWeather();
+  // Paint the home Recently Added section so Madam sees what ops
+  // just captured the moment she lands on the page.
+  if(typeof paintRecentlyAdded==='function') paintRecentlyAdded();
 }
 
 /* ============================================================
