@@ -5882,17 +5882,63 @@ body.role-ops-dashboard .suggest-hero{
 .suggest-hero-pill{
   display:inline-flex;align-items:center;gap:10px;
   padding:10px 16px;border-radius:999px;
-  background:var(--ods-blue,#2563eb);color:#fff;
+  background:var(--ods-blue,#2563eb)!important;
+  color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;
   font-family:'Inter',-apple-system,sans-serif;font-size:13px;font-weight:600;
   box-shadow:0 6px 18px -6px rgba(37,99,235,.55),0 1px 2px rgba(15,23,42,.08);
   flex-shrink:0;
 }
+.suggest-hero-pill *{color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;}
 .suggest-hero-pill .dot{
   width:8px;height:8px;border-radius:50%;background:#fff;
   box-shadow:0 0 0 0 rgba(255,255,255,.6);
   animation:invPulse 2s ease-in-out infinite;
 }
 .suggest-hero-pill b{font-weight:700;}
+
+/* ============================================================
+   Universal "white text on blue background" enforcement for the
+   ops-dashboard. Any element painted with the brand blue should
+   read white — earlier slate-text rules sometimes overrode this
+   on descendants (the .suggest-hero-pill, sidebar active item,
+   blue primary buttons). Force the colour pair so every blue
+   surface stays legible.
+   ============================================================ */
+body.role-ops-dashboard .sidebar .nav-item.active,
+body.role-ops-dashboard .sidebar .nav-item.active *,
+body.role-ops-dashboard .sidebar-action.is-active,
+body.role-ops-dashboard .sidebar-action.is-active *,
+body.role-ops-dashboard .suggest-filter.active,
+body.role-ops-dashboard .suggest-filter.active *,
+body.role-ops-dashboard .sec-manage-btn,
+body.role-ops-dashboard .sec-manage-btn *,
+body.role-ops-dashboard .suggest-new-event-btn,
+body.role-ops-dashboard .suggest-new-event-btn *,
+body.role-ops-dashboard .task-add-btn,
+body.role-ops-dashboard .task-add-btn *,
+body.role-ops-dashboard .ops-live-inv-btn,
+body.role-ops-dashboard .ops-live-inv-btn *,
+body.role-ops-dashboard .lb-add-btn,
+body.role-ops-dashboard .lb-add-btn *,
+body.role-ops-dashboard .guest-save-btn,
+body.role-ops-dashboard .guest-save-btn *,
+body.role-ops-dashboard .gn-add-btn,
+body.role-ops-dashboard .gn-add-btn *,
+body.role-ops-dashboard .mp-btn-primary,
+body.role-ops-dashboard .mp-btn-primary *{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
+/* Stroke icons inside blue buttons → white too */
+body.role-ops-dashboard .sec-manage-btn svg,
+body.role-ops-dashboard .suggest-new-event-btn svg,
+body.role-ops-dashboard .task-add-btn svg,
+body.role-ops-dashboard .ops-live-inv-btn svg,
+body.role-ops-dashboard .lb-add-btn svg,
+body.role-ops-dashboard .guest-save-btn svg,
+body.role-ops-dashboard .gn-add-btn svg{
+  stroke:#ffffff!important;color:#ffffff!important;
+}
 
 /* Stats row — always 4 columns on desktop, stretches with viewport */
 .suggest-stats{
