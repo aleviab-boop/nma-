@@ -10587,7 +10587,10 @@ function rerenderInventoryViews(){
     const activeChip = document.querySelector('#filters .filter-chip.active');
     const filter = activeChip ? (activeChip.dataset.filter || 'all') : 'all';
     const searchInput = document.getElementById('globalSearch');
-    const q = (searchInput && searchInput.value) ? searchInput.value : '';
+    // Input value wins when the user is actively typing; otherwise fall
+    // back to state.wardrobeFilterQ so a cleared input doesn't blow
+    // away a result that came from an Enter-commit a moment earlier.
+    const q = (searchInput && searchInput.value) || state.wardrobeFilterQ || '';
     paintWardrobe(filter, q);
   }
   if (typeof paintRecentlyAdded === 'function') paintRecentlyAdded();
@@ -11196,6 +11199,11 @@ function paintRediscover(){
 
 function paintWardrobe(filter='all', q=''){
   let items = INVENTORY;
+  // Persist whatever the caller passed so a follow-up rerender (Realtime
+  // tick, poll, broadcast) can restore the same view even after the
+  // visible input has been cleared.
+  if (q != null && q !== '') state.wardrobeFilterQ = q;
+  else if (state.wardrobeFilterQ) q = state.wardrobeFilterQ;
   if(filter!=='all') items = items.filter(i=>i.cat===filter);
   if(q){
     q = q.toLowerCase().trim();
@@ -11250,9 +11258,13 @@ function applyWardrobeStatusFilter(status){
 }
 // Clear the status filter when the user taps any category filter chip —
 // otherwise it'd silently AND-combine with the chip and confuse them.
+// Same for the persisted search query: a chip click is a new intent.
 document.addEventListener('click', (e) => {
   if (e.target.closest('#filters .filter-chip')){
     state.wardrobeStatusFilter = null;
+    state.wardrobeFilterQ = '';
+    const inp = document.getElementById('globalSearch');
+    if (inp) inp.value = '';
   }
 }, true);
 
@@ -16243,15 +16255,22 @@ document.getElementById('globalSearch')?.addEventListener('input',(e)=>{
     _runSearchIntent(_resolveSearchIntent(q), { silent:true });
   }, 280);
 });
-// Enter commits the intent loudly (with toast confirmation).
+// Enter commits the intent loudly (with toast confirmation). After
+// the route fires we clear the visible text — the underlying filter
+// persists via state.wardrobeFilterQ so the result page survives any
+// subsequent Realtime tick. Blur collapses the iPad keyboard.
 document.getElementById('globalSearch')?.addEventListener('keydown',(e)=>{
   if (e.key !== 'Enter') return;
   e.preventDefault();
   const q = e.target.value;
   clearTimeout(_searchDebounce);
   _runSearchIntent(_resolveSearchIntent(q));
-  // Blur so the iPad keyboard collapses after the action lands
-  try { e.target.blur(); } catch(_){}
+  // Give the route a tick to land before wiping the input — otherwise
+  // the next live-input event would race with the clear.
+  setTimeout(() => {
+    if (e.target) e.target.value = '';
+    try { e.target.blur(); } catch(_){}
+  }, 50);
 });
 // Refresh the placeholder so the user sees what they can search for
 (() => {
