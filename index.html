@@ -14560,7 +14560,11 @@ function openLookPiecesModal(lookId){
       </button>
     `).join('')}</div>`;
 
-    list.innerHTML = collageHtml + cardsHtml;
+    // Collage hero at the top was duplicate with the piece grid below
+    // (same photos shown twice). Render only the piece grid; each tile
+    // has the slot pill overlay so the user still sees what role each
+    // photo plays without needing a separate hero panel.
+    list.innerHTML = cardsHtml;
     // Delegated click — handles both collage cells and grid cards
     list.addEventListener('click', _lookPiecesItemHandler, { once:false });
     // Explicit per-card binding (legacy + collage-cell handler doesn't catch these)
