@@ -14895,11 +14895,23 @@ function renderLookbook(){
       showToast('Loaded into Stylist — swap or remove pieces here');
     });
   });
-  // Whole-card click → view pieces modal (but ignore button clicks)
+  // Whole-card click → load the look into the Stylist for editing. The old
+  // "view pieces" popup was felt to be intrusive — the collage on the card
+  // already shows the full combination, so tapping the card now just opens
+  // the Stylist with everything pre-loaded (delete button still works via
+  // stopPropagation in the trash handler above).
   grid.querySelectorAll('.lb2-card').forEach(card=>{
     card.addEventListener('click',(e)=>{
       if(e.target.closest('button')) return;
-      openLookPiecesModal(card.dataset.lbId);
+      const id = card.dataset.lbId;
+      const look = LOOKS.find(l=>l.id===id)
+        || (typeof _eventSuggestionLooks === 'function' ? _eventSuggestionLooks().find(l=>l.id===id) : null);
+      if(!look || !look.items){ return; } // nothing to load — just no-op
+      state.builder = Object.assign({}, look.items);
+      if(typeof renderSlots === 'function') renderSlots();
+      if(typeof navigateTo === 'function') navigateTo('builder');
+      if(typeof showToast === 'function')
+        showToast('Loaded into Stylist — swap or remove pieces here');
     });
   });
 }
