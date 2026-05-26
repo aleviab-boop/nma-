@@ -1514,14 +1514,14 @@ body.tablet-view .bottom-nav{display:flex;}
 @media(max-width:480px){ .look-pieces-grid{grid-template-columns:1fr;} }
 .look-piece-tile{
   display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;
-  background:rgba(28,18,12,.7);border:1px solid rgba(212,168,74,.18);
+  background:transparent;border:none;
   border-radius:14px;cursor:pointer;transition:all .22s var(--ease);
   overflow:hidden;text-align:left;
 }
-.look-piece-tile:hover{border-color:rgba(245,212,119,.5);background:rgba(28,18,12,.95);transform:translateY(-2px);box-shadow:0 10px 26px -10px rgba(245,212,119,.25);}
+.look-piece-tile:hover{transform:translateY(-2px);box-shadow:0 10px 26px -10px rgba(245,212,119,.25);}
 .look-piece-tile .thumb{
-  position:relative;width:100%;aspect-ratio:4/3;
-  background:#0B0604;flex-shrink:0;border-radius:0;
+  position:relative;width:100%;aspect-ratio:3/4;
+  background:#0B0604;flex-shrink:0;border-radius:14px;
   overflow:hidden;
 }
 .look-piece-tile .thumb img,.look-piece-tile .thumb svg{width:100%;height:100%;object-fit:cover;display:block;}
@@ -1532,16 +1532,10 @@ body.tablet-view .bottom-nav{display:flex;}
   letter-spacing:.18em;text-transform:uppercase;padding:4px 8px;border-radius:999px;
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
-.look-piece-tile .info{padding:11px 13px 13px;}
-.look-piece-tile .info .name{
-  font-family:var(--serif);font-weight:400;font-size:14.5px;color:var(--ivory);
-  letter-spacing:-.005em;line-height:1.3;
-  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-}
-.look-piece-tile .info .designer{
-  font-family:var(--display);font-style:italic;font-size:12px;color:var(--champagne);
-  margin-top:4px;
-}
+/* Info card (name + designer) under each piece thumb is hidden — the popup
+   now shows pure photo + slot pill. Cleaner full-bleed look; the title at
+   the top of the popup still names the look as a whole. */
+.look-piece-tile .info{display:none!important;}
 .look-piece-tile .arrow{display:none;} /* legacy — hidden in the grid layout */
 .look-pieces-actions{display:flex;gap:10px;padding:14px 18px 18px;border-top:1px solid rgba(212,168,74,.14);flex-shrink:0;}
 .look-pieces-actions button{flex:1;padding:11px;border-radius:11px;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;cursor:pointer;border:1px solid rgba(212,168,74,.25);transition:all .25s var(--ease);}
