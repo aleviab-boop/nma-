@@ -11740,6 +11740,41 @@ const state = {
 };
 
 /* ============================================================
+   EVENT OUTFIT OVERRIDES — persistence for Madame's calendar picks
+   The hardcoded state.events array above is the source of truth on every
+   boot, so any mutation to ev.outfit / ev.outfitItemId would vanish on
+   reload. We mirror those mutations into localStorage keyed by event id
+   and re-apply on boot so confirmed outfits survive across sessions.
+   ============================================================ */
+const _EVENT_OUTFIT_KEY = 'maison.eventOutfits';
+function _loadEventOutfitOverrides(){
+  try { return JSON.parse(localStorage.getItem(_EVENT_OUTFIT_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function _saveEventOutfitOverride(eventId, outfit, outfitItemId){
+  if (eventId == null) return;
+  const map = _loadEventOutfitOverrides();
+  if (outfit == null && outfitItemId == null){
+    delete map[String(eventId)];
+  } else {
+    map[String(eventId)] = { outfit: outfit || null, outfitItemId: outfitItemId || null };
+  }
+  try { localStorage.setItem(_EVENT_OUTFIT_KEY, JSON.stringify(map)); } catch(_){}
+}
+// Boot-time rehydrate — overlay any persisted picks onto the hardcoded events.
+(function _applyEventOutfitOverrides(){
+  const map = _loadEventOutfitOverrides();
+  if (!map || !Object.keys(map).length) return;
+  for (const ev of state.events){
+    const ov = map[String(ev.id)];
+    if (ov){
+      if (ov.outfit != null) ev.outfit = ov.outfit;
+      if (ov.outfitItemId != null) ev.outfitItemId = ov.outfitItemId;
+    }
+  }
+})();
+
+/* ============================================================
    IMAGE RENDERER — uses real image with SVG fallback on error
    ============================================================ */
 // Explicit photo overrides — saves an extra failing request for items with known files
@@ -14361,12 +14396,17 @@ document.getElementById('madamePickConfirm')?.addEventListener('click', () => {
   if (typeof PICK_IDS !== 'undefined'){
     PICK_IDS.length = 0; pickIds.forEach(x => PICK_IDS.push(x));
   }
-  // 2) Mark the event with the chosen outfit
+  // 2) Mark the event with the chosen outfit — and persist the mutation
+  //    to localStorage so it survives a reload (state.events is hardcoded
+  //    at boot, so in-memory mutations vanish without this mirror).
   const ev = state.events.find(e => e.id === _madamePickEventId);
   const piece = INVENTORY.find(p => p.id === _madamePickSelected);
   if (ev && piece){
     ev.outfit = piece.name;
     ev.outfitItemId = piece.id;
+    if (typeof _saveEventOutfitOverride === 'function'){
+      _saveEventOutfitOverride(ev.id, piece.name, piece.id);
+    }
   }
   // 3) Refresh UIs
   if (typeof renderPickList === 'function') renderPickList();
@@ -14877,24 +14917,11 @@ function renderLookbook(){
       showToast('Removed from lookbook');
     });
   });
-  grid.querySelectorAll('[data-lb-qr]').forEach(btn=>{
-    btn.addEventListener('click',(e)=>{ e.stopPropagation(); openQrModal(btn.dataset.lbQr); });
-  });
-  grid.querySelectorAll('[data-lb-view]').forEach(btn=>{
-    btn.addEventListener('click',(e)=>{ e.stopPropagation(); openLookPiecesModal(btn.dataset.lbView); });
-  });
-  grid.querySelectorAll('[data-lb-recreate]').forEach(btn=>{
-    btn.addEventListener('click',(e)=>{
-      e.stopPropagation();
-      const id = btn.dataset.lbRecreate;
-      const look = LOOKS.find(l=>l.id===id);
-      if(!look || !look.items) { showToast('Nothing to load'); return; }
-      state.builder = Object.assign({}, look.items);
-      if(typeof renderSlots === 'function') renderSlots();
-      navigateTo('builder');
-      showToast('Loaded into Stylist — swap or remove pieces here');
-    });
-  });
+  // The QR / view / recreate icon-button handlers used to live here, but
+  // the new minimal lookbook card no longer renders those buttons — the
+  // whole card now loads the look into the Stylist (see card-click handler
+  // below). Removed the dead querySelector forEach loops so the wiring
+  // matches the rendered DOM 1:1.
   // Whole-card click → load the look into the Stylist for editing. The old
   // "view pieces" popup was felt to be intrusive — the collage on the card
   // already shows the full combination, so tapping the card now just opens
