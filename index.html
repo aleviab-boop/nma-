@@ -14144,8 +14144,6 @@ function openSuggestBuilder(eventId){
         <div class="slot-num">${i+1}</div>
         <div class="slot-body">
           <div class="suggest-picker">
-            <input type="text" class="suggest-picker-search" data-picker-search="${i}"
-                   placeholder="Search by name, designer, category, or ID…" />
             <div class="suggest-piece-grid" data-picker-grid="${i}">
               ${_renderPieceGrid(i, s.pieceId, '')}
             </div>
@@ -14191,16 +14189,10 @@ function openSuggestBuilder(eventId){
     });
   }
 
-  // Wire per-slot search input — re-renders just that slot's grid
-  slotsRoot.querySelectorAll('[data-picker-search]').forEach(inp => {
-    inp.addEventListener('input', (e) => {
-      const i = e.target.dataset.pickerSearch;
-      const slot = slotsRoot.querySelector(`[data-slot="${i}"]`);
-      const grid = slotsRoot.querySelector(`[data-picker-grid="${i}"]`);
-      if (!slot || !grid) return;
-      grid.innerHTML = _renderPieceGrid(i, slot.dataset.pieceId || '', e.target.value);
-    });
-  });
+  // Per-slot search input was removed — ops picks by tapping a thumbnail
+  // directly. _renderPieceGrid still accepts a search query parameter so
+  // any future re-introduction is a one-line change, but the input field
+  // and its `input` handler are gone.
   document.getElementById('suggestModal').classList.add('is-on');
 }
 function closeSuggestBuilder(){
