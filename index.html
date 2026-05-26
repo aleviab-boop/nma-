@@ -5219,6 +5219,21 @@ body:not(.role-ops-dashboard) #page-guests{display:none!important;}
 .guest-names-empty{
   padding:30px 26px;text-align:center;color:#64748b;font-size:13px;font-style:italic;
 }
+/* Repeat-attendee verdict banner inside the names popup. Three variants:
+   green "no matches", amber "N repeats flagged", blue "first list saved". */
+.guest-names-verdict{
+  display:flex;align-items:flex-start;gap:10px;
+  margin:0 24px 6px;padding:12px 14px;border-radius:10px;
+  font-size:13px;line-height:1.45;
+}
+.guest-names-verdict svg{flex-shrink:0;margin-top:2px;}
+.guest-names-verdict b{font-weight:700;}
+.guest-names-verdict.is-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;}
+.guest-names-verdict.is-ok b{color:#14532d;}
+.guest-names-verdict.is-warn{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;}
+.guest-names-verdict.is-warn b{color:#7c2d12;}
+.guest-names-verdict.is-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;}
+.guest-names-verdict.is-info b{color:#1e3a8a;}
 /* Tighten the guests hero in line with the rest of ops-dashboard so it
    matches Requests / Suggestions paddings. */
 body.role-ops-dashboard #page-guests > .hero{padding:24px 28px 16px!important;}
@@ -7152,6 +7167,31 @@ html body.role-ops-dashboard #page-wardrobe .outfit-grid{
 html body.role-ops-dashboard #page-wardrobe .garment-visual,
 html body.role-ops-dashboard #page-wardrobe .outfit-visual{
   aspect-ratio:1/1.15!important;   /* less tall = less zoom feel */
+  /* Light surface behind the contained photo — the inherited cinnamon
+     (var(--chai)) made the card look dark and bled into the slate
+     captions below. */
+  background:linear-gradient(180deg,#f8fafc 0%,#eef2f6 100%)!important;
+}
+html body.role-ops-dashboard #page-wardrobe .garment,
+html body.role-ops-dashboard #page-wardrobe .outfit-card{
+  background:#ffffff!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 22px -12px rgba(15,23,42,.10)!important;
+}
+html body.role-ops-dashboard #page-wardrobe .garment-info,
+html body.role-ops-dashboard #page-wardrobe .outfit-body{
+  background:#ffffff!important;
+}
+html body.role-ops-dashboard #page-wardrobe .garment-info h5,
+html body.role-ops-dashboard #page-wardrobe .outfit-body h4,
+html body.role-ops-dashboard #page-wardrobe .garment-info > *,
+html body.role-ops-dashboard #page-wardrobe .outfit-body > *{
+  color:var(--ods-text,#0f172a)!important;
+  -webkit-text-fill-color:var(--ods-text,#0f172a)!important;
+}
+html body.role-ops-dashboard #page-wardrobe .garment-info .designer,
+html body.role-ops-dashboard #page-wardrobe .outfit-body .meta{
+  color:#475569!important;-webkit-text-fill-color:#475569!important;
 }
 html body.role-ops-dashboard #page-wardrobe .garment-info,
 html body.role-ops-dashboard #page-wardrobe .outfit-body{
@@ -13210,10 +13250,26 @@ function initGuestListsPage(){
     if (typeof logAudit === 'function'){
       try { logAudit('event', `Guest list uploaded — ${evName}`, `${names.length} guests · ${analyzeGuestRepeats(entry.guests, lists, entry.id).totalRepeats} repeat`); } catch(_){}
     }
-    if (typeof showToast === 'function') showToast(`Saved ${names.length} guests`);
+    // Loud toast that surfaces the repeat-attendee verdict immediately —
+    // user reported the inline form message was too quiet to notice.
+    const _r = analyzeGuestRepeats(entry.guests, lists, entry.id);
+    if (typeof showToast === 'function'){
+      showToast(_r.totalRepeats > 0
+        ? `Saved ${names.length} guests · ${_r.totalRepeats} repeat${_r.totalRepeats === 1 ? '' : 's'} flagged`
+        : `Saved ${names.length} guests · No matches with previous lists`);
+    }
     // Pop up the full extracted-names list so ops can visually verify
     // OCR output (and spot any garbage to delete + re-save).
     try { openGuestNamesPopup({ listId: entry.id }); } catch(_){}
+    // Scroll the analysis panel into view a beat after the popup opens
+    // (popup auto-closes if user dismisses; either way the panel below
+    // the form should be visible without manual scrolling).
+    setTimeout(() => {
+      const panel = document.getElementById('guestAnalysis');
+      if (panel && panel.style.display !== 'none'){
+        panel.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+    }, 360);
     // Reset form so they can do another
     if (txt) txt.value = '';
     if (outfitEl) outfitEl.value = '';
@@ -13329,6 +13385,38 @@ function openGuestNamesPopup(args){
       repeatSet.size ? ` · ${repeatSet.size} also at previous event${repeatSet.size === 1 ? '' : 's'}` : ''
     }`;
   }
+  // Prominent verdict banner — appears between the header and the names
+  // grid so ops sees the repeat-attendee outcome at a glance. Removed and
+  // re-inserted each open so it always reflects the current data.
+  (function _renderRepeatBanner(){
+    const card = document.querySelector('.guest-names-card');
+    if (!card) return;
+    const old = card.querySelector('#guestNamesVerdict');
+    if (old) old.remove();
+    if (!(list.guests || []).length) return;
+    const allLists = _loadGuestLists();
+    const otherLists = allLists.filter(l => l && l.id !== list.id);
+    const banner = document.createElement('div');
+    banner.id = 'guestNamesVerdict';
+    if (otherLists.length === 0){
+      banner.className = 'guest-names-verdict is-info';
+      banner.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span><b>First list saved.</b> No previous guest lists to cross-check against yet.</span>`;
+    } else if (repeatSet.size === 0){
+      banner.className = 'guest-names-verdict is-ok';
+      banner.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12l5 5 9-11"/></svg>
+        <span><b>No matches found.</b> Fresh crowd — none of these guests appear in your ${otherLists.length} previous list${otherLists.length === 1 ? '' : 's'}.</span>`;
+    } else {
+      banner.className = 'guest-names-verdict is-warn';
+      banner.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        <span><b>${repeatSet.size} repeat attendee${repeatSet.size === 1 ? '' : 's'} flagged</b> — highlighted in amber below. Check the analysis panel on the page for outfit history.</span>`;
+    }
+    // Insert right after the search row so it sits between the header and
+    // the names grid
+    const searchRow = card.querySelector('.guest-names-search-row');
+    if (searchRow && searchRow.parentNode) searchRow.parentNode.insertBefore(banner, searchRow.nextSibling);
+    else card.insertBefore(banner, card.firstChild);
+  })();
 
   function _escAttr(s){ return String(s || '').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
@@ -15274,9 +15362,20 @@ function updateCountdown(){
    EVENT LISTENERS
    ============================================================ */
 
-// Nav
-document.querySelectorAll('.nav-item').forEach(item=>{
-  item.addEventListener('click',()=>navigateTo(item.dataset.page));
+// Nav — delegated so dynamically-injected sidebar items (Wardrobe Layout,
+// Event Suggestions, Guest Lists) also route correctly, AND so we never
+// double-fire the boot-time `forEach` handler alongside a per-item one
+// (which was stripping the active class right after the click handler
+// applied it for items like Wardrobe Layout).
+document.addEventListener('click', (e) => {
+  const item = e.target.closest('.sidebar .nav-item');
+  if (!item) return;
+  // Items with data-action (open-wlayout) handle themselves — skip the
+  // navigateTo path so we don't navigate-to-undefined and clear actives.
+  if (item.dataset.action) return;
+  const page = item.dataset.page;
+  if (!page) return;
+  navigateTo(page);
 });
 
 // data-go
