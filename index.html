@@ -11583,8 +11583,29 @@ async function initSupabaseLive(){
           try { await refreshEventSuggestionsFromServer(); }
           catch (e){ console.warn('[supabase] events live refresh failed', e); }
         })
+    // Audit log — pushes ops-side activity (intake captures, status changes,
+    // event-outfit confirmations) to Madame's and other ops devices in real
+    // time so the bell badge updates without a page refresh. Previously the
+    // audit feed was admin-only; this brings parity to the main app.
+    .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'audit_log' },
+        (payload) => {
+          try {
+            const row = (payload && payload.new) || {};
+            if (typeof _addLocalNotification === 'function'){
+              _addLocalNotification({
+                id: 'audit-' + (row.id || Date.now()),
+                kind: row.kind || 'audit',
+                name: row.what || 'Activity update',
+                designer: row.details || '',
+                photo: null,
+                addedAt: Date.now()
+              });
+            }
+          } catch (e){ console.warn('[supabase] audit live push failed', e); }
+        })
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') console.info('[supabase] realtime: items + events channels live');
+      if (status === 'SUBSCRIBED') console.info('[supabase] realtime: items + events + audit_log channels live');
     });
 
   return _supabaseClient;

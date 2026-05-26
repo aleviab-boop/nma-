@@ -2023,10 +2023,14 @@ function paintInventoryPage(){
       if (typeof window.PHOTO_MAP === 'object' && window.PHOTO_MAP && window.PHOTO_MAP[it.id]){
         chain.push(window.PHOTO_MAP[it.id]);
       }
-      // 4. Auto-detect /img/<id>.{ext} on disk — leading slash so the path
+      // 4. Auto-detect /img/<id>.png on disk — leading slash so the path
       //    resolves to site root (/img/…) not admin-scoped (/admin/img/…).
-      chain.push(`/img/${it.id}.png`, `/img/${it.id}.jpg`, `/img/${it.id}.jpeg`, `/img/${it.id}.webp`);
-      // 5. Per-category template (also rooted)
+      //    Only .png is attempted — the other extensions almost never exist
+      //    and each failed attempt cost a 404 + console error per item.
+      chain.push(`/img/${it.id}.png`);
+      // 5. Per-category template (also rooted) — covers baseline M001-M047
+      //    that have no direct /img/<id>.png on disk. With only one per-id
+      //    attempt above, baseline items now hit this template fast.
       const tmpl = _catTemplate(it);
       if (tmpl) chain.push(tmpl);
       // Dedupe consecutive duplicates and any falsy entries
@@ -2131,7 +2135,13 @@ function openInvDetail(item){
     if (item.capturedPhoto) sources.push(item.capturedPhoto);
     if (item.photo) sources.push(item.photo);
     if (window.PHOTO_MAP && window.PHOTO_MAP[item.id]) sources.push(window.PHOTO_MAP[item.id]);
-    sources.push(`/img/${item.id}.png`, `/img/${item.id}.jpg`, `/img/${item.id}.jpeg`, `/img/${item.id}.webp`);
+    sources.push(`/img/${item.id}.png`);
+    // Per-category template fallback so baseline items (M001-M047) render
+    // a representative photo instead of leaving the placeholder visible.
+    if (typeof _catTemplate === 'function'){
+      const tmpl = _catTemplate(item);
+      if (tmpl) sources.push(tmpl);
+    }
     let idx = 0;
     img.src = sources[0] || '';
     img.onerror = () => {

@@ -140,6 +140,22 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // Touch the parent items row so anyone subscribed to the `items` table
+  // (e.g. the Madame / Ops main app, which only listens to that channel)
+  // gets a Realtime UPDATE event and refreshes its photo cascade. Without
+  // this bump, only consumers subscribed to `item_photos` see the new
+  // primary photo until their next manual fetch.
+  // Failures here are non-fatal — the photo row is already committed and
+  // a periodic refresh will pick it up. We just swallow + log.
+  try {
+    await supabaseAdmin
+      .from('items')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', item_id);
+  } catch (e) {
+    console.warn('[upload-photo] parent items touch failed:', e && e.message);
+  }
+
   return res.status(200).json({
     success: true,
     photo: {
