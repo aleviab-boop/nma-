@@ -5903,37 +5903,63 @@ body.role-ops-dashboard .ops-stat .num{font-size:42px;}
    flat sidebar-driven layout. */
 body.role-ops-dashboard .back-btn{display:none!important;}
 
-/* Requests page (Pick List) — give the hero a proper full-width
-   ops-dashboard header. The default 40/40/20 inline padding on the
-   .hero element rendered the title at a clamped small size and the
-   gold colour didn't match the light theme. */
-body.role-ops-dashboard #page-requests > .hero{
-  padding:32px 40px 22px!important;
+/* Requests page (Pick List) — Ops Dashboard light theme override.
+   The new .req-hero markup uses pulsing pill + two-line title + meta
+   chips. For Ops we flatten that back to a single-line Inter title in
+   black with a blue accent on the italic word — no gradient, no pulsing
+   pill, no meta chips. Plain, scannable, on-brand with the rest of the
+   ops surfaces. */
+body.role-ops-dashboard #page-requests > .hero,
+body.role-ops-dashboard #page-requests > .req-hero{
+  padding:24px 40px 18px!important;
   background:var(--ods-card,#ffffff)!important;
   border-bottom:1px solid var(--ods-line,#cbd5e1)!important;
   width:100%;box-sizing:border-box;
-  display:flex;flex-direction:column;gap:6px;
 }
-body.role-ops-dashboard #page-requests > .hero .hero-label{
+body.role-ops-dashboard #page-requests > .req-hero::before{display:none!important;}
+body.role-ops-dashboard #page-requests .req-hero-inner{gap:8px!important;max-width:none!important;}
+body.role-ops-dashboard #page-requests .req-hero-eyebrow{
+  background:transparent!important;border:none!important;padding:0!important;
   font-family:'Inter',-apple-system,sans-serif!important;
   font-size:11px!important;font-weight:600!important;
   letter-spacing:.14em!important;text-transform:uppercase!important;
-  color:var(--ods-blue,#2563eb)!important;-webkit-text-fill-color:var(--ods-blue,#2563eb)!important;
+  color:var(--ods-blue,#2563eb)!important;
+  gap:6px!important;
 }
-body.role-ops-dashboard #page-requests > .hero .hero-title{
+body.role-ops-dashboard #page-requests .req-pulse{display:none!important;}
+body.role-ops-dashboard #page-requests .req-eyebrow-id{color:var(--ods-text,#0f172a)!important;}
+body.role-ops-dashboard #page-requests .req-hero-title{
+  display:block!important;flex-direction:row!important;
   font-family:'Inter',-apple-system,sans-serif!important;
-  font-size:34px!important;font-weight:700!important;
-  letter-spacing:-.02em!important;
-  color:var(--ods-text,#0f172a)!important;-webkit-text-fill-color:var(--ods-text,#0f172a)!important;
-  background:none!important;background-image:none!important;
-  margin:0!important;line-height:1.15!important;
+  font-size:30px!important;font-weight:700!important;
+  letter-spacing:-.02em!important;line-height:1.15!important;
+  color:var(--ods-text,#0f172a)!important;
+  margin:0!important;white-space:nowrap;
 }
-body.role-ops-dashboard #page-requests > .hero .hero-title em{
+body.role-ops-dashboard #page-requests .req-hero-line{
+  display:inline!important;
+}
+body.role-ops-dashboard #page-requests .req-hero-line + .req-hero-line::before{
+  content:" ";white-space:pre;
+}
+body.role-ops-dashboard #page-requests .req-hero-title em{
   font-family:'Inter',-apple-system,sans-serif!important;
   font-style:normal!important;font-weight:700!important;
   color:var(--ods-blue,#2563eb)!important;-webkit-text-fill-color:var(--ods-blue,#2563eb)!important;
   background:none!important;background-image:none!important;
+  padding:0!important;
 }
+/* Meta chips (ETA / Wardrobe team) — keep them but reskin to ops light theme */
+body.role-ops-dashboard #page-requests .req-hero-meta{margin-top:6px!important;}
+body.role-ops-dashboard #page-requests .req-meta-chip{
+  background:var(--ods-bg,#f1f5f9)!important;
+  border:1px solid var(--ods-line,#e2e8f0)!important;
+  color:var(--ods-text,#0f172a)!important;
+  font-family:'Inter',-apple-system,sans-serif!important;
+  font-size:12px!important;
+}
+body.role-ops-dashboard #page-requests .req-meta-chip svg{stroke:var(--ods-blue,#2563eb)!important;}
+body.role-ops-dashboard #page-requests .req-meta-chip strong{color:var(--ods-blue,#2563eb)!important;}
 body.role-ops-dashboard #page-requests .section{padding:24px 40px 40px;width:100%;box-sizing:border-box;}
 /* =============================================================
    Pick List card — light theme override for ops-dashboard.
@@ -14299,94 +14325,13 @@ function openMadamePicker(eventId){
        3. most recently saved
      and cap at 6 so the picker doesn't sprawl. Each card opens the
      pieces popup so she can confirm the full look. */
-  const looksRoot = document.getElementById('madamePickLooks');
+  // "From your lookbook" section is intentionally not rendered — the
+  // picker should only show the ops-curated 3 options for this event.
+  // The DOM hook (#madamePickLooksWrap) is kept hidden so the markup
+  // can be turned back on without re-introducing it from scratch.
   const looksWrap = document.getElementById('madamePickLooksWrap');
-  const looksHint = document.getElementById('madamePickLooksHint');
-  if (looksRoot && looksWrap){
-    const allLooks = (Array.isArray(LOOKS) ? LOOKS.slice() : [])
-      .concat(typeof _eventSuggestionLooks === 'function' ? _eventSuggestionLooks() : []);
-    const evNameLower = (ev.name || '').toLowerCase();
-    const evTypeLower = (ev.type || '').toLowerCase();
-    const scored = allLooks.map(l => {
-      const tag = (l.tag || '').toLowerCase();
-      const name = (l.name || '').toLowerCase();
-      let score = 0;
-      if (l._eventId && String(l._eventId) === String(eventId)) score += 100; // pinned to this event
-      if (tag && evNameLower && (tag.includes(evNameLower) || evNameLower.includes(tag))) score += 50;
-      if (name && evNameLower && name.includes(evNameLower)) score += 25;
-      if (evTypeLower && (tag.includes(evTypeLower) || name.includes(evTypeLower))) score += 10;
-      score += Math.min(5, (l.addedAt ? (Date.now() - l.addedAt) < 7*24*60*60*1000 ? 5 : 0 : 0));
-      return { look: l, score };
-    });
-    scored.sort((a,b) => (b.score - a.score) || ((b.look.addedAt||0) - (a.look.addedAt||0)));
-    const top = scored.slice(0, 6).map(s => s.look).filter(l => l && (l.items || l.photo));
+  if (looksWrap) looksWrap.style.display = 'none';
 
-    if (!top.length){
-      looksWrap.style.display = 'none';
-    } else {
-      looksWrap.style.display = '';
-      looksHint.textContent = scored[0].score >= 25
-        ? 'Suggested for this event'
-        : 'Your most recent saved ensembles';
-      looksRoot.innerHTML = top.map(l => {
-        const items = l.items || {};
-        const slotOrder = ['main','jewelry','bag','shoe','dupatta','accent'];
-        const tiles = slotOrder.map(s => items[s] ? INVENTORY.find(i => i.id === items[s]) : null).filter(Boolean);
-        let collageHtml;
-        if (tiles.length <= 1){
-          const single = tiles[0];
-          collageHtml = `<div class="lb2-collage lb2-collage-1">
-            <div class="lb2-collage-cell">${single ? itemImage(single) :
-              (l.photo ? `<img src="${l.photo}" alt=""/>` : `<img src="${svgFallback(l.c1||'#3A2A20', l.c2||'#1A0E08', l.cat||'gown')}" alt=""/>`)}</div>
-          </div>`;
-        } else if (tiles.length === 2){
-          collageHtml = `<div class="lb2-collage lb2-collage-2">
-            <div class="lb2-collage-cell">${itemImage(tiles[0])}</div>
-            <div class="lb2-collage-cell">${itemImage(tiles[1])}</div>
-          </div>`;
-        } else if (tiles.length === 3){
-          collageHtml = `<div class="lb2-collage lb2-collage-3">
-            <div class="lb2-collage-cell lb2-collage-main">${itemImage(tiles[0])}</div>
-            <div class="lb2-collage-cell">${itemImage(tiles[1])}</div>
-            <div class="lb2-collage-cell">${itemImage(tiles[2])}</div>
-          </div>`;
-        } else {
-          const vis = tiles.slice(0,4);
-          const extra = tiles.length - 4;
-          collageHtml = `<div class="lb2-collage lb2-collage-4">${vis.map((t,i)=>{
-            const isLast = i===3 && extra>0;
-            return `<div class="lb2-collage-cell ${isLast?'is-more':''}">${itemImage(t)}${isLast?`<span class="lb2-collage-more-badge">+${extra}</span>`:''}</div>`;
-          }).join('')}</div>`;
-        }
-        const tag = (l.tag || 'Saved Look').replace(/</g,'&lt;');
-        const name = (l.name || 'Untitled look').replace(/</g,'&lt;');
-        const mainId = items.main || (tiles[0] && tiles[0].id) || '';
-        const pieceCount = tiles.length || 1;
-        return `<button class="mpl-look" type="button" data-look-id="${(l.id||'').replace(/"/g,'&quot;')}" data-main-id="${(mainId||'').replace(/"/g,'&quot;')}">
-          <div class="mpl-thumb">
-            ${collageHtml}
-            <span class="mpl-count">${pieceCount} piece${pieceCount===1?'':'s'}</span>
-          </div>
-          <div class="mpl-info">
-            <h5>${name}</h5>
-            <span class="mpl-tag">${tag}</span>
-          </div>
-        </button>`;
-      }).join('');
-      looksRoot.querySelectorAll('.mpl-look').forEach(card => {
-        card.addEventListener('click', () => {
-          const mainId = card.dataset.mainId;
-          if (!mainId) return;
-          // Clear ops-suggestion selection so only one source is active
-          optionsRoot.querySelectorAll('.mp-option').forEach(x => x.classList.remove('is-selected'));
-          looksRoot.querySelectorAll('.mpl-look').forEach(x => x.classList.remove('is-selected'));
-          card.classList.add('is-selected');
-          _madamePickSelected = mainId;
-          confirmBtn.disabled = false;
-        });
-      });
-    }
-  }
   document.getElementById('madamePickModal').classList.add('is-on');
 }
 function closeMadamePicker(){
