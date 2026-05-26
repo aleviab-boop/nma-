@@ -11974,8 +11974,20 @@ function renderGarment(item){
 
 function paintRecentlyAdded(){
   const cutoff = Date.now() - 14*24*60*60*1000;
-  const recent = INVENTORY.filter(i => i.addedAt && i.addedAt >= cutoff)
-                          .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
+  // Dedupe by id — Realtime ticks + baseline merges can leave the same
+  // item in INVENTORY twice, which surfaced as a duplicate card in the
+  // Recently Added strip on Madame's home page. Keep the most recently
+  // added copy when duplicates occur.
+  const seenIds = new Set();
+  const recent = INVENTORY
+    .filter(i => i.addedAt && i.addedAt >= cutoff)
+    .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0))
+    .filter(i => {
+      const key = i.id || i.sku || `${i.name}|${i.designer}`;
+      if (seenIds.has(key)) return false;
+      seenIds.add(key);
+      return true;
+    });
   const html = recent.map(renderGarment).join('');
   // Paint into the two possible locations: the wardrobe-page strip
   // (legacy, hidden for Madam via CSS) AND the home-page section
