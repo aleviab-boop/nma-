@@ -239,6 +239,207 @@ Major collections:
 Now respond to Madam.""".strip()
 
 
+# ----------------------------------------------------------------------------
+# Vertex AI VTO — local mirror of api/virtual-tryon.js
+# Re-implements the Imagen 3 VTO call in Python so VTO works in `python3
+# dev_server.py` exactly as it does on the Vercel deployment. Uses RS256
+# signing via openssl subprocess (no third-party libs needed).
+# ----------------------------------------------------------------------------
+import base64
+import subprocess
+
+_GCP_TOKEN_CACHE = {"token": None, "expires_at": 0.0}
+
+
+def _b64url(b):
+    """URL-safe base64 without padding (matches JWT spec)."""
+    if isinstance(b, str):
+        b = b.encode("utf-8")
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode("ascii")
+
+
+def _gcp_access_token():
+    """Mint a Google OAuth access token from the service account JSON in
+    GCP_SERVICE_ACCOUNT_KEY. Caches for ~55 min."""
+    now = time.time()
+    if _GCP_TOKEN_CACHE["token"] and _GCP_TOKEN_CACHE["expires_at"] - 60 > now:
+        return _GCP_TOKEN_CACHE["token"]
+
+    raw = os.environ.get("GCP_SERVICE_ACCOUNT_KEY", "").strip()
+    if not raw:
+        raise RuntimeError("VTO_NOT_CONFIGURED")
+    try:
+        creds = json.loads(raw)
+    except Exception as exc:
+        raise RuntimeError(f"GCP_SERVICE_ACCOUNT_KEY is not valid JSON: {exc}") from exc
+
+    header = {"alg": "RS256", "typ": "JWT"}
+    payload = {
+        "iss": creds["client_email"],
+        "scope": "https://www.googleapis.com/auth/cloud-platform",
+        "aud": "https://oauth2.googleapis.com/token",
+        "iat": int(now),
+        "exp": int(now) + 3600,
+    }
+    signing_input = (
+        _b64url(json.dumps(header, separators=(",", ":")))
+        + "."
+        + _b64url(json.dumps(payload, separators=(",", ":")))
+    )
+    # Sign via `openssl dgst -sha256 -sign <keyfile>` — available on every
+    # macOS / Linux box. Avoids `pip install cryptography` for dev use.
+    pk = creds["private_key"]
+    try:
+        proc = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", "/dev/stdin", "-binary"],
+            input=signing_input.encode("utf-8") + b"\n",  # input fed via stdin
+            capture_output=True,
+            check=False,
+        )
+        # openssl can't accept BOTH key on stdin AND data on stdin — fall back
+        # to a temp keyfile for portability.
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"openssl not found: {exc}") from exc
+
+    # Reliable approach: write the private key to a temp file, then sign.
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False) as keyf:
+        keyf.write(pk)
+        key_path = keyf.name
+    try:
+        proc = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", key_path, "-binary"],
+            input=signing_input.encode("utf-8"),
+            capture_output=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"openssl signing failed: {proc.stderr.decode('utf-8','ignore')[:200]}"
+            )
+        signature = proc.stdout
+    finally:
+        try:
+            os.unlink(key_path)
+        except OSError:
+            pass
+
+    jwt = signing_input + "." + _b64url(signature)
+
+    body = urllib.parse.urlencode(
+        {
+            "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "assertion": jwt,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=body,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            tok = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "ignore") if hasattr(exc, "read") else ""
+        raise RuntimeError(f"GCP token exchange failed: {exc.code} {detail[:200]}") from exc
+
+    _GCP_TOKEN_CACHE["token"] = tok["access_token"]
+    _GCP_TOKEN_CACHE["expires_at"] = now + tok.get("expires_in", 3300)
+    return _GCP_TOKEN_CACHE["token"]
+
+
+def call_vertex_vto(person_b64, garment_b64, *, mime_type="image/jpeg", base_steps=100):
+    """POST to Vertex AI's virtual-try-on-001 endpoint and return the result
+    dict shaped like the Vercel function: {success, image, mimeType} on
+    success, or {success:false, error, ...} on failure."""
+    if not os.environ.get("GCP_SERVICE_ACCOUNT_KEY", "").strip():
+        return {"success": False, "demo": True, "error": "VTO_NOT_CONFIGURED"}
+
+    project_id = os.environ.get("GCP_PROJECT_ID", "fynd-jio-impetus-non-prod")
+    region = os.environ.get("GCP_REGION", "us-central1")
+    model_id = os.environ.get("GCP_VTO_MODEL", "virtual-try-on-001")
+
+    try:
+        token = _gcp_access_token()
+    except Exception as exc:
+        return {"success": False, "error": "AUTH_FAILED", "detail": str(exc)[:300]}
+
+    endpoint = (
+        f"https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}"
+        f"/locations/{region}/publishers/google/models/{model_id}:predict"
+    )
+    body = {
+        "instances": [
+            {
+                "personImage": {"image": {"bytesBase64Encoded": person_b64}},
+                "productImages": [
+                    {"image": {"bytesBase64Encoded": garment_b64}}
+                ],
+            }
+        ],
+        "parameters": {
+            "sampleCount": 1,
+            "baseSteps": base_steps,
+            "personGeneration": "allow_adult",
+            "safetySetting": "block_medium_and_above",
+            "outputOptions": {
+                "mimeType": "image/png" if mime_type == "image/png" else "image/jpeg"
+            },
+        },
+    }
+    req = urllib.request.Request(
+        endpoint,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", "ignore")
+        except Exception:
+            pass
+        return {
+            "success": False,
+            "error": "VERTEX_ERROR",
+            "status": exc.code,
+            "detail": detail[:500],
+        }
+    except urllib.error.URLError as exc:
+        return {"success": False, "error": "UPSTREAM_NETWORK", "detail": str(exc.reason)}
+
+    preds = data.get("predictions") or []
+    if not preds:
+        return {
+            "success": False,
+            "error": "NO_IMAGE_IN_RESPONSE",
+            "raw": json.dumps(data)[:500],
+        }
+    pred = preds[0]
+    img_b64 = pred.get("bytesBase64Encoded") or (
+        (pred.get("image") or {}).get("bytesBase64Encoded")
+    )
+    if not img_b64:
+        return {
+            "success": False,
+            "error": "NO_IMAGE_IN_RESPONSE",
+            "raw": json.dumps(data)[:500],
+        }
+    return {
+        "success": True,
+        "image": img_b64,
+        "mimeType": body["parameters"]["outputOptions"]["mimeType"],
+    }
+
+
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 # Best quality on the free tier — strong instruction following, ~75th-percentile
 # style sense. Swap to "llama-3.1-8b-instant" if you need lower latency or hit
@@ -357,13 +558,15 @@ class MaisonHandler(SimpleHTTPRequestHandler):
         self.send_response(204)
         self.end_headers()
 
-    # ----- POST /api/stylist  OR  POST /api/state ---------------------------
+    # ----- POST /api/stylist OR /api/state OR /api/virtual-tryon ------------
     def do_POST(self):
         if self.path == "/api/stylist":
             return self._handle_stylist_post()
         # /api/state accepts POST (append/upsert by id)
         if self.path.split("?")[0] == "/api/state":
             return self._handle_state_post()
+        if self.path.split("?")[0] == "/api/virtual-tryon":
+            return self._handle_vto_post()
         self.send_error(404, "Not found")
 
     # ----- GET — only /api/state is handled here; static falls through ------
@@ -514,6 +717,29 @@ class MaisonHandler(SimpleHTTPRequestHandler):
             state["version"] = int(time.time() * 1000)
             _save_state(state)
         self._send_json(200, {"success": True, "count": len(new_arr)})
+
+    # ========================================================================
+    # /api/virtual-tryon — local mirror of api/virtual-tryon.js
+    # ========================================================================
+    def _handle_vto_post(self):
+        try:
+            body = self._read_json_body()
+        except ValueError:
+            return self._send_json(400, {"success": False, "error": "INVALID_JSON"})
+        person_b64 = body.get("personImageBase64")
+        garment_b64 = body.get("garmentImageBase64")
+        mime_type = body.get("mimeType") or "image/jpeg"
+        base_steps = body.get("baseSteps") or 100
+        if not person_b64 or not garment_b64:
+            return self._send_json(400, {"success": False, "error": "MISSING_IMAGES"})
+        result = call_vertex_vto(
+            person_b64, garment_b64, mime_type=mime_type, base_steps=base_steps
+        )
+        # Match the client expectation: 200 even when demo:true so it falls
+        # through to the canvas composite gracefully. 500 only for hard auth
+        # / config errors we want surfaced.
+        status = 200 if result.get("success") or result.get("demo") else 500
+        self._send_json(status, result)
 
     # ------------------------------------------------------------------------
     def _send_json(self, status, body):

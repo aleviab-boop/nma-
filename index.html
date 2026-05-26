@@ -1474,12 +1474,13 @@ body.tablet-view .bottom-nav{display:flex;}
 /* Look-pieces modal — shown when clicking "View pieces" on a saved look */
 .look-pieces-modal{position:fixed;inset:0;z-index:2700;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
 .look-pieces-modal.show{display:flex;animation:fadeIn .3s var(--ease-out);}
-.look-pieces-card{position:relative;width:100%;max-width:480px;max-height:88vh;background:linear-gradient(160deg,#1C120C,#0B0604);border:1px solid rgba(212,168,74,.35);border-radius:18px;box-shadow:inset 0 0 0 1px rgba(212,168,74,.12),0 30px 70px rgba(0,0,0,.7);overflow:hidden;display:flex;flex-direction:column;animation:gateRise .35s var(--ease-out);}
-.look-pieces-head{padding:22px 24px 14px;border-bottom:1px solid rgba(212,168,74,.16);position:relative;flex-shrink:0;}
-.look-pieces-tag{font-family:var(--mono);font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:6px;}
-.look-pieces-head h3{font-family:var(--serif);font-weight:400;font-size:22px;color:var(--ivory);letter-spacing:-.01em;margin-bottom:4px;}
-.look-pieces-head h3 em{font-style:italic;color:var(--gold-bright);}
-.look-pieces-head .sub{font-size:11.5px;color:var(--latte);margin-top:2px;}
+.look-pieces-card{position:relative;width:100%;max-width:560px;max-height:90vh;background:linear-gradient(160deg,#1C120C,#0B0604);border:1px solid rgba(212,168,74,.35);border-radius:20px;box-shadow:inset 0 0 0 1px rgba(212,168,74,.12),0 30px 70px rgba(0,0,0,.7);overflow:hidden;display:flex;flex-direction:column;animation:gateRise .35s var(--ease-out);}
+.look-pieces-head{padding:24px 26px 18px;border-bottom:1px solid rgba(212,168,74,.16);position:relative;flex-shrink:0;}
+.look-pieces-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:8px;padding:5px 10px;border:1px solid rgba(245,212,119,.22);border-radius:999px;background:rgba(245,212,119,.06);}
+.look-pieces-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 8px rgba(245,212,119,.6);}
+.look-pieces-head h3{font-family:var(--serif);font-weight:300;font-size:26px;color:var(--ivory);letter-spacing:-.015em;margin-bottom:6px;line-height:1.2;}
+.look-pieces-head h3 em{font-style:italic;color:var(--gold-bright);font-family:var(--display);display:inline-block;padding-right:.14em;}
+.look-pieces-head .sub{font-size:12px;color:var(--latte);margin-top:2px;font-family:var(--display);font-style:italic;}
 /* Collage hero inside the "Pieces in this look" popup — sits at the
    top of the list so the user sees the full combination before the
    per-piece detail rows. Cells re-use the same .lb2-collage grammar
@@ -1502,17 +1503,46 @@ body.tablet-view .bottom-nav{display:flex;}
 /* pointer-events:none on the SVG so iPad taps land on the button itself
    rather than getting swallowed by the icon child. */
 .look-pieces-close svg{width:13px;height:13px;pointer-events:none;}
-.look-pieces-list{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
-.look-piece-tile{display:flex;align-items:center;gap:14px;padding:10px 12px;background:rgba(28,18,12,.7);border:1px solid rgba(212,168,74,.18);border-radius:12px;cursor:pointer;transition:all .22s var(--ease);}
-.look-piece-tile:hover{border-color:rgba(245,212,119,.45);background:rgba(28,18,12,.95);transform:translateX(-2px);}
-.look-piece-tile .thumb{width:54px;height:68px;border-radius:8px;overflow:hidden;background:#0B0604;flex-shrink:0;border:1px solid rgba(212,168,74,.15);}
-.look-piece-tile .thumb img{width:100%;height:100%;object-fit:cover;}
-.look-piece-tile .info{flex:1;min-width:0;}
-.look-piece-tile .info .slot{font-family:var(--mono);font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:3px;}
-.look-piece-tile .info .name{font-family:var(--serif);font-weight:500;font-size:14px;color:var(--ivory);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.look-piece-tile .info .designer{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--pearl);text-transform:uppercase;margin-top:2px;}
-.look-piece-tile .arrow{color:rgba(245,212,119,.55);font-size:18px;flex-shrink:0;transition:transform .2s var(--ease);}
-.look-piece-tile:hover .arrow{transform:translateX(3px);color:var(--gold-bright);}
+.look-pieces-list{flex:1;overflow-y:auto;padding:18px 20px 6px;display:flex;flex-direction:column;gap:14px;}
+
+/* Cleaner piece cards — replaces the older mono "OUTFIT / JEWELLERY" row.
+   Slot info now lives as a small badge in the corner of the photo (subtle)
+   rather than a shouting all-caps label above the name. */
+.look-pieces-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+@media(max-width:480px){ .look-pieces-grid{grid-template-columns:1fr;} }
+.look-piece-tile{
+  display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;
+  background:rgba(28,18,12,.7);border:1px solid rgba(212,168,74,.18);
+  border-radius:14px;cursor:pointer;transition:all .22s var(--ease);
+  overflow:hidden;text-align:left;
+}
+.look-piece-tile:hover{border-color:rgba(245,212,119,.5);background:rgba(28,18,12,.95);transform:translateY(-2px);box-shadow:0 10px 26px -10px rgba(245,212,119,.25);}
+.look-piece-tile .thumb{
+  position:relative;width:100%;aspect-ratio:4/3;
+  background:#0B0604;flex-shrink:0;border-radius:0;
+  overflow:hidden;
+}
+.look-piece-tile .thumb img,.look-piece-tile .thumb svg{width:100%;height:100%;object-fit:cover;display:block;}
+.look-piece-tile .slot-pill{
+  position:absolute;top:8px;left:8px;
+  background:rgba(20,12,8,.82);border:1px solid rgba(245,212,119,.32);
+  color:var(--gold-bright);font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.18em;text-transform:uppercase;padding:4px 8px;border-radius:999px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.look-piece-tile .info{padding:11px 13px 13px;}
+.look-piece-tile .info .name{
+  font-family:var(--serif);font-weight:400;font-size:14.5px;color:var(--ivory);
+  letter-spacing:-.005em;line-height:1.3;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.look-piece-tile .info .designer{
+  font-family:var(--display);font-style:italic;font-size:12px;color:var(--champagne);
+  margin-top:4px;
+}
+.look-piece-tile .arrow{display:none;} /* legacy — hidden in the grid layout */
 .look-pieces-actions{display:flex;gap:10px;padding:14px 18px 18px;border-top:1px solid rgba(212,168,74,.14);flex-shrink:0;}
 .look-pieces-actions button{flex:1;padding:11px;border-radius:11px;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;cursor:pointer;border:1px solid rgba(212,168,74,.25);transition:all .25s var(--ease);}
 .look-pieces-actions .ghost{background:rgba(212,168,74,.08);color:var(--ivory);}
@@ -5271,6 +5301,74 @@ body.role-madame .event-pill .ring{width:30px;height:30px;}
 body.role-madame .hero-marquee{display:none!important;}
 body.role-madame .hero-runway{display:none!important;}
 
+/* ============ Requests page hero — NMA side ============ */
+.req-hero{
+  position:relative;
+  padding:clamp(28px,5vh,56px) clamp(24px,4vw,56px) clamp(20px,3.5vh,40px);
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(245,212,119,.08) 0%, transparent 55%),
+    radial-gradient(80% 80% at 100% 0%, rgba(212,168,74,.05) 0%, transparent 60%);
+  border-bottom:1px solid rgba(245,212,119,.16);
+  overflow:hidden;
+}
+.req-hero::before{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent 0,rgba(245,212,119,.5) 30%,rgba(245,212,119,.5) 70%,transparent 100%);
+}
+.req-hero-inner{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
+.req-hero-eyebrow{
+  display:inline-flex;align-items:center;gap:10px;align-self:flex-start;
+  padding:7px 14px 7px 12px;
+  background:rgba(20,12,8,.55);border:1px solid rgba(245,212,119,.22);border-radius:999px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-bright);
+}
+.req-pulse{
+  width:8px;height:8px;border-radius:50%;background:var(--gold-bright);
+  box-shadow:0 0 0 0 rgba(245,212,119,.7);animation:reqPulse 1.8s ease-out infinite;
+}
+@keyframes reqPulse{
+  0%{box-shadow:0 0 0 0 rgba(245,212,119,.55);}
+  70%{box-shadow:0 0 0 10px rgba(245,212,119,0);}
+  100%{box-shadow:0 0 0 0 rgba(245,212,119,0);}
+}
+.req-eyebrow-dot{opacity:.55;}
+.req-eyebrow-id{color:var(--champagne);letter-spacing:.18em;}
+.req-hero-title{
+  font-family:var(--serif);
+  font-weight:300;
+  font-size:clamp(38px,5.6vw,68px);
+  line-height:1.04;
+  letter-spacing:-.025em;
+  color:var(--ivory);
+  margin:0;
+  display:flex;flex-direction:column;gap:2px;
+}
+.req-hero-title .req-hero-line{display:block;}
+.req-hero-title em{
+  font-family:var(--display);
+  font-style:italic;
+  font-weight:400;
+  color:var(--gold-bright);
+  background:linear-gradient(135deg, var(--gold-bright) 0%, #F8D77B 45%, var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  /* italic-glyph clip fix (ascender on the j tail) */
+  display:inline-block;
+  padding-right:.16em;
+}
+.req-hero-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+.req-meta-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 14px;
+  background:rgba(20,12,8,.55);border:1px solid rgba(245,212,119,.2);border-radius:999px;
+  color:var(--pearl);font-size:12px;font-family:var(--sans);letter-spacing:.01em;
+}
+.req-meta-chip svg{stroke:var(--gold-bright);flex-shrink:0;}
+.req-meta-chip strong{color:var(--ivory);font-weight:600;}
+@media (max-width:720px){
+  .req-hero-title{font-size:clamp(32px,9vw,48px);}
+  .req-hero{padding:24px 22px 18px;}
+}
+
 /* Calm hero — kill all animated wave/orb/petal layers on the Madame home page */
 body.role-madame .page#page-home .hero-ambient,
 body.role-madame .page#page-home .petals,
@@ -6884,6 +6982,28 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 .madame-pick-empty svg{stroke:var(--gold-bright);opacity:.6;margin-bottom:10px;}
 .madame-pick-empty h3{font-family:var(--serif);font-weight:400;font-size:18px;color:var(--ivory);margin-bottom:6px;}
 .madame-pick-empty p{font-size:13px;line-height:1.5;}
+
+/* Saved lookbooks block inside the Madame picker. Sits below the ops 3-pick
+   suggestions so Madam can also choose any saved look she's tagged for the
+   event (or any recent saved look as a fallback). */
+.madame-pick-looks-wrap{margin-top:22px;padding-top:18px;border-top:1px solid rgba(245,212,119,.14);}
+.madame-pick-looks-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:10px;flex-wrap:wrap;}
+.mpl-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-bright);}
+.mpl-hint{font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--pearl);}
+.madame-pick-looks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media (max-width:720px){ .madame-pick-looks{grid-template-columns:1fr;} }
+.mpl-look{
+  background:rgba(20,12,8,.55);border:1px solid rgba(245,212,119,.18);border-radius:12px;overflow:hidden;
+  cursor:pointer;transition:all .25s ease;text-align:left;display:block;font-family:inherit;color:inherit;padding:0;
+}
+.mpl-look:hover{border-color:rgba(245,212,119,.5);transform:translateY(-2px);box-shadow:0 10px 24px -10px rgba(245,212,119,.22);}
+.mpl-look.is-selected{border-color:var(--gold-bright);box-shadow:0 0 0 3px rgba(245,212,119,.22),0 14px 30px -8px rgba(245,212,119,.32);}
+.mpl-look .mpl-thumb{width:100%;aspect-ratio:4/3;background:rgba(0,0,0,.5);position:relative;overflow:hidden;}
+.mpl-look .mpl-thumb .lb2-collage{position:absolute;inset:0;width:100%;height:100%;}
+.mpl-look .mpl-count{position:absolute;left:8px;bottom:8px;background:rgba(20,12,8,.78);border:1px solid rgba(245,212,119,.35);color:var(--ivory);font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;padding:4px 8px;border-radius:999px;}
+.mpl-look .mpl-info{padding:9px 11px 11px;}
+.mpl-look .mpl-info h5{font-family:var(--serif);font-weight:400;font-size:13px;color:var(--ivory);margin:0 0 3px;line-height:1.25;letter-spacing:-.005em;}
+.mpl-look .mpl-info .mpl-tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-bright);}
 
 .madame-pick-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(245,212,119,.12);}
 .mp-btn-secondary{padding:11px 18px;background:rgba(20,12,8,.65);border:1px solid rgba(245,212,119,.22);border-radius:999px;color:var(--pearl);font-size:12.5px;font-weight:500;cursor:pointer;transition:all .2s;font-family:inherit;}
@@ -9136,9 +9256,29 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 
     <!-- REQUESTS -->
     <div class="page" id="page-requests">
-      <section class="hero" style="padding:40px 40px 20px;">
-        <div class="hero-label">Live Request · #R-1847</div>
-        <h1 class="hero-title" style="font-size:clamp(32px,4vw,52px);">Your outfit is <em>on its way</em>.</h1>
+      <section class="hero req-hero">
+        <div class="req-hero-inner">
+          <div class="req-hero-eyebrow">
+            <span class="req-pulse"></span>
+            <span>Live Request</span>
+            <span class="req-eyebrow-dot">·</span>
+            <span class="req-eyebrow-id">#R-1847</span>
+          </div>
+          <h1 class="req-hero-title">
+            <span class="req-hero-line">Your outfit</span>
+            <span class="req-hero-line">is <em>on its way</em>.</span>
+          </h1>
+          <div class="req-hero-meta">
+            <div class="req-meta-chip">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <span>ETA <strong>17 min</strong></span>
+            </div>
+            <div class="req-meta-chip">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18M5 7v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+              <span>Wardrobe team <strong>preparing</strong></span>
+            </div>
+          </div>
+        </div>
       </section>
       <section class="section">
         <div style="background:var(--surface);border-radius:16px;border:1px solid var(--line);padding:28px;box-shadow:inset 0 0 0 1px rgba(212,168,74,.14),0 12px 36px rgba(0,0,0,.5);">
@@ -9410,6 +9550,14 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
           <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
           <h3>No suggestions yet</h3>
           <p>The ops team hasn't curated outfits for this event yet. Check back soon — or chat with Anaita for instant ideas.</p>
+        </div>
+        <!-- Saved lookbooks for this event — appears below the ops 3-pick suggestions. -->
+        <div class="madame-pick-looks-wrap" id="madamePickLooksWrap" style="display:none;">
+          <div class="madame-pick-looks-head">
+            <span class="mpl-eyebrow">From your lookbook</span>
+            <span class="mpl-hint" id="madamePickLooksHint">Saved ensembles tagged for this event</span>
+          </div>
+          <div class="madame-pick-looks" id="madamePickLooks"></div>
         </div>
         <div class="madame-pick-foot">
           <button class="mp-btn-secondary" id="madamePickSkip">Maybe later</button>
@@ -9947,7 +10095,7 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
   <div class="look-pieces-card">
     <button class="look-pieces-close" id="lookPiecesClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="look-pieces-head">
-      <div class="look-pieces-tag">Pieces in this look</div>
+      <div class="look-pieces-tag">Curated ensemble</div>
       <h3 id="lookPiecesTitle">Saved <em>look</em></h3>
       <div class="sub" id="lookPiecesSub"></div>
     </div>
@@ -12626,12 +12774,21 @@ async function _setSuggestionsFor(eventId, items){
 
 // Fetch the latest event suggestions map from Supabase. Called on app boot
 // and whenever Realtime fires an events table change.
+//
+// IMPORTANT: hardcoded numeric event IDs (1-22, see state.events at top of
+// file) never sync to Supabase — only UUID-shaped event IDs do. So we must
+// MERGE the server response into the local cache rather than replacing it,
+// otherwise every refresh wipes out the ops-curated 3-outfit picks that
+// Madame is supposed to see in her calendar across sessions.
 async function refreshEventSuggestionsFromServer(){
   try {
     const r = await fetch('/api/events', { cache: 'no-store' });
     const j = await r.json();
     if (!j || !j.success) return;
-    const map = {};
+    // Start from the existing local cache so local-only (numeric ID)
+    // suggestions survive — then overlay anything the server has for
+    // UUID events (which is the source of truth for cross-device sync).
+    const map = Object.assign({}, _EVENT_SUGGESTIONS_CACHE || {});
     (j.events || []).forEach(e => {
       if (Array.isArray(e.suggestions) && e.suggestions.length){
         map[e.id] = e.suggestions;
@@ -14010,11 +14167,110 @@ function openMadamePicker(eventId){
     optionsRoot.querySelectorAll('.mp-option').forEach(opt => {
       opt.addEventListener('click', () => {
         optionsRoot.querySelectorAll('.mp-option').forEach(x => x.classList.remove('is-selected'));
+        // Also clear any lookbook selection so only one source wins at a time
+        const looksRoot = document.getElementById('madamePickLooks');
+        looksRoot?.querySelectorAll('.mpl-look').forEach(x => x.classList.remove('is-selected'));
         opt.classList.add('is-selected');
         _madamePickSelected = opt.dataset.pickPiece;
         confirmBtn.disabled = false;
       });
     });
+  }
+
+  /* Saved lookbooks for this event — Madame's own saved ensembles plus any
+     ops-curated multi-piece looks. We rank by:
+       1. exact tag match on the event name
+       2. tag containing the event's type keyword (gala, casual, etc.)
+       3. most recently saved
+     and cap at 6 so the picker doesn't sprawl. Each card opens the
+     pieces popup so she can confirm the full look. */
+  const looksRoot = document.getElementById('madamePickLooks');
+  const looksWrap = document.getElementById('madamePickLooksWrap');
+  const looksHint = document.getElementById('madamePickLooksHint');
+  if (looksRoot && looksWrap){
+    const allLooks = (Array.isArray(LOOKS) ? LOOKS.slice() : [])
+      .concat(typeof _eventSuggestionLooks === 'function' ? _eventSuggestionLooks() : []);
+    const evNameLower = (ev.name || '').toLowerCase();
+    const evTypeLower = (ev.type || '').toLowerCase();
+    const scored = allLooks.map(l => {
+      const tag = (l.tag || '').toLowerCase();
+      const name = (l.name || '').toLowerCase();
+      let score = 0;
+      if (l._eventId && String(l._eventId) === String(eventId)) score += 100; // pinned to this event
+      if (tag && evNameLower && (tag.includes(evNameLower) || evNameLower.includes(tag))) score += 50;
+      if (name && evNameLower && name.includes(evNameLower)) score += 25;
+      if (evTypeLower && (tag.includes(evTypeLower) || name.includes(evTypeLower))) score += 10;
+      score += Math.min(5, (l.addedAt ? (Date.now() - l.addedAt) < 7*24*60*60*1000 ? 5 : 0 : 0));
+      return { look: l, score };
+    });
+    scored.sort((a,b) => (b.score - a.score) || ((b.look.addedAt||0) - (a.look.addedAt||0)));
+    const top = scored.slice(0, 6).map(s => s.look).filter(l => l && (l.items || l.photo));
+
+    if (!top.length){
+      looksWrap.style.display = 'none';
+    } else {
+      looksWrap.style.display = '';
+      looksHint.textContent = scored[0].score >= 25
+        ? 'Suggested for this event'
+        : 'Your most recent saved ensembles';
+      looksRoot.innerHTML = top.map(l => {
+        const items = l.items || {};
+        const slotOrder = ['main','jewelry','bag','shoe','dupatta','accent'];
+        const tiles = slotOrder.map(s => items[s] ? INVENTORY.find(i => i.id === items[s]) : null).filter(Boolean);
+        let collageHtml;
+        if (tiles.length <= 1){
+          const single = tiles[0];
+          collageHtml = `<div class="lb2-collage lb2-collage-1">
+            <div class="lb2-collage-cell">${single ? itemImage(single) :
+              (l.photo ? `<img src="${l.photo}" alt=""/>` : `<img src="${svgFallback(l.c1||'#3A2A20', l.c2||'#1A0E08', l.cat||'gown')}" alt=""/>`)}</div>
+          </div>`;
+        } else if (tiles.length === 2){
+          collageHtml = `<div class="lb2-collage lb2-collage-2">
+            <div class="lb2-collage-cell">${itemImage(tiles[0])}</div>
+            <div class="lb2-collage-cell">${itemImage(tiles[1])}</div>
+          </div>`;
+        } else if (tiles.length === 3){
+          collageHtml = `<div class="lb2-collage lb2-collage-3">
+            <div class="lb2-collage-cell lb2-collage-main">${itemImage(tiles[0])}</div>
+            <div class="lb2-collage-cell">${itemImage(tiles[1])}</div>
+            <div class="lb2-collage-cell">${itemImage(tiles[2])}</div>
+          </div>`;
+        } else {
+          const vis = tiles.slice(0,4);
+          const extra = tiles.length - 4;
+          collageHtml = `<div class="lb2-collage lb2-collage-4">${vis.map((t,i)=>{
+            const isLast = i===3 && extra>0;
+            return `<div class="lb2-collage-cell ${isLast?'is-more':''}">${itemImage(t)}${isLast?`<span class="lb2-collage-more-badge">+${extra}</span>`:''}</div>`;
+          }).join('')}</div>`;
+        }
+        const tag = (l.tag || 'Saved Look').replace(/</g,'&lt;');
+        const name = (l.name || 'Untitled look').replace(/</g,'&lt;');
+        const mainId = items.main || (tiles[0] && tiles[0].id) || '';
+        const pieceCount = tiles.length || 1;
+        return `<button class="mpl-look" type="button" data-look-id="${(l.id||'').replace(/"/g,'&quot;')}" data-main-id="${(mainId||'').replace(/"/g,'&quot;')}">
+          <div class="mpl-thumb">
+            ${collageHtml}
+            <span class="mpl-count">${pieceCount} piece${pieceCount===1?'':'s'}</span>
+          </div>
+          <div class="mpl-info">
+            <h5>${name}</h5>
+            <span class="mpl-tag">${tag}</span>
+          </div>
+        </button>`;
+      }).join('');
+      looksRoot.querySelectorAll('.mpl-look').forEach(card => {
+        card.addEventListener('click', () => {
+          const mainId = card.dataset.mainId;
+          if (!mainId) return;
+          // Clear ops-suggestion selection so only one source is active
+          optionsRoot.querySelectorAll('.mp-option').forEach(x => x.classList.remove('is-selected'));
+          looksRoot.querySelectorAll('.mpl-look').forEach(x => x.classList.remove('is-selected'));
+          card.classList.add('is-selected');
+          _madamePickSelected = mainId;
+          confirmBtn.disabled = false;
+        });
+      });
+    }
   }
   document.getElementById('madamePickModal').classList.add('is-on');
 }
@@ -14162,16 +14418,30 @@ function openLookPiecesModal(lookId){
   const items = look.items || {};
   // Same slot priority order the lookbook collage uses
   const slotOrder = ['main','jewelry','bag','shoe','dupatta','accent'];
-  const SLOT_LABEL = {main:'Outfit', jewelry:'Jewellery', bag:'Bag', shoe:'Shoes', dupatta:'Dupatta', accent:'Accent'};
+  const SLOT_LABEL = {main:'Main', jewelry:'Jewellery', bag:'Bag', shoe:'Shoes', dupatta:'Dupatta', accent:'Accent'};
   const tiles = slotOrder
     .map(slot => items[slot] ? { slot, item: INVENTORY.find(i => i.id === items[slot]) } : null)
     .filter(x => x && x.item);
 
-  document.getElementById('lookPiecesTitle').innerHTML = look.name
-    ? `${look.name.replace(/<[^>]*>/g,'')}`
-    : 'Saved <em>look</em>';
-  document.getElementById('lookPiecesSub').textContent =
-    `${tiles.length} piece${tiles.length===1?'':'s'} · tap any item to view details`;
+  // Cleaner title: just the look's name, no fallback word salad. If the
+  // look has no name, show the designer of the lead piece, or an elegant
+  // italic fallback.
+  const titleEl = document.getElementById('lookPiecesTitle');
+  if (look.name){
+    titleEl.textContent = look.name;
+  } else if (tiles[0] && tiles[0].item){
+    titleEl.innerHTML = `${tiles[0].item.name} <em>ensemble</em>`;
+  } else {
+    titleEl.innerHTML = 'Saved <em>look</em>';
+  }
+  const subEl = document.getElementById('lookPiecesSub');
+  const designerSet = new Set(tiles.map(t => t.item.designer).filter(Boolean));
+  const designerLine = designerSet.size === 1
+    ? `by ${[...designerSet][0]}`
+    : designerSet.size > 1
+      ? `${designerSet.size} designers · curated together`
+      : '';
+  subEl.textContent = `${tiles.length} piece${tiles.length===1?'':'s'}${designerLine ? ' · ' + designerLine : ''}`;
 
   const list = document.getElementById('lookPiecesList');
   if (tiles.length === 0){
@@ -14201,23 +14471,27 @@ function openLookPiecesModal(lookId){
       <div class="look-pieces-collage-wrap">
         <div class="lb2-collage ${collageClass} look-pieces-collage">${collageCells}</div>
       </div>`;
-    // The detail-row list stays below the collage so the user can read
-    // each piece's slot label / designer at a glance.
-    const rowsHtml = tiles.map(({slot, item}) => `
-      <div class="look-piece-tile" data-item-id="${escAttr(item.id)}">
-        <div class="thumb">${itemImage(item)}</div>
+
+    // Cleaner grid of piece cards — photo + name + designer. Slot label is
+    // a subtle pill in the corner of the photo, not a shouting mono header.
+    const cardsHtml = `<div class="look-pieces-grid">${
+      tiles.map(({slot, item}) => `
+      <button class="look-piece-tile" data-item-id="${escAttr(item.id)}" type="button">
+        <div class="thumb">
+          ${itemImage(item)}
+          <span class="slot-pill">${SLOT_LABEL[slot] || slot}</span>
+        </div>
         <div class="info">
-          <div class="slot">${SLOT_LABEL[slot] || slot}</div>
           <div class="name">${item.name}</div>
           <div class="designer">${item.designer || ''}</div>
         </div>
-        <div class="arrow">›</div>
-      </div>
-    `).join('');
-    list.innerHTML = collageHtml + rowsHtml;
-    // Delegated click — handles both collage cells and row tiles
+      </button>
+    `).join('')}</div>`;
+
+    list.innerHTML = collageHtml + cardsHtml;
+    // Delegated click — handles both collage cells and grid cards
     list.addEventListener('click', _lookPiecesItemHandler, { once:false });
-    // Replace any prior bindings cleanly by also wiring per-tile (legacy)
+    // Explicit per-card binding (legacy + collage-cell handler doesn't catch these)
     list.querySelectorAll('.look-piece-tile').forEach(tile => {
       tile.addEventListener('click', () => {
         const id = tile.dataset.itemId;
@@ -14337,26 +14611,76 @@ function _eventSuggestionLooks(){
   const events = (typeof state !== 'undefined' && Array.isArray(state.events)) ? state.events : [];
   const eventById = Object.fromEntries(events.map(e => [String(e.id), e]));
   const looks = [];
+
+  // Slot inference — figure out which builder slot a piece belongs in so we
+  // can show the 3-piece ops suggestion as a proper multi-piece collage
+  // (main / jewelry / bag / shoe) instead of three single-image cards.
+  function inferSlot(piece){
+    const cat = String(piece.cat || piece.category || '').toLowerCase();
+    if (/(neckl|earring|jewel|jhumka|maang|kundan|necklace|ear|jewelry|jewellery)/.test(cat)) return 'jewelry';
+    if (/(clutch|bag|purse|tote)/.test(cat)) return 'bag';
+    if (/(shoe|heel|footwear|sandal|juti|pump|flat)/.test(cat)) return 'shoe';
+    if (/(dupatta|stole|shawl|scarf)/.test(cat)) return 'dupatta';
+    if (/(belt|brooch|pin|accent|tikka|bindi)/.test(cat)) return 'accent';
+    return 'main';
+  }
+
+  // Normalise pieceIds entries — historically each entry could be either a
+  // raw piece id or an object {pieceId, note} (see openMadamePicker reader).
+  function pieceIdOf(entry){
+    if (!entry) return null;
+    if (typeof entry === 'string') return entry;
+    if (typeof entry === 'object') return entry.pieceId || entry.id || null;
+    return null;
+  }
+
   for (const eventId in map){
-    const pieceIds = Array.isArray(map[eventId]) ? map[eventId] : [];
-    if (!pieceIds.length) continue;
+    const rawEntries = Array.isArray(map[eventId]) ? map[eventId] : [];
+    if (!rawEntries.length) continue;
     const ev = eventById[eventId];
-    pieceIds.forEach((pid, i) => {
+
+    // Collect resolved pieces in the order ops chose them, then slot them.
+    const resolved = [];
+    rawEntries.forEach(entry => {
+      const pid = pieceIdOf(entry);
+      if (!pid) return;
       const piece = INVENTORY.find(x => x.id === pid);
-      if (!piece) return;
-      looks.push({
-        id: `evt-${eventId}-${pid}`,
-        name: piece.name + (ev ? ' · for ' + ev.name : ''),
-        items: { main: pid },
-        designer: piece.designer,
-        cat: piece.cat,
-        c1: piece.c1, c2: piece.c2,
-        tag: ev ? ev.name : 'Ops Suggestion',
-        year: ev && ev.eventDate ? new Date(ev.eventDate + 'T00:00:00').toLocaleDateString('en-GB',{ month:'short', year:'numeric' }) : '',
-        addedAt: Date.now() - i * 1000,
-        _eventId: eventId,
-        _sourceTag: 'ops'
-      });
+      if (piece) resolved.push(piece);
+    });
+    if (!resolved.length) continue;
+
+    // First piece is always the main. Subsequent pieces fall into their
+    // inferred slot — and if two pieces share a slot, later ones cascade
+    // into the next available slot so the collage always shows all 3.
+    const items = {};
+    const slotOrder = ['main','jewelry','bag','shoe','dupatta','accent'];
+    let firstUsed = false;
+    resolved.forEach(p => {
+      let slot;
+      if (!firstUsed){ slot = 'main'; firstUsed = true; }
+      else {
+        slot = inferSlot(p);
+        if (slot === 'main' || items[slot]){
+          // Find next free slot
+          slot = slotOrder.find(s => !items[s]) || slot;
+        }
+      }
+      if (!items[slot]) items[slot] = p.id;
+    });
+
+    const mainPiece = resolved[0];
+    looks.push({
+      id: `evt-${eventId}`,
+      name: ev ? `For ${ev.name}` : `${mainPiece.name} ensemble`,
+      items,
+      designer: mainPiece.designer,
+      cat: mainPiece.cat,
+      c1: mainPiece.c1, c2: mainPiece.c2,
+      tag: ev ? ev.name : 'Ops Suggestion',
+      year: ev && ev.date ? new Date(ev.date + 'T00:00:00').toLocaleDateString('en-GB',{ month:'short', year:'numeric' }) : '',
+      addedAt: ev && ev.date ? new Date(ev.date + 'T00:00:00').getTime() : Date.now(),
+      _eventId: eventId,
+      _sourceTag: 'ops'
     });
   }
   return looks;
