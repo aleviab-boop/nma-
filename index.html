@@ -10193,10 +10193,8 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
     </div>
     <div class="look-pieces-list" id="lookPiecesList"></div>
     <div class="look-pieces-actions">
-      <!-- View-only popup — the Edit combination button was removed so
-           the popup never routes to the Stylist. Tapping any piece card
-           in the list above opens that item's detail modal. -->
-      <button class="ghost" id="lookPiecesCloseBtn" type="button" style="flex:1;">Close</button>
+      <button class="ghost" id="lookPiecesCloseBtn" type="button">Close</button>
+      <button class="primary" id="lookPiecesEditBtn" type="button">Edit combination →</button>
     </div>
   </div>
 </div>
@@ -14617,7 +14615,12 @@ document.addEventListener('keydown', (e) => {
 });
 document.getElementById('lookPiecesEditBtn')?.addEventListener('click', ()=>{
   if (!_lookPiecesCurrentId) return;
-  const look = LOOKS.find(l => l.id === _lookPiecesCurrentId);
+  // Resolve against LOOKS first; fall back to virtual ops-suggestion
+  // looks so the Edit button works on event-suggestion cards too.
+  let look = LOOKS.find(l => l.id === _lookPiecesCurrentId);
+  if (!look && typeof _eventSuggestionLooks === 'function'){
+    look = _eventSuggestionLooks().find(l => l.id === _lookPiecesCurrentId);
+  }
   if (!look || !look.items){ closeLookPiecesModal(); return; }
   state.builder = Object.assign({}, look.items);
   if (typeof renderSlots === 'function') renderSlots();
