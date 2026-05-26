@@ -1630,8 +1630,13 @@ body.role-ops-mobile .notif-panel{width:100%;}
    black surface so the transition reads as a clean fade, not a colour
    wash. Animation is also stripped since the cross-page swipe handles
    its own visual movement. */
-body.role-madame .page-veil{left:0!important;background:#0B0604!important;}
-body.role-madame .page-veil.sweep{animation:none!important;}
+/* The gold/cinnamon page-veil sweep flashed half-yellow / half-black
+   during page transitions for every role (the veil starts at left:220
+   to skip the desktop sidebar). It's a holdover from an older boutique
+   transition. Disable it universally — modern swipe / fade between
+   pages is enough. */
+.page-veil{display:none!important;}
+.page-veil.sweep{display:none!important;animation:none!important;}
 @keyframes veilSweep{
   0%{transform:translateY(100%);opacity:0;}
   35%{transform:translateY(0);opacity:.55;}
