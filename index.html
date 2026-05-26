@@ -10194,8 +10194,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
     </div>
     <div class="look-pieces-list" id="lookPiecesList"></div>
     <div class="look-pieces-actions">
-      <button class="ghost" id="lookPiecesCloseBtn" type="button">Close</button>
-      <button class="primary" id="lookPiecesEditBtn" type="button">Edit combination →</button>
+      <!-- View-only popup — the Edit combination button was removed so
+           the popup never routes to the Stylist. Tapping any piece card
+           in the list above opens that item's detail modal. -->
+      <button class="ghost" id="lookPiecesCloseBtn" type="button" style="flex:1;">Close</button>
     </div>
   </div>
 </div>
@@ -14477,7 +14479,13 @@ function persistLooks(){ localStorage.setItem('maison.looks', JSON.stringify(LOO
 /* View-pieces modal — list every garment in a saved look with click-to-open */
 let _lookPiecesCurrentId = null;
 function openLookPiecesModal(lookId){
-  const look = LOOKS.find(l => l.id === lookId);
+  // Resolve against both LOOKS (Madame's saved ensembles) and the virtual
+  // ops-suggestion looks (id prefix `evt-`). Without this fallback the
+  // popup would refuse to open on ops-curated cards in the lookbook grid.
+  let look = LOOKS.find(l => l.id === lookId);
+  if (!look && typeof _eventSuggestionLooks === 'function'){
+    look = _eventSuggestionLooks().find(l => l.id === lookId);
+  }
   if (!look) { showToast('Look not found'); return; }
   _lookPiecesCurrentId = lookId;
   const items = look.items || {};
@@ -14880,23 +14888,17 @@ function renderLookbook(){
   // whole card now loads the look into the Stylist (see card-click handler
   // below). Removed the dead querySelector forEach loops so the wiring
   // matches the rendered DOM 1:1.
-  // Whole-card click → load the look into the Stylist for editing. The old
-  // "view pieces" popup was felt to be intrusive — the collage on the card
-  // already shows the full combination, so tapping the card now just opens
-  // the Stylist with everything pre-loaded (delete button still works via
-  // stopPropagation in the trash handler above).
+  // Whole-card click → open the pieces popup so each item can be viewed
+  // individually. The popup is view-only (no Edit/route-to-Stylist CTA);
+  // tapping any piece card inside it opens that item's detail modal.
+  // Trash button still works via stopPropagation in its own handler.
   grid.querySelectorAll('.lb2-card').forEach(card=>{
     card.addEventListener('click',(e)=>{
       if(e.target.closest('button')) return;
       const id = card.dataset.lbId;
-      const look = LOOKS.find(l=>l.id===id)
-        || (typeof _eventSuggestionLooks === 'function' ? _eventSuggestionLooks().find(l=>l.id===id) : null);
-      if(!look || !look.items){ return; } // nothing to load — just no-op
-      state.builder = Object.assign({}, look.items);
-      if(typeof renderSlots === 'function') renderSlots();
-      if(typeof navigateTo === 'function') navigateTo('builder');
-      if(typeof showToast === 'function')
-        showToast('Loaded into Stylist — swap or remove pieces here');
+      if (typeof openLookPiecesModal === 'function'){
+        openLookPiecesModal(id);
+      }
     });
   });
 }
