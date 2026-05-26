@@ -7077,7 +7077,12 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 /* Saved lookbooks block inside the Madame picker. Sits below the ops 3-pick
    suggestions so Madam can also choose any saved look she's tagged for the
    event (or any recent saved look as a fallback). */
-.madame-pick-looks-wrap{margin-top:22px;padding-top:18px;border-top:1px solid rgba(245,212,119,.14);}
+/* Hard-hide the entire "From your lookbook" section in the Madame picker.
+   The picker should only show the ops-curated 3 options for the event;
+   the lookbook suggestion was felt to clutter the decision. !important
+   wins over any inline style="display:''" left in legacy paths or any
+   browser-cached older JS still trying to show the section. */
+.madame-pick-looks-wrap{display:none!important;}
 .madame-pick-looks-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:10px;flex-wrap:wrap;}
 .mpl-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-bright);}
 .mpl-hint{font-family:var(--display);font-style:italic;font-size:11.5px;color:var(--pearl);}
