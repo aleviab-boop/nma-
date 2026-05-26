@@ -9348,22 +9348,22 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 
     <!-- REQUESTS -->
     <div class="page" id="page-requests">
-      <section class="hero req-hero">
+      <section class="hero req-hero" id="reqHero">
         <div class="req-hero-inner">
-          <div class="req-hero-eyebrow">
+          <div class="req-hero-eyebrow" id="reqHeroEyebrow">
             <span class="req-pulse"></span>
-            <span>Live Request</span>
+            <span id="reqHeroEyebrowLabel">Live Request</span>
             <span class="req-eyebrow-dot">·</span>
-            <span class="req-eyebrow-id">#R-1847</span>
+            <span class="req-eyebrow-id" id="reqHeroEyebrowId">#R-1847</span>
           </div>
-          <h1 class="req-hero-title">
+          <h1 class="req-hero-title" id="reqHeroTitle">
             <span class="req-hero-line">Your outfit</span>
             <span class="req-hero-line">is <em>on its way</em>.</span>
           </h1>
-          <div class="req-hero-meta">
+          <div class="req-hero-meta" id="reqHeroMeta">
             <div class="req-meta-chip">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-              <span>ETA <strong>17 min</strong></span>
+              <span>ETA <strong id="reqHeroEta">17 min</strong></span>
             </div>
             <div class="req-meta-chip">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18M5 7v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
@@ -15126,6 +15126,38 @@ function renderPickList(){
     ? '0 pieces queued' + neededBySuffix
     : `${PICK_IDS.length} piece${PICK_IDS.length===1?'':'s'} located · ${zones.size} zone${zones.size===1?'':'s'}${neededBySuffix}`;
   if(empty) empty.style.display = PICK_IDS.length === 0 ? 'block' : 'none';
+
+  /* Drive the page hero from the pick list state. When the list is empty
+     the "Your outfit is on its way" + ETA + Wardrobe team chips would
+     read as stale ("preparing" with nothing to prepare), so we swap the
+     hero into a calm "no active request" mode and hide the chips. */
+  const heroEyebrowLabel = document.getElementById('reqHeroEyebrowLabel');
+  const heroEyebrowId    = document.getElementById('reqHeroEyebrowId');
+  const heroPulse        = document.querySelector('#reqHeroEyebrow .req-pulse');
+  const heroDot          = document.querySelector('#reqHeroEyebrow .req-eyebrow-dot');
+  const heroTitle        = document.getElementById('reqHeroTitle');
+  const heroMeta         = document.getElementById('reqHeroMeta');
+  const heroEta          = document.getElementById('reqHeroEta');
+  if (PICK_IDS.length === 0){
+    if (heroEyebrowLabel) heroEyebrowLabel.textContent = 'Pick List';
+    if (heroEyebrowId)    heroEyebrowId.textContent    = 'Empty';
+    if (heroPulse)        heroPulse.style.display      = 'none';
+    if (heroDot)          heroDot.style.display        = '';
+    if (heroTitle)        heroTitle.innerHTML          = '<span class="req-hero-line">No active</span><span class="req-hero-line"><em>requests</em>.</span>';
+    if (heroMeta)         heroMeta.style.display       = 'none';
+  } else {
+    if (heroEyebrowLabel) heroEyebrowLabel.textContent = 'Live Request';
+    if (heroEyebrowId)    heroEyebrowId.textContent    = '#R-1847';
+    if (heroPulse)        heroPulse.style.display      = '';
+    if (heroDot)          heroDot.style.display        = '';
+    if (heroTitle)        heroTitle.innerHTML          = '<span class="req-hero-line">Your outfit</span><span class="req-hero-line">is <em>on its way</em>.</span>';
+    if (heroMeta)         heroMeta.style.display       = '';
+    // Rough ETA estimate: 6 min base + 4 min per piece. Caps at 60.
+    if (heroEta){
+      const mins = Math.min(60, 6 + PICK_IDS.length * 4);
+      heroEta.textContent = mins + ' min';
+    }
+  }
   grid.innerHTML = PICK_IDS.map(id=>{
     const i = INVENTORY.find(x=>x.id===id);
     if(!i) return '';
