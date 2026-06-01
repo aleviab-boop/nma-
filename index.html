@@ -7663,6 +7663,39 @@ body.role-ops-mobile .bottom-nav .signout{margin-left:0!important;}
   }
 }
 body.role-ops-mobile .royal-petals,body.role-ops-mobile .paisley{display:none;}
+/* ============ Ops Mobile item-detail modal — phone-scaled ============
+   The shared #itemModal is a wide 2-column grid (980px max) — fine on
+   the desktop Madame iPad and on the ops dashboard, but breaks the
+   ops-mobile illusion when a user taps a Recently Added tile and gets
+   a full-width desktop modal. Override here so it stacks vertically
+   and sits within a phone-sized envelope. */
+body.role-ops-mobile #itemModal{padding:18px!important;align-items:flex-end!important;justify-content:center!important;}
+body.role-ops-mobile #itemModal .modal{
+  max-width:420px!important;width:100%!important;
+  max-height:88vh!important;
+  grid-template-columns:1fr!important;
+  grid-template-rows:auto 1fr!important;
+  border-radius:20px!important;overflow-y:auto!important;
+  display:block!important;
+}
+body.role-ops-mobile #itemModal .modal-img{
+  width:100%;aspect-ratio:4/3;border-radius:20px 20px 0 0;overflow:hidden;
+}
+body.role-ops-mobile #itemModal .modal-img img,
+body.role-ops-mobile #itemModal .modal-img svg{
+  width:100%!important;height:100%!important;object-fit:cover!important;display:block;
+}
+body.role-ops-mobile #itemModal .modal-body{
+  padding:18px 18px 22px!important;
+}
+body.role-ops-mobile #itemModal .modal-close{
+  width:34px;height:34px;top:12px;right:12px;z-index:5;
+}
+/* Tighten typography to match the mobile envelope */
+body.role-ops-mobile #itemModal .modal-body h2{font-size:22px!important;line-height:1.15!important;}
+body.role-ops-mobile #itemModal .modal-body .designer-line{font-size:13px!important;}
+body.role-ops-mobile #itemModal .modal-chips{font-size:11px!important;}
+
 /* Stretch the camera page to fill the phone canvas */
 body.role-ops-mobile .page#page-opsmobile{height:100%;display:flex;flex-direction:column;}
 body.role-ops-mobile .page#page-opsmobile .ops-mobile-wrap{padding:0;flex:1;display:flex;min-height:0;}
