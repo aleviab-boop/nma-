@@ -12325,9 +12325,14 @@ function closeItemModal(){ document.getElementById('itemModal').classList.remove
    ============================================================ */
 function _qrPayloadFor(item){
   if (!item) return '';
-  // Deep-link URL — once routing is wired up, scanning this opens the piece.
-  // Keep it short so the QR stays low-density and easy to scan.
-  return `https://maison.app/i/${encodeURIComponent(item.id)}`;
+  // Deep-link URL → live deployment with a query param the boot handler
+  // (_handleDeepLink, below in this file) reads and uses to auto-open
+  // the item / look modal on page load. window.location.origin keeps it
+  // portable across the prod URL, preview deploys, and custom domains.
+  const base = (typeof window !== 'undefined' && window.location && window.location.origin)
+    ? window.location.origin
+    : 'https://digitalwardrobe-eta.vercel.app';
+  return `${base}/?item=${encodeURIComponent(item.id)}`;
 }
 
 function _qrImageUrl(payload){
@@ -12370,8 +12375,11 @@ function openQrModal(itemOrId){
   }
   if (!item) return;
 
+  const base = (typeof window !== 'undefined' && window.location && window.location.origin)
+    ? window.location.origin
+    : 'https://digitalwardrobe-eta.vercel.app';
   const payload = isLook
-    ? `https://maison.app/look/${encodeURIComponent(item.id)}`
+    ? `${base}/?look=${encodeURIComponent(item.id)}`
     : _qrPayloadFor(item);
   const qrSrc   = _qrImageUrl(payload);
 
@@ -18115,6 +18123,38 @@ renderRecentCaptures();
 updateCart();
 updateCountdown();
 setInterval(updateCountdown,1000);
+
+/* ============================================================
+   QR DEEP LINKS — read ?item=<id> or ?look=<id> from the URL on
+   boot. Scanning a QR tag opens the page with one of these params
+   and we auto-open the corresponding modal so the scanner lands
+   directly on the piece / saved look. Param is consumed (cleared
+   from the URL) so a refresh doesn't keep popping the modal.
+   ============================================================ */
+(function _handleDeepLink(){
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    const itemId = params.get('item');
+    const lookId = params.get('look');
+    if (!itemId && !lookId) return;
+    // Strip the consumed params from the URL so reload doesn't re-open.
+    params.delete('item'); params.delete('look');
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+    try { history.replaceState({}, '', newUrl); } catch(_){}
+    // Defer slightly so the rest of the app has finished its initial paint
+    // and the modal targets are mounted in the DOM.
+    setTimeout(() => {
+      if (itemId && typeof openItemModal === 'function'){
+        openItemModal(itemId);
+        return;
+      }
+      if (lookId && typeof openLookPiecesModal === 'function'){
+        openLookPiecesModal(lookId);
+      }
+    }, 350);
+  } catch (e){ console.warn('[qr-deeplink] failed', e); }
+})();
 
 /* Ops Mobile event listeners */
 document.getElementById('shutterBtn')?.addEventListener('click', onShutter);
