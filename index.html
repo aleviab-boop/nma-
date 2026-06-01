@@ -7679,11 +7679,16 @@ body.role-ops-mobile #itemModal .modal{
   display:block!important;
 }
 body.role-ops-mobile #itemModal .modal-img{
-  width:100%;aspect-ratio:4/3;border-radius:20px 20px 0 0;overflow:hidden;
+  width:100%;aspect-ratio:3/4;border-radius:20px 20px 0 0;overflow:hidden;
+  background:#0B0604; /* dark fill behind any letterboxing */
+  display:flex;align-items:center;justify-content:center;
 }
 body.role-ops-mobile #itemModal .modal-img img,
 body.role-ops-mobile #itemModal .modal-img svg{
-  width:100%!important;height:100%!important;object-fit:cover!important;display:block;
+  width:100%!important;height:100%!important;
+  /* contain (not cover) so the entire garment is visible — the previous
+     cover crop was hiding the model's head + half the gown. */
+  object-fit:contain!important;display:block;
 }
 body.role-ops-mobile #itemModal .modal-body{
   padding:18px 18px 22px!important;
