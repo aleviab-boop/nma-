@@ -7701,6 +7701,12 @@ body.role-ops-mobile #itemModal .modal-body h2{font-size:22px!important;line-hei
 body.role-ops-mobile #itemModal .modal-body .designer-line{font-size:13px!important;}
 body.role-ops-mobile #itemModal .modal-chips{font-size:11px!important;}
 
+/* "Add to Outfit" is a Madame-flow action (builds the stylist composition).
+   On Ops Mobile the intake worker doesn't compose looks — only captures.
+   Hide the button across the modal AND any grid card it appears in. */
+body.role-ops-mobile #itemModal [data-action="addBuilder"],
+body.role-ops-mobile [data-action="addBuilder"]{display:none!important;}
+
 /* Stretch the camera page to fill the phone canvas */
 body.role-ops-mobile .page#page-opsmobile{height:100%;display:flex;flex-direction:column;}
 body.role-ops-mobile .page#page-opsmobile .ops-mobile-wrap{padding:0;flex:1;display:flex;min-height:0;}
@@ -16187,12 +16193,16 @@ document.getElementById('itemModal')?.addEventListener('click',(e)=>{
 let _planningItem = null;
 
 function _itemThumbBg(item){
-  // Reuse whatever the wardrobe grid uses to render this item's image.
-  // capturedPhoto (mobile-uploaded thumb) wins; PHOTO_MAP fallback for curated.
+  // Reuse the same photo cascade the wardrobe grid + admin table use.
+  // Priority: capturedPhoto (in-memory mobile capture) → item.photo
+  // (Supabase Storage CDN URL) → PHOTO_MAP curated → /img/<id>.png →
+  // solid colour fallback.
   if(item.capturedPhoto) return `url("${item.capturedPhoto}")`;
+  if(item.photo) return `url("${item.photo}")`;
   if(typeof PHOTO_MAP !== 'undefined' && PHOTO_MAP && PHOTO_MAP[item.id]){
     return `url("${PHOTO_MAP[item.id]}")`;
   }
+  if(item.id) return `url("/img/${item.id}.png"), linear-gradient(135deg, ${item.c1||'#3A2A20'}, ${item.c2||'#1A0E08'})`;
   // Solid colour fallback — same gradient the card art uses
   return `linear-gradient(135deg, ${item.c1||'#3A2A20'}, ${item.c2||'#1A0E08'})`;
 }
