@@ -14137,14 +14137,25 @@ function renderSuggestEventList(){
     return `img/${it.id}.png`;
   };
 
+  // Only events Madame has actually confirmed via her picker count for the
+  // "Madam confirmed" banner. The hardcoded state.events array pre-seeds
+  // outfit/outfitItemId on many demo events, so a truthy outfitItemId on
+  // its own is NOT proof of confirmation. We treat the maison.eventOutfits
+  // localStorage map (written by _saveEventOutfitOverride) as the real
+  // signal — that key only gets populated when Madame taps Confirm.
+  const _confirmedOverrides = (typeof _loadEventOutfitOverrides === 'function')
+    ? _loadEventOutfitOverrides()
+    : {};
   list.innerHTML = filtered.map(({ e, suggestions, filled, status }) => {
     const d = new Date(e.date);
     const statusLabel = status === 'complete' ? '✓ 3 / 3 ready'
                       : status === 'partial'  ? `${filled} / 3 set`
                       : 'Not started';
-    // Madam-confirmed banner (once she taps Confirm on her side)
-    const pickedPiece = e.outfitItemId
-      ? (INVENTORY.find(p => p.id === e.outfitItemId) || null)
+    // Madam-confirmed banner — only when this event id appears in the
+    // overrides map AND has a valid item assigned.
+    const override = _confirmedOverrides[String(e.id)];
+    const pickedPiece = (override && override.outfitItemId)
+      ? (INVENTORY.find(p => p.id === override.outfitItemId) || null)
       : null;
     const pickedBadge = pickedPiece
       ? `<div class="sec-picked-badge" title="Madam confirmed: ${pickedPiece.name.replace(/"/g,'&quot;')}">
