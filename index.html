@@ -11384,7 +11384,7 @@ function updateGlobalCounters(){
   setText('heroCleaningSpark',  cleaning > 0 ? `${cleaning} priority` : '0 priority');
 
   // Ops Dashboard stats — Open Requests = upcoming events without an outfit
-  const today = new Date('2026-06-01');
+  const today = new Date(); today.setHours(0,0,0,0);
   const openRequests = (typeof state !== 'undefined' && state.events ? state.events : [])
     .filter(e => new Date(e.date) >= today && !e.outfit).length;
   setText('opsStatRequests',  fmt(openRequests));
@@ -11785,8 +11785,12 @@ const state = {
   builder: {},
   activeSlot: null,
   selectedInGallery: null,
-  currentMonth: 5,  // June 2026 — matches today's date so the calendar opens on the current month
-  currentYear: 2026,
+  // Calendar opens on TODAY's real month/year — recomputed on every boot
+  // so the app stays current without manual edits. The hardcoded events
+  // below get shifted into the current week by _shiftEventDatesToToday()
+  // (see right after the state declaration).
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
   // Every dummy event is now paired with a specific wardrobe piece via
   // `outfitItemId` — clicking the outfit pill in the Upcoming feed opens
   // that piece's detail modal (the "wardrobe section" link).
@@ -11823,6 +11827,31 @@ const state = {
   dismissedUpcoming: new Set(),
   editingEventId: null
 };
+
+/* ============================================================
+   DYNAMIC DATES — shift the hardcoded calendar so it tracks today.
+   The events array above was authored against a synthetic anchor of
+   2026-06-01. On every boot we compute the delta from that anchor to
+   the real `new Date()` and apply it to each event so the calendar
+   stays current — never frozen on the day the data was authored.
+   The relative spacing between events is preserved.
+   ============================================================ */
+(function _shiftEventDatesToToday(){
+  if (!Array.isArray(state.events)) return;
+  const ANCHOR = new Date('2026-06-01T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const deltaMs = today.getTime() - ANCHOR.getTime();
+  if (deltaMs === 0) return; // we are exactly at the anchor — nothing to do
+  for (const ev of state.events){
+    if (!ev || !ev.date) continue;
+    const d = new Date(ev.date + 'T00:00:00');
+    d.setTime(d.getTime() + deltaMs);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    ev.date = `${yyyy}-${mm}-${dd}`;
+  }
+})();
 
 /* ============================================================
    EVENT OUTFIT OVERRIDES — persistence for Madame's calendar picks
@@ -12882,7 +12911,7 @@ function renderCalendar(){
 
 function renderUpcoming(){
   const list = document.getElementById('upcomingList');
-  const today = new Date('2026-06-01');
+  const today = new Date(); today.setHours(0,0,0,0);
   // Filter out events the user dismissed from the upcoming feed —
   // they remain on the calendar but stop cluttering the right rail.
   const upcoming = state.events
@@ -14003,7 +14032,7 @@ function renderSuggestEventList(){
   const list = document.getElementById('suggestEventList');
   const badge = document.getElementById('suggestEventCount');
   if (!list) return;
-  const today = new Date('2026-06-01');
+  const today = new Date(); today.setHours(0,0,0,0);
 
   // Pull every upcoming event, attach status + suggestions for each
   const upcoming = (state.events || [])
