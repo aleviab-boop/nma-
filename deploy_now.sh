@@ -23,6 +23,11 @@ if inliner.exists() and cfg.get('auto_inline', True):
     subprocess.run([sys.executable, str(inliner)], cwd=PROJ, capture_output=True)
 
 files = [PROJ / 'index.html']
+# Superadmin panel sits at /admin/index.html — include it so admin-side
+# edits ship together with the main SPA.
+admin_idx = PROJ / 'admin' / 'index.html'
+if admin_idx.exists():
+    files.append(admin_idx)
 api = PROJ / 'api'
 if api.is_dir():
     files.extend(sorted(api.glob('*.js')))

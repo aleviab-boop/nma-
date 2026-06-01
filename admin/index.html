@@ -1049,7 +1049,7 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
     <!-- Page head -->
     <section class="page-head">
       <h1 id="pageTitle">Weekly Overview</h1>
-      <p class="sub" id="pageRange">5 May — 12 May 2026</p>
+      <p class="sub" id="pageRange">—</p>
       <div class="range-tabs">
         <button class="range-tab" data-range="1">Today</button>
         <button class="range-tab active" data-range="7">7 days</button>
@@ -1863,18 +1863,46 @@ function paintActivityFeed(){
   `).join('');
 }
 
-// ---- Range tabs (visual only for now) ----
+// ---- Range tabs (now drive pageRange dynamically from today's real date) ----
+const _ADMIN_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _formatAdminRange(days){
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (Number(days) === 1){
+    return `${today.getDate()} ${_ADMIN_MONTHS[today.getMonth()]} ${today.getFullYear()}`;
+  }
+  const start = new Date(today);
+  start.setDate(start.getDate() - (Number(days) - 1));
+  const sameYear  = start.getFullYear() === today.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === today.getMonth();
+  const startStr = sameMonth
+    ? `${start.getDate()}`
+    : `${start.getDate()} ${_ADMIN_MONTHS[start.getMonth()]}${sameYear ? '' : ' ' + start.getFullYear()}`;
+  const endStr   = `${today.getDate()} ${_ADMIN_MONTHS[today.getMonth()]} ${today.getFullYear()}`;
+  return `${startStr} — ${endStr}`;
+}
+function _applyAdminRange(days){
+  const titleEl = document.getElementById('pageTitle');
+  const rangeEl = document.getElementById('pageRange');
+  if (titleEl){
+    titleEl.textContent =
+      days === '1' ? 'Today' :
+      days === '7' ? 'Weekly Overview' :
+      days === '14' ? 'Last 14 Days' : 'Monthly Overview';
+  }
+  if (rangeEl) rangeEl.textContent = _formatAdminRange(days);
+}
 document.querySelectorAll('.range-tab').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.range-tab').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
-    const days = b.dataset.range;
-    document.getElementById('pageTitle').textContent =
-      days === '1' ? 'Today' :
-      days === '7' ? 'Weekly Overview' :
-      days === '14' ? 'Last 14 Days' : 'Monthly Overview';
+    _applyAdminRange(b.dataset.range);
   });
 });
+// Initialise on load — pick the currently-active tab (defaults to 7 days)
+(function _initAdminRange(){
+  const active = document.querySelector('.range-tab.active');
+  _applyAdminRange(active ? active.dataset.range : '7');
+})();
 
 // ---- Refreshed-at clock ----
 function updateRefreshClock(){
