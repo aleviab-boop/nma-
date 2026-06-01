@@ -5044,6 +5044,23 @@ body.role-madame .lb2-visual{border-radius:18px 18px 0 0!important;}
 .guest-archive-del svg{width:12px;height:12px;stroke-width:2;}
 .guest-empty{padding:32px 20px;text-align:center;color:var(--ods-text-mute,#94a3b8);font-size:12.5px;font-style:italic;}
 
+/* Cross-list summary banner — appears at the bottom of the Guest Lists
+   page when 2+ lists exist and none of them share any attendees. */
+.guest-cross-summary{
+  margin-top:20px;padding:16px 22px;border-radius:12px;
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(180deg,#f0fdf4,#dcfce7);
+  border:1px solid #86efac;color:#166534;
+  font-family:'Inter',-apple-system,sans-serif;font-size:13.5px;font-weight:500;
+  letter-spacing:.005em;
+}
+.guest-cross-summary.is-warn{
+  background:linear-gradient(180deg,#fffbeb,#fef3c7);
+  border-color:#fcd34d;color:#92400e;
+}
+.guest-cross-summary svg{flex-shrink:0;}
+.guest-cross-summary strong{font-weight:700;}
+
 /* Repeat-attendee analysis */
 .guest-analysis{
   background:linear-gradient(180deg,#ffffff,#f8fafc);
@@ -6803,7 +6820,10 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
   font-family:'Inter',-apple-system,sans-serif;color:#000;
 }
 
-.wlayout-head{padding:24px 28px 16px;border-bottom:0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-shrink:0;}
+/* Right padding includes a buffer for the floating red × button (44px wide
+   anchored 22px from the viewport edge — clears at 80px). Without this,
+   "Mapped" sat under the close button and was unreadable. */
+.wlayout-head{padding:24px 80px 16px 28px;border-bottom:0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-shrink:0;}
 
 /* Direction tabs (Floor · N · S · E · W) — sits right below the head */
 .wlayout-dir-tabs{display:flex;gap:6px;padding:0 28px 14px;border-bottom:1px solid #e2e8f0;flex-shrink:0;flex-wrap:wrap;}
@@ -9770,6 +9790,11 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
           <div class="guest-analysis-stats" id="guestAnalysisStats"></div>
           <div class="guest-analysis-table" id="guestAnalysisTable"></div>
         </div>
+
+        <!-- Cross-list summary banner — shows when 2+ lists exist and none
+             of them share any guests. Lets ops see at a glance that there
+             are no overlaps, without needing to click into each list. -->
+        <div class="guest-cross-summary" id="guestCrossSummary" style="display:none;"></div>
       </section>
     </div>
 
@@ -13079,6 +13104,7 @@ function renderGuestArchive(){
   if (!root) return;
   const lists = _loadGuestLists().slice().sort((a,b) => (b.savedAt||0) - (a.savedAt||0));
   if (countEl) countEl.textContent = lists.length;
+  _renderGuestCrossSummary(lists);
   if (lists.length === 0){
     root.innerHTML = '<div class="guest-empty">No guest lists yet. Upload your first list to start the social memory.</div>';
     return;
@@ -13099,6 +13125,49 @@ function renderGuestArchive(){
         </button>
       </button>`;
   }).join('');
+}
+
+/* Cross-list overlap summary — counts how many guests appear on more
+   than one saved list. Shown as a green "no matching guests" banner
+   when 2+ lists exist and have zero overlap, or as an amber banner
+   when there ARE shared attendees (helps ops spot social-circle reuse
+   at a glance without clicking into each list). */
+function _renderGuestCrossSummary(lists){
+  const el = document.getElementById('guestCrossSummary');
+  if (!el) return;
+  if (!Array.isArray(lists) || lists.length < 2){
+    el.style.display = 'none';
+    return;
+  }
+  // Build a map: normalized-name → Set(listIds it appears on)
+  const occur = new Map();
+  for (const l of lists){
+    const seenInThisList = new Set();
+    for (const g of (l.guests || [])){
+      const key = (typeof _normalizeGuestName === 'function')
+        ? _normalizeGuestName(g)
+        : String(g || '').trim().toLowerCase();
+      if (!key || seenInThisList.has(key)) continue;
+      seenInThisList.add(key);
+      if (!occur.has(key)) occur.set(key, new Set());
+      occur.get(key).add(l.id);
+    }
+  }
+  let sharedNames = 0;
+  occur.forEach(set => { if (set.size >= 2) sharedNames++; });
+
+  el.style.display = '';
+  if (sharedNames === 0){
+    el.classList.remove('is-warn');
+    el.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+      <span>No matching guests across your ${lists.length} list${lists.length===1?'':'s'} — every event is a fresh crowd.</span>`;
+  } else {
+    el.classList.add('is-warn');
+    el.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86l-8.18 14.39A2 2 0 0 0 3.83 21h16.34a2 2 0 0 0 1.72-2.75L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <span><strong>${sharedNames} guest${sharedNames===1?'':'s'}</strong> appear${sharedNames===1?'s':''} on multiple lists. Click any list to see the overlap.</span>`;
+  }
 }
 
 /* Render the analysis panel for a given list. */
