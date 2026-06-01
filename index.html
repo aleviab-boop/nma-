@@ -9429,6 +9429,20 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             <div id="pickEmpty" style="display:none;padding:30px 18px;text-align:center;color:var(--pearl);font-size:13px;">No pieces yet — tap <strong style="color:var(--gold-bright);">Add Piece</strong> to start the pick list.</div>
           </div>
         </div>
+
+        <!-- Pending decisions — events where ops has curated outfit suggestions
+             that need Madame's review. This bridges the ops-side request flow
+             (Event Suggestions) with the Madame-side Requests page so she can
+             see everything ops is waiting on without opening the calendar. -->
+        <div id="pendingDecisionsCard" style="display:none;margin-top:18px;background:var(--surface);border-radius:16px;border:1px solid var(--line);padding:28px;box-shadow:inset 0 0 0 1px rgba(212,168,74,.14),0 12px 36px rgba(0,0,0,.5);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+            <div>
+              <h4 style="font-family:var(--serif);font-weight:500;font-size:22px;margin-bottom:4px;color:var(--ivory);">Pending decisions</h4>
+              <div id="pendingDecisionsMeta" style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-bright);">— events awaiting your pick</div>
+            </div>
+          </div>
+          <div id="pendingDecisionsList" style="display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:18px;margin-top:14px;"></div>
+        </div>
       </section>
     </div>
 
@@ -11370,7 +11384,7 @@ function updateGlobalCounters(){
   setText('heroCleaningSpark',  cleaning > 0 ? `${cleaning} priority` : '0 priority');
 
   // Ops Dashboard stats — Open Requests = upcoming events without an outfit
-  const today = new Date('2026-05-21');
+  const today = new Date('2026-06-01');
   const openRequests = (typeof state !== 'undefined' && state.events ? state.events : [])
     .filter(e => new Date(e.date) >= today && !e.outfit).length;
   setText('opsStatRequests',  fmt(openRequests));
@@ -11771,7 +11785,7 @@ const state = {
   builder: {},
   activeSlot: null,
   selectedInGallery: null,
-  currentMonth: 4,  // May 2026 — matches today's date so the calendar opens on the current month
+  currentMonth: 5,  // June 2026 — matches today's date so the calendar opens on the current month
   currentYear: 2026,
   // Every dummy event is now paired with a specific wardrobe piece via
   // `outfitItemId` — clicking the outfit pill in the Upcoming feed opens
@@ -11786,22 +11800,22 @@ const state = {
     {id:6, date:'2026-04-11', time:'07:00', name:'Temple Visit',        type:'casual',  dress:'Traditional',            outfit:'Royal Blue Banarasi',    outfitItemId:'M1009'},
     {id:7, date:'2026-04-18', time:'20:00', name:'Fynd Launch',         type:'',        dress:'Business',               outfit:'Midnight Black Gown',    outfitItemId:'M1008'},
 
-    // May 2026 — current month
-    {id:8,  date:'2026-05-02', time:'19:30', name:'Reliance Foundation Awards', type:'gala',    dress:'Couture · Evening',           outfit:'Midnight Silk Gown',    outfitItemId:'M1001'},
-    {id:9,  date:'2026-05-05', time:'11:00', name:'Met Gala After-Brunch',      type:'',        dress:'Editorial · Daytime',         outfit:'Emerald Flare Gown',    outfitItemId:'M1003'},
-    {id:10, date:'2026-05-07', time:'09:30', name:'Fynd Strategy Off-site',     type:'casual',  dress:'Business · Smart casual',     outfit:'Cream Chikankari Suit', outfitItemId:'M1006'},
-    {id:11, date:'2026-05-09', time:'16:00', name:'Bandra Mehendi',             type:'',        dress:'Traditional · Daytime',       outfit:'Blush Pink Lehenga',    outfitItemId:'M1007'},
-    {id:12, date:'2026-05-10', time:'12:00', name:'Mother\'s Day Brunch',       type:'casual',  dress:'Casual · Pastel',             outfit:null,                    outfitItemId:null},
-    {id:13, date:'2026-05-12', time:'15:00', name:'Manish Malhotra Atelier',    type:'',        dress:'Smart casual',                outfit:'Maroon Banarasi',       outfitItemId:'M1002'},
-    {id:14, date:'2026-05-14', time:'20:00', name:'Sangeet · Bandra Wedding',   type:'gala',    dress:'Festive · Evening',           outfit:'Royal Blue Banarasi',   outfitItemId:'M1009'},
-    {id:15, date:'2026-05-16', time:'21:00', name:'Cannes Red Carpet',          type:'gala',    dress:'Couture · Black tie',         outfit:'Midnight Silk Gown',    outfitItemId:'M1001'},
-    {id:16, date:'2026-05-18', time:'18:00', name:'Jehangir Art Opening',       type:'',        dress:'Editorial · Cocktail',        outfit:'Emerald Flare Gown',    outfitItemId:'M1003'},
-    {id:17, date:'2026-05-21', time:'10:00', name:'Vogue India Cover Shoot',    type:'',        dress:'Editorial · Studio',          outfit:'Midnight Black Gown',   outfitItemId:'M1008'},
-    {id:18, date:'2026-05-23', time:'11:00', name:'Fynd Quarterly Board',       type:'casual',  dress:'Business formal',             outfit:'Cream Chikankari Suit', outfitItemId:'M1006'},
-    {id:19, date:'2026-05-25', time:'19:30', name:'Reliance Foundation Gala',   type:'gala',    dress:'Couture · Evening',           outfit:null,                    outfitItemId:null},
-    {id:20, date:'2026-05-27', time:'20:00', name:'Anniversary Dinner · Taj',   type:'',        dress:'Black tie · Intimate',        outfit:null,                    outfitItemId:null},
-    {id:21, date:'2026-05-29', time:'18:00', name:'Sabyasachi Studio Preview',  type:'',        dress:'Editorial · Cocktail',        outfit:null,                    outfitItemId:null},
-    {id:22, date:'2026-05-31', time:'20:30', name:'Mumbai Charity Ball',        type:'gala',    dress:'Couture · Evening',           outfit:'Maroon Banarasi',       outfitItemId:'M1002'}
+    // June 2026 — current month
+    {id:8,  date:'2026-06-02', time:'19:30', name:'Reliance Foundation Awards', type:'gala',    dress:'Couture · Evening',           outfit:'Midnight Silk Gown',    outfitItemId:'M1001'},
+    {id:9,  date:'2026-06-05', time:'11:00', name:'Met Gala After-Brunch',      type:'',        dress:'Editorial · Daytime',         outfit:'Emerald Flare Gown',    outfitItemId:'M1003'},
+    {id:10, date:'2026-06-07', time:'09:30', name:'Fynd Strategy Off-site',     type:'casual',  dress:'Business · Smart casual',     outfit:'Cream Chikankari Suit', outfitItemId:'M1006'},
+    {id:11, date:'2026-06-09', time:'16:00', name:'Bandra Mehendi',             type:'',        dress:'Traditional · Daytime',       outfit:'Blush Pink Lehenga',    outfitItemId:'M1007'},
+    {id:12, date:'2026-06-10', time:'12:00', name:'Mother\'s Day Brunch',       type:'casual',  dress:'Casual · Pastel',             outfit:null,                    outfitItemId:null},
+    {id:13, date:'2026-06-12', time:'15:00', name:'Manish Malhotra Atelier',    type:'',        dress:'Smart casual',                outfit:'Maroon Banarasi',       outfitItemId:'M1002'},
+    {id:14, date:'2026-06-14', time:'20:00', name:'Sangeet · Bandra Wedding',   type:'gala',    dress:'Festive · Evening',           outfit:'Royal Blue Banarasi',   outfitItemId:'M1009'},
+    {id:15, date:'2026-06-16', time:'21:00', name:'Cannes Red Carpet',          type:'gala',    dress:'Couture · Black tie',         outfit:'Midnight Silk Gown',    outfitItemId:'M1001'},
+    {id:16, date:'2026-06-18', time:'18:00', name:'Jehangir Art Opening',       type:'',        dress:'Editorial · Cocktail',        outfit:'Emerald Flare Gown',    outfitItemId:'M1003'},
+    {id:17, date:'2026-06-21', time:'10:00', name:'Vogue India Cover Shoot',    type:'',        dress:'Editorial · Studio',          outfit:'Midnight Black Gown',   outfitItemId:'M1008'},
+    {id:18, date:'2026-06-23', time:'11:00', name:'Fynd Quarterly Board',       type:'casual',  dress:'Business formal',             outfit:'Cream Chikankari Suit', outfitItemId:'M1006'},
+    {id:19, date:'2026-06-25', time:'19:30', name:'Reliance Foundation Gala',   type:'gala',    dress:'Couture · Evening',           outfit:null,                    outfitItemId:null},
+    {id:20, date:'2026-06-27', time:'20:00', name:'Anniversary Dinner · Taj',   type:'',        dress:'Black tie · Intimate',        outfit:null,                    outfitItemId:null},
+    {id:21, date:'2026-06-29', time:'18:00', name:'Sabyasachi Studio Preview',  type:'',        dress:'Editorial · Cocktail',        outfit:null,                    outfitItemId:null},
+    {id:22, date:'2026-06-30', time:'20:30', name:'Mumbai Charity Ball',        type:'gala',    dress:'Couture · Evening',           outfit:'Maroon Banarasi',       outfitItemId:'M1002'}
   ],
   // IDs the user dismissed from the Upcoming feed. The events themselves
   // stay on the calendar — this only suppresses them from the right-rail
@@ -12868,7 +12882,7 @@ function renderCalendar(){
 
 function renderUpcoming(){
   const list = document.getElementById('upcomingList');
-  const today = new Date('2026-05-21');
+  const today = new Date('2026-06-01');
   // Filter out events the user dismissed from the upcoming feed —
   // they remain on the calendar but stop cluttering the right rail.
   const upcoming = state.events
@@ -13989,7 +14003,7 @@ function renderSuggestEventList(){
   const list = document.getElementById('suggestEventList');
   const badge = document.getElementById('suggestEventCount');
   if (!list) return;
-  const today = new Date('2026-05-21');
+  const today = new Date('2026-06-01');
 
   // Pull every upcoming event, attach status + suggestions for each
   const upcoming = (state.events || [])
@@ -15196,6 +15210,10 @@ function renderPickList(){
     : `${PICK_IDS.length} piece${PICK_IDS.length===1?'':'s'} located · ${zones.size} zone${zones.size===1?'':'s'}${neededBySuffix}`;
   if(empty) empty.style.display = PICK_IDS.length === 0 ? 'block' : 'none';
 
+  // Refresh the "Pending decisions" card too — ops-curated event suggestions
+  // surface here so Madame sees everything ops is waiting on her to confirm.
+  if (typeof renderPendingDecisions === 'function') renderPendingDecisions();
+
   /* Drive the page hero from the pick list state. When the list is empty
      the "Your outfit is on its way" + ETA + Wardrobe team chips would
      read as stale ("preparing" with nothing to prepare), so we swap the
@@ -15263,6 +15281,91 @@ function renderPickList(){
     });
   });
 }
+
+/* Render the "Pending decisions" card on the Madame Requests page.
+   Pulls events with ops-curated suggestions that Madame hasn't confirmed
+   an outfit for yet. Lets ops's work flow through to Madame's Requests
+   surface (it was only visible via the calendar before). */
+function renderPendingDecisions(){
+  const card = document.getElementById('pendingDecisionsCard');
+  const list = document.getElementById('pendingDecisionsList');
+  const meta = document.getElementById('pendingDecisionsMeta');
+  if (!card || !list) return;
+
+  const map = (typeof _loadSuggestions === 'function') ? _loadSuggestions() : {};
+  const events = (state && Array.isArray(state.events)) ? state.events : [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // An event is "pending" if ops has set suggestions AND Madame hasn't
+  // already confirmed an outfit AND the event is today or in the future.
+  const pending = events
+    .filter(ev => {
+      if (ev.outfit || ev.outfitItemId) return false; // already confirmed
+      const sugg = map[String(ev.id)];
+      if (!Array.isArray(sugg) || !sugg.length) return false;
+      const d = new Date(ev.date); d.setHours(0,0,0,0);
+      return d >= today;
+    })
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  if (!pending.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  meta.textContent = `${pending.length} event${pending.length===1?'':'s'} awaiting your pick`;
+
+  list.innerHTML = pending.map(ev => {
+    const d = new Date(ev.date);
+    const dayStr = `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+    const sugg = map[String(ev.id)] || [];
+    // First 3 piece thumbs as a row preview
+    const previews = sugg.slice(0, 3).map(s => {
+      const pid = (typeof s === 'string') ? s : (s && (s.pieceId || s.id));
+      const p = INVENTORY.find(x => x.id === pid);
+      if (!p) return '';
+      return `<div class="pd-thumb">${typeof itemImage === 'function' ? itemImage(p) : ''}</div>`;
+    }).join('');
+    return `
+      <button class="pending-decision-row" data-pd-event="${ev.id}" type="button"
+              style="display:flex;align-items:center;gap:16px;padding:12px 14px;background:rgba(20,12,8,.55);border:1px solid rgba(245,212,119,.22);border-radius:12px;cursor:pointer;text-align:left;color:inherit;font-family:inherit;transition:all .2s ease;">
+        <div style="display:flex;gap:6px;flex-shrink:0;">${previews}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:var(--serif);font-weight:500;font-size:15px;color:var(--ivory);margin-bottom:3px;">${ev.name}</div>
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright);">${dayStr} · ${ev.time} · ${sugg.length} option${sugg.length===1?'':'s'} curated</div>
+        </div>
+        <div style="font-size:18px;color:var(--gold-bright);flex-shrink:0;">›</div>
+      </button>`;
+  }).join('');
+
+  // Tap a row → open the Madame picker so she can choose & confirm.
+  list.querySelectorAll('[data-pd-event]').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.dataset.pdEvent;
+      if (typeof openMadamePicker === 'function') openMadamePicker(id);
+    });
+  });
+}
+// Style the thumbnail strip + hover state for pending decision rows
+(function _injectPendingDecisionsStyles(){
+  if (document.getElementById('_pendingDecisionsStyles')) return;
+  const s = document.createElement('style');
+  s.id = '_pendingDecisionsStyles';
+  s.textContent = `
+    .pending-decision-row .pd-thumb{
+      width:46px;height:58px;border-radius:7px;overflow:hidden;
+      background:#0B0604;border:1px solid rgba(245,212,119,.18);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .pending-decision-row .pd-thumb img,
+    .pending-decision-row .pd-thumb svg{width:100%;height:100%;object-fit:cover;}
+    .pending-decision-row:hover{
+      border-color:rgba(245,212,119,.5)!important;
+      background:rgba(28,18,12,.85)!important;
+      transform:translateX(2px);
+    }`;
+  document.head.appendChild(s);
+})();
 
 function renderPickAddSearch(){
   const wrap = document.getElementById('pickSearchResults');
