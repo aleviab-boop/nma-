@@ -5777,7 +5777,11 @@ body.role-madame #page-requests .section{box-sizing:border-box;width:100%;}
    panel, micro-typography, sparse padding so the action card sits
    compact at the top with the pick collage flowing below. */
 body.role-madame #page-requests > .hero{
-  padding:14px 16px 6px!important;max-width:560px!important;margin:0 auto!important;
+  padding:14px 16px 6px!important;
+  /* No max-width / margin:auto — earlier the hero was clamped to 560px
+     centered, which made the title sit awkwardly in the middle of the
+     iPad canvas. Flow full-width with the parent .page handling gutters. */
+  max-width:none!important;margin:0!important;
 }
 body.role-madame #page-requests > .hero .hero-label{font-size:8px!important;letter-spacing:.22em!important;margin-bottom:4px!important;}
 body.role-madame #page-requests > .hero .hero-title{
@@ -5785,7 +5789,9 @@ body.role-madame #page-requests > .hero .hero-title{
   letter-spacing:-.02em;
 }
 body.role-madame #page-requests .section{
-  padding:0 12px 20px!important;max-width:560px!important;margin:0 auto!important;
+  padding:0 16px 20px!important;
+  /* Match the hero — no centered 560px clamp so Pick List flows full-width. */
+  max-width:none!important;margin:0!important;
 }
 body.role-madame #page-requests .section > div{
   padding:10px 12px 12px!important;border-radius:12px!important;
