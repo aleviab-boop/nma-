@@ -5484,6 +5484,24 @@ body.role-madame .hero-runway{display:none!important;}
   .req-hero{padding:24px 22px 18px;}
 }
 
+/* Ops Mobile — the title was rendering at desktop size inside the phone
+   frame and overflowed the available width. Compact override so it
+   reads naturally on a phone screen. */
+body.role-ops-mobile .req-hero{padding:18px 18px 14px!important;}
+body.role-ops-mobile .req-hero-inner{gap:10px!important;}
+body.role-ops-mobile .req-hero-eyebrow{
+  font-size:9px!important;letter-spacing:.18em!important;padding:5px 11px 5px 9px!important;
+}
+body.role-ops-mobile .req-hero-title{
+  font-size:22px!important;line-height:1.12!important;letter-spacing:-.015em!important;
+}
+body.role-ops-mobile .req-hero-title em{padding-right:.08em!important;}
+body.role-ops-mobile .req-hero-meta{gap:8px!important;margin-top:2px!important;}
+body.role-ops-mobile .req-meta-chip{
+  font-size:11px!important;padding:7px 11px!important;gap:6px!important;
+}
+body.role-ops-mobile .req-meta-chip svg{width:11px!important;height:11px!important;}
+
 /* Calm hero — kill all animated wave/orb/petal layers on the Madame home page */
 body.role-madame .page#page-home .hero-ambient,
 body.role-madame .page#page-home .petals,
