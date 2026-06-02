@@ -7008,6 +7008,33 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
   display:flex;gap:14px;padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
 }
 .suggest-slot.is-filled{background:#eef2ff;border-color:#c7d2fe;}
+
+/* Once a piece is picked, collapse the slot to a compact confirmation
+   strip so ops can scroll quickly to the next slot. The textarea + grid
+   stay in the DOM (so toggle is cheap) but get hidden via CSS. Clicking
+   the slot's "Change" button flips it back to .is-editing which restores
+   the full picker. */
+.suggest-slot.is-filled:not(.is-editing) .suggest-picker{display:none;}
+.suggest-slot.is-filled:not(.is-editing) textarea[data-suggest-note]{display:none;}
+.suggest-slot.is-filled .slot-preview{
+  background:#fff;border:1px solid #c7d2fe;border-radius:10px;
+  padding:10px 12px;align-items:center;gap:12px;
+  box-shadow:0 1px 2px rgba(79,70,229,.08);
+}
+.suggest-slot.is-filled .slot-preview .slot-confirm-tick{
+  width:22px;height:22px;border-radius:50%;background:#10b981;color:#fff;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.suggest-slot.is-filled .slot-preview .slot-confirm-tick svg{width:13px;height:13px;stroke:currentColor;stroke-width:3;fill:none;}
+.suggest-slot.is-filled .slot-preview .slot-change-btn{
+  margin-left:auto;padding:6px 12px;border-radius:999px;border:1px solid #c7d2fe;
+  background:#fff;color:#4f46e5;font-size:11px;font-weight:600;
+  font-family:'Inter',-apple-system,sans-serif;cursor:pointer;letter-spacing:.02em;
+  transition:all .18s ease;flex-shrink:0;
+}
+.suggest-slot.is-filled .slot-preview .slot-change-btn:hover{
+  background:#eef2ff;border-color:#a5b4fc;
+}
 .suggest-slot .slot-num{
   width:34px;height:34px;border-radius:50%;background:#4f46e5;color:#fff;
   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;
@@ -14467,8 +14494,10 @@ function openSuggestBuilder(eventId){
           <textarea data-suggest-note="${i}" placeholder="Optional styling note for Madam (e.g., 'pair with polki choker')…">${(s.note || '').replace(/</g,'&lt;')}</textarea>
           <div class="slot-preview" data-preview="${i}">
             ${piece ? `
+              <div class="slot-confirm-tick"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-11"/></svg></div>
               <div class="slot-thumb">${typeof itemImage === 'function' ? itemImage(piece) : ''}</div>
               <div><b>${piece.name}</b> · ${piece.designer}<br><span style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;color:#4f46e5;">${piece.id} · ${piece.loc}</span></div>
+              <button class="slot-change-btn" type="button" data-slot-change="${i}">Change</button>
             ` : ''}
           </div>
         </div>
@@ -14495,13 +14524,35 @@ function openSuggestBuilder(eventId){
     const preview = slot.querySelector(`[data-preview="${i}"]`);
     if (piece){
       slot.classList.add('is-filled');
+      // Collapse out of edit mode so the .is-filled CSS hides the grid
+      slot.classList.remove('is-editing');
       preview.innerHTML = `
+        <div class="slot-confirm-tick"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-11"/></svg></div>
         <div class="slot-thumb">${typeof itemImage === 'function' ? itemImage(piece) : ''}</div>
-        <div><b>${piece.name}</b> · ${piece.designer}<br><span style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;color:#4f46e5;">${piece.id} · ${piece.loc}</span></div>`;
+        <div><b>${piece.name}</b> · ${piece.designer}<br><span style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;color:#4f46e5;">${piece.id} · ${piece.loc}</span></div>
+        <button class="slot-change-btn" type="button" data-slot-change="${i}">Change</button>`;
+      // Auto-scroll the next empty slot into view so ops can keep picking
+      // without manually scrolling. Defer one frame so the layout settles
+      // after the .is-filled class flip collapses this slot.
+      requestAnimationFrame(() => {
+        const nextSlot = slotsRoot.querySelector('.suggest-slot:not(.is-filled)');
+        if (nextSlot) nextSlot.scrollIntoView({ behavior:'smooth', block:'center' });
+      });
     } else {
       slot.classList.remove('is-filled');
+      slot.classList.remove('is-editing');
       preview.innerHTML = '';
     }
+    });
+    // Delegated "Change" button — re-expands the picker for that slot
+    slotsRoot.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-slot-change]');
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const i = btn.dataset.slotChange;
+      const slot = slotsRoot.querySelector(`[data-slot="${i}"]`);
+      if (slot) slot.classList.add('is-editing');
     });
   }
 
