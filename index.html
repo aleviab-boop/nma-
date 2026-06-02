@@ -4925,11 +4925,50 @@ body.role-madame .lb2-visual{border-radius:18px 18px 0 0!important;}
   box-shadow:0 4px 12px -4px rgba(245,212,119,.55);
 }
 
-/* The wardrobe cart icon (top-right of the global topbar) was a holdover
-   from the original boutique-style scaffolding — it never had a real
-   purpose in the three current role flows. Hide it everywhere. */
+/* The legacy boutique cart icon is hidden on Ops / Madame except when
+   it's been repurposed as the Saved (wishlist) shortcut for Madame —
+   see the .role-madame override below. */
 .topbar .cart-btn,
 .topbar #cartBtn{display:none!important;}
+body.role-madame .topbar #cartBtn{display:inline-flex!important;}
+body.role-madame #cartBtn{
+  position:relative;
+  width:42px;height:42px;border-radius:50%;
+  background:rgba(20,12,8,.45)!important;
+  border:1px solid rgba(245,212,119,.28)!important;
+  display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .22s var(--ease);
+}
+body.role-madame #cartBtn:hover{
+  background:rgba(245,212,119,.14)!important;
+  border-color:rgba(245,212,119,.55)!important;
+  transform:translateY(-1px);
+}
+body.role-madame #cartBtn svg{
+  width:18px;height:18px;stroke:var(--gold-bright);stroke-width:1.7;
+  fill:none;transition:fill .22s ease;
+}
+body.role-madame #cartBtn.has-saved svg{
+  fill:#F2A89B;stroke:#F2A89B;
+}
+body.role-madame #cartBtn .cart-count{
+  position:absolute;top:-4px;right:-4px;
+  min-width:18px;height:18px;border-radius:9px;padding:0 5px;
+  background:linear-gradient(135deg,#B0392E,#7A0E1E);color:#fff;
+  font-family:var(--mono);font-size:9.5px;font-weight:700;
+  display:none;align-items:center;justify-content:center;
+  border:1px solid rgba(245,212,119,.4);
+}
+body.role-madame #cartBtn.has-saved .cart-count{display:flex;}
+
+/* Saved (wishlist) page */
+.saved-empty{
+  text-align:center;padding:60px 20px;color:var(--latte);
+}
+.saved-empty svg{width:42px;height:42px;stroke:rgba(245,212,119,.4);margin-bottom:14px;}
+.saved-empty h3{font-family:var(--serif);font-weight:300;font-size:22px;color:var(--ivory);margin-bottom:8px;letter-spacing:-.01em;}
+.saved-empty h3 em{color:var(--gold-bright);font-style:italic;}
+.saved-empty p{font-size:13px;line-height:1.55;max-width:380px;margin:0 auto;}
 
 /* =============================================================
    GUEST LISTS PAGE (Ops Dashboard) — upload guest names and
@@ -8533,8 +8572,8 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
       </div>
       <div class="top-actions">
         <div class="date-chip">Thu · 23 Apr 26</div>
-        <button class="cart-btn" id="cartBtn" title="Saved pieces">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14l-1.5 11H6.5z"/><path d="M9 8V5a3 3 0 0 1 6 0v3"/></svg>
+        <button class="cart-btn" id="cartBtn" title="Saved outfits" aria-label="Saved outfits">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s-8-5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-8 11-8 11z"/></svg>
           <span class="cart-count" id="cartCount">0</span>
         </button>
         <button class="btn-bell" id="bellBtn" title="Notifications">
@@ -9357,6 +9396,26 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
           <div id="upcomingList"></div>
         </div>
       </div>
+    </div>
+
+    <!-- SAVED (wishlist) — Madame's saved pieces, opened from the heart icon. -->
+    <div class="page" id="page-saved">
+      <section class="lb2-hero lb2-hero-min">
+        <div class="lb2-hero-row">
+          <div>
+            <h1 class="lb2-title">Saved</h1>
+            <p class="lb2-subtitle"><span id="savedCountLabel">0 pieces</span> · tap a piece to view, tap the heart to remove</p>
+          </div>
+        </div>
+      </section>
+      <section class="lb2-section">
+        <div class="wardrobe-grid" id="savedGrid"></div>
+        <div class="saved-empty" id="savedEmpty" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 21s-8-5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-8 11-8 11z"/></svg>
+          <h3>Your <em>saved list</em> is empty.</h3>
+          <p>Tap the heart on any piece in the wardrobe or stylist to save it here — your private wishlist of looks to revisit.</p>
+        </div>
+      </section>
     </div>
 
     <!-- LOOKBOOK -->
@@ -12496,12 +12555,57 @@ document.getElementById('qrDownloadBtn')?.addEventListener('click', async (e) =>
   }
 });
 
-/* CART */
+/* CART / SAVED (wishlist) — persisted to localStorage so Madame's
+   heart-saves survive reload. The heart icon in the topbar opens the
+   #page-saved view that renders renderSavedPage() below. */
+const _SAVED_KEY = 'maison.saved';
+(function _loadSavedFromStorage(){
+  try {
+    const arr = JSON.parse(localStorage.getItem(_SAVED_KEY) || '[]');
+    if (Array.isArray(arr)) arr.forEach(id => state.cart.add(id));
+  } catch(_){}
+})();
+function _persistSaved(){
+  try { localStorage.setItem(_SAVED_KEY, JSON.stringify([...state.cart])); } catch(_){}
+}
 function updateCart(){
   const c = document.getElementById('cartCount');
-  c.textContent = state.cart.size;
-  c.classList.add('pop');
-  setTimeout(()=>c.classList.remove('pop'),400);
+  if (c){
+    c.textContent = state.cart.size;
+    c.classList.add('pop');
+    setTimeout(()=>c.classList.remove('pop'),400);
+  }
+  // Toggle the heart "filled" state on the topbar icon so Madame sees at
+  // a glance that she has saved pieces (filled coral) vs nothing (outline).
+  const btn = document.getElementById('cartBtn');
+  if (btn) btn.classList.toggle('has-saved', state.cart.size > 0);
+  // Refresh the saved page if it's the current view
+  if (typeof renderSavedPage === 'function') renderSavedPage();
+  _persistSaved();
+}
+
+/* Render the Saved page — grid of every piece Madame has hearted. Uses
+   the same itemImage + svgFallback cascade as the wardrobe grid. */
+function renderSavedPage(){
+  const grid = document.getElementById('savedGrid');
+  const empty = document.getElementById('savedEmpty');
+  const count = document.getElementById('savedCountLabel');
+  if (!grid) return;
+  const ids = [...state.cart];
+  if (count) count.textContent = `${ids.length} piece${ids.length===1?'':'s'}`;
+  const items = ids.map(id => INVENTORY.find(i => i.id === id)).filter(Boolean);
+  if (!items.length){
+    grid.style.display = 'none';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  grid.style.display = '';
+  if (empty) empty.style.display = 'none';
+  // Reuse the standard renderGarment markup so the cards match the
+  // wardrobe view (cover photo, status pill, heart button, etc.). The
+  // heart on each card already calls toggleFav via the global click
+  // delegator, so removing from Saved is a single tap.
+  grid.innerHTML = items.map(typeof renderGarment === 'function' ? renderGarment : (it)=>`<div>${it.name}</div>`).join('');
 }
 
 function toggleFav(itemId){
@@ -17138,10 +17242,18 @@ document.addEventListener('click', (e) => {
   if (wrap) obs.observe(wrap, { attributes:true, attributeFilter:['style'] });
 })();
 
-// Cart button
+// Heart icon in the topbar — navigates Madame to her Saved (wishlist)
+// page. Cart icon was repurposed; the old toast-only behaviour was a
+// dead-end (no way to actually see what was saved).
 document.getElementById('cartBtn')?.addEventListener('click',()=>{
-  if(state.cart.size===0){ showToast('No saved pieces yet'); return; }
-  showToast(`${state.cart.size} piece${state.cart.size>1?'s':''} saved`);
+  if (typeof renderSavedPage === 'function') renderSavedPage();
+  if (typeof navigateTo === 'function'){
+    navigateTo('saved');
+  } else {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const saved = document.getElementById('page-saved');
+    if (saved) saved.classList.add('active');
+  }
 });
 
 // Slot click -> open gallery
