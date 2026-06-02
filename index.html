@@ -6937,7 +6937,7 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 .confirm-ok.is-safe{background:#4f46e5;border-color:#4f46e5;box-shadow:0 4px 12px -4px rgba(79,70,229,.35);}
 .confirm-ok.is-safe:hover{background:#4338ca;box-shadow:0 6px 16px -4px rgba(79,70,229,.5);}
 
-/* Prompt modal — variant of confirm-card with a text input. */
+/* Prompt modal — variant of confirm-card with a text input or select. */
 .prompt-card{width:min(440px,100%);}
 .prompt-input{
   width:100%;box-sizing:border-box;
@@ -6950,6 +6950,19 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
   border-color:#4f46e5;background:#fff;
   box-shadow:0 0 0 3px rgba(79,70,229,.14);
 }
+/* Select-mode variant: native <select> with chevron, scrollable options.
+   The optgroup labels (Floor / North / South / East / West) come for
+   free from native browser styling. */
+.prompt-select{
+  appearance:none;-webkit-appearance:none;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+    right 14px center no-repeat,
+    #f8fafc;
+  padding-right:38px;cursor:pointer;
+}
+.prompt-select optgroup{font-style:normal;font-weight:600;color:#475569;}
+.prompt-select option{font-weight:400;color:#0f172a;padding:8px;}
 .prompt-hint{
   font-size:11.5px!important;color:#94a3b8!important;
   margin-bottom:18px!important;line-height:1.5;letter-spacing:.005em;
@@ -10858,7 +10871,11 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
     </div>
     <h3 id="promptTitle">Update value</h3>
     <p id="promptMessage">Enter a new value below.</p>
+    <!-- Two input modes — `text` (default) renders the input field,
+         `select` renders the <select> with category / zone groups. Only
+         one is visible at a time, controlled by showPrompt({mode:…}). -->
     <input type="text" id="promptInput" class="prompt-input" autocomplete="off" />
+    <select id="promptSelect" class="prompt-input prompt-select" style="display:none;"></select>
     <p class="prompt-hint" id="promptHint"></p>
     <div class="confirm-actions">
       <button class="confirm-btn confirm-cancel" id="promptCancel" type="button">Cancel</button>
@@ -16255,6 +16272,7 @@ function showPrompt(opts){
     const msg   = document.getElementById('promptMessage');
     const hint  = document.getElementById('promptHint');
     const input = document.getElementById('promptInput');
+    const select = document.getElementById('promptSelect');
     const okBtn = document.getElementById('promptOk');
     const noBtn = document.getElementById('promptCancel');
     if (!modal || !input){
@@ -16266,13 +16284,37 @@ function showPrompt(opts){
     msg.textContent = opts.message || 'Enter a new value below.';
     hint.textContent = opts.hint || '';
     hint.style.display = opts.hint ? '' : 'none';
-    input.value = opts.defaultValue || '';
-    input.placeholder = opts.placeholder || '';
     okBtn.textContent = opts.confirmLabel || 'Save';
     noBtn.textContent = opts.cancelLabel || 'Cancel';
 
+    // Mode switch: 'select' renders the <select> populated from opts.options
+    // (or by a builder if opts.optionsHtml is provided). Default 'text'.
+    const mode = opts.mode === 'select' ? 'select' : 'text';
+    const activeField = mode === 'select' ? select : input;
+    if (mode === 'select' && select){
+      input.style.display = 'none';
+      select.style.display = '';
+      // Build options. Either accept raw HTML (with optgroups) via
+      // opts.optionsHtml, or an array of {value,label} via opts.options.
+      if (opts.optionsHtml){
+        select.innerHTML = opts.optionsHtml;
+      } else if (Array.isArray(opts.options)){
+        select.innerHTML = (opts.placeholder ? `<option value="">— ${opts.placeholder} —</option>` : '')
+          + opts.options.map(o => {
+              if (typeof o === 'string') return `<option value="${o.replace(/"/g,'&quot;')}">${o}</option>`;
+              return `<option value="${(o.value||'').toString().replace(/"/g,'&quot;')}">${o.label || o.value}</option>`;
+            }).join('');
+      }
+      select.value = opts.defaultValue || '';
+    } else {
+      select && (select.style.display = 'none');
+      input.style.display = '';
+      input.value = opts.defaultValue || '';
+      input.placeholder = opts.placeholder || '';
+    }
+
     modal.classList.add('is-on');
-    setTimeout(() => { input.focus(); input.select(); }, 80);
+    setTimeout(() => { activeField.focus(); if (mode !== 'select') activeField.select?.(); }, 80);
 
     function done(result){
       modal.classList.remove('is-on');
@@ -16282,12 +16324,12 @@ function showPrompt(opts){
       document.removeEventListener('keydown', onKey);
       resolve(result);
     }
-    function onOk(){ done(input.value); }
+    function onOk(){ done(activeField.value); }
     function onNo(){ done(null); }
     function onBackdrop(e){ if (e.target === modal) done(null); }
     function onKey(e){
       if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter') done(input.value);
+      else if (e.key === 'Enter' && mode !== 'select') done(activeField.value);
     }
     okBtn.addEventListener('click', onOk);
     noBtn.addEventListener('click', onNo);
@@ -16427,17 +16469,36 @@ document.getElementById('itemModal')?.addEventListener('click',(e)=>{
     if (!item) return;
     const current = item.loc || item.zone || '';
     (async () => {
-      const next = (typeof showPrompt === 'function')
-        ? await showPrompt({
-            title: 'Update location',
-            message: `Where is ${item.name} stored?`,
-            hint: 'e.g. "Floor · Left · F02 · Slot 05" or "Zone A-1"',
-            defaultValue: current,
-            placeholder: 'Enter location code…',
-            confirmLabel: 'Save location',
-            cancelLabel: 'Cancel',
-          })
-        : window.prompt('Update location for this piece:', current);
+      // Build the zone dropdown HTML from the Wardrobe Layout maps so
+      // ops/Madame can pick a real mapped zone instead of free-typing.
+      // Falls back to text input when no zones are mapped yet.
+      let next;
+      const built = (typeof _buildZoneOptionsMarkup === 'function') ? _buildZoneOptionsMarkup() : null;
+      const hasMappedZones = built && Array.isArray(built.codes) && built.codes.length > 0;
+      if (typeof showPrompt === 'function' && hasMappedZones){
+        next = await showPrompt({
+          title: 'Update location',
+          message: `Where is ${item.name} stored?`,
+          hint: 'Pick a zone from your Wardrobe Layout. Add or rename zones in the Wardrobe Layout map.',
+          mode: 'select',
+          optionsHtml: built.html,
+          defaultValue: current,
+          confirmLabel: 'Save location',
+          cancelLabel: 'Cancel',
+        });
+      } else if (typeof showPrompt === 'function'){
+        next = await showPrompt({
+          title: 'Update location',
+          message: `Where is ${item.name} stored?`,
+          hint: 'No zones mapped yet — open Wardrobe Layout to add some, or type a code below.',
+          defaultValue: current,
+          placeholder: 'e.g. F-R01-02 or Zone A-1',
+          confirmLabel: 'Save location',
+          cancelLabel: 'Cancel',
+        });
+      } else {
+        next = window.prompt('Update location for this piece:', current);
+      }
       if (next === null) return;                  // cancelled
       const trimmed = String(next).trim();
       if (trimmed === current) return;            // unchanged
