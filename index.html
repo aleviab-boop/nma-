@@ -18938,6 +18938,34 @@ function applyRoleClass(role){
   if (role === 'ops-dashboard') applyOpsDashboardSidebar();
 }
 
+/* Native-shell + URL-param auto-role
+   Lets the iPad app (MaisonMadame.xcodeproj) launch directly into the
+   Madame view without showing the role picker. The native shell sets
+   window.__MAISON_NATIVE__ = 'ipad' at document-start and we also
+   accept ?role=madame in the query string for browser shortcuts.
+*/
+(function _autoRoleFromShellOrQuery(){
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    const qRole = params.get('role');
+    const isNative = (typeof window !== 'undefined' && window.__MAISON_NATIVE__);
+    // If running inside the iPad shell, force Madame mode and add a
+    // helper class so CSS can hide chrome that doesn't make sense in
+    // a native app (auto-installed PWA prompts, browser-only affordances).
+    if (isNative){
+      document.documentElement.classList.add('native-ipad');
+      // Defer to next tick so the body element exists when we read it
+      requestAnimationFrame(() => {
+        if (!document.body.classList.contains('role-madame')) {
+          applyRoleClass('madame');
+        }
+      });
+    } else if (qRole === 'madame' || qRole === 'ops-dashboard' || qRole === 'ops-mobile'){
+      requestAnimationFrame(() => applyRoleClass(qRole));
+    }
+  } catch(_){}
+})();
+
 /* For Ops Dashboard role: rename "Ops Dashboard" → "Live Inventory",
    inject a "Wardrobe Layout" nav item + Logout button at the bottom. */
 function applyOpsDashboardSidebar(){

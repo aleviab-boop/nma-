@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App identity ------------------------------------------------- -->
+    <key>CFBundleDisplayName</key>
+    <string>Maison</string>
+    <key>CFBundleName</key>
+    <string>MaisonMadame</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
+    <!-- Camera + photo library — needed for the Virtual Try-On flow ---- -->
+    <key>NSCameraUsageDescription</key>
+    <string>Maison uses the camera so Madame can try on garments in real time with the Virtual Try-On feature.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Maison can use a photo from your library as the canvas for Virtual Try-On.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Maison uses voice search to find pieces by designer, colour, or occasion.</string>
+
+    <!-- iPad-only, both landscape + portrait, no rotation lock ---------- -->
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>2</integer> <!-- iPad only -->
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+
+    <!-- Status bar hidden (also enforced in SwiftUI via .statusBarHidden) -->
+    <key>UIStatusBarHidden</key>
+    <true/>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+
+    <!-- App Transport Security — we only call HTTPS endpoints (Vercel,
+         Supabase, qrserver) but keep the explicit allowlist tight. ----- -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+    </dict>
+
+    <!-- SwiftUI scene config — single window, no SceneDelegate file ----- -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
+
+    <!-- Disable iPad multitasking split-view; this UI is full-screen ---- -->
+    <key>UIRequiresFullScreen</key>
+    <true/>
+
+    <!-- Launch screen — uses a storyboard / launch image set; Xcode auto-
+         generates LaunchScreen.storyboard which we override below. ----- -->
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+</dict>
+</plist>
