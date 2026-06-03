@@ -3563,8 +3563,11 @@ body.cam-on .cam-cta-dock,
 
 /* Result state */
 .vto-result-wrap{padding:20px 22px 22px;display:flex;flex-direction:column;}
-.vto-result-stage{position:relative;width:100%;aspect-ratio:4/5;max-height:430px;border-radius:14px;overflow:hidden;background:#000;box-shadow:inset 0 0 0 1px rgba(212,168,74,.22);}
-.vto-result-stage img{width:100%;height:100%;object-fit:cover;display:block;}
+.vto-result-stage{position:relative;width:100%;aspect-ratio:3/4;max-height:560px;border-radius:14px;overflow:hidden;background:#0B0604;box-shadow:inset 0 0 0 1px rgba(212,168,74,.22);display:flex;align-items:center;justify-content:center;}
+/* object-fit:contain (not cover) so the entire garment is visible — the
+   previous cover crop was hiding the top of portrait garments. Width auto
+   keeps the aspect, height fills the stage. */
+.vto-result-stage img{max-width:100%;max-height:100%;width:auto;height:100%;object-fit:contain;display:block;}
 .vto-result-badge{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-bright);background:rgba(11,6,4,.7);backdrop-filter:blur(8px);padding:5px 10px;border-radius:14px;border:1px solid rgba(212,168,74,.3);}
 .vto-result-thumbs{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;}
 .vto-result-thumb{width:42px;height:54px;border-radius:6px;overflow:hidden;background:#0B0604;border:1px solid rgba(212,168,74,.28);box-shadow:inset 0 0 0 1px rgba(245,212,119,.06);}
@@ -17159,10 +17162,22 @@ async function upscaleInBackground(dataUrl, onUpscaled){
     });
     if (!resp.ok) return;
     const json = await resp.json();
-    if (json.success && json.image){
-      const hdUrl = `data:${json.mimeType || 'image/png'};base64,${json.image}`;
-      onUpscaled && onUpscaled(hdUrl);
-    }
+    if (!json.success || !json.image) return;
+    const hdUrl = `data:${json.mimeType || 'image/png'};base64,${json.image}`;
+    // Verify the upscaled data actually loads as an image BEFORE swapping —
+    // a malformed base64 or truncated payload would blank out the visible
+    // result. Only call the swap callback after onload fires successfully.
+    await new Promise((resolve) => {
+      const probe = new Image();
+      probe.onload = () => {
+        try { onUpscaled && onUpscaled(hdUrl); } finally { resolve(); }
+      };
+      probe.onerror = () => resolve(); // silent — keep original preview
+      probe.src = hdUrl;
+      // Safety timeout — if the probe never resolves either way, bail out
+      // after 6s so we don't leak a pending promise.
+      setTimeout(resolve, 6000);
+    });
   } catch (e){ /* silent — preview already shown */ }
 }
 
