@@ -11703,6 +11703,20 @@ if (_stateChannel){
       try {
         _EVENT_SUGGESTIONS_CACHE = JSON.parse(localStorage.getItem('maison.eventSuggestions') || '{}');
       } catch (_) {}
+      // Cross-tab pick-list refresh — re-read the latest IDs another tab
+      // may have written to localStorage and re-render. Suppress the
+      // push-back so we don't bounce the update back to the other tab.
+      try {
+        const ids = JSON.parse(localStorage.getItem('maison.pickList') || 'null');
+        if (Array.isArray(ids)){
+          _suppressPickListPush = true;
+          PICK_IDS.length = 0;
+          ids.forEach(id => PICK_IDS.push(id));
+          PICK_NEEDED_BY = localStorage.getItem('maison.pickList.neededBy') || '';
+          if (typeof renderPickList === 'function') renderPickList();
+          _suppressPickListPush = false;
+        }
+      } catch (_) { _suppressPickListPush = false; }
       if (typeof renderLookbook === 'function') renderLookbook();
       if (typeof renderCalendar === 'function') renderCalendar();
     }
@@ -11897,6 +11911,17 @@ async function initSupabaseLive(){
         (payload) => {
           try {
             const row = (payload && payload.new) || {};
+            // Pick-list sync: every persistPickList() POSTs an audit entry
+            // with kind:'pick-list' and details:{ ids, neededBy, source }.
+            // Other devices' Realtime subscription catches it here and
+            // applies it to PICK_IDS — keeps Madame iPad + Ops Dashboard +
+            // Ops Mobile in sync without a custom table.
+            if (row.kind === 'pick-list'){
+              if (typeof _applyIncomingPickList === 'function'){
+                _applyIncomingPickList(row.details || {});
+              }
+              return; // Don't notify on pick-list housekeeping audits
+            }
             if (typeof _addLocalNotification === 'function'){
               _addLocalNotification({
                 id: 'audit-' + (row.id || Date.now()),
@@ -15547,6 +15572,15 @@ const DEFAULT_PICK_IDS = ['M1001','J2001','J2003','B3001','F4001','M1002'];
 let PICK_IDS = JSON.parse(localStorage.getItem('maison.pickList') || 'null') || DEFAULT_PICK_IDS.slice();
 // "Needed by" date for the whole pick list — persists alongside the IDs.
 let PICK_NEEDED_BY = localStorage.getItem('maison.pickList.neededBy') || '';
+
+// Cross-device dedupe: the audit_log Realtime handler echoes back our own
+// writes too, so we tag each push with a session id and ignore audits that
+// originated from this tab. _lastPickListAudit also acts as a debounce
+// guard so rapid local writes don't fan out a stream of audit entries.
+const _PICKLIST_SESSION_ID = 'sess-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
+let _lastPickListPushedAt = 0;
+let _suppressPickListPush = false;
+
 function persistPickList(){
   localStorage.setItem('maison.pickList', JSON.stringify(PICK_IDS));
   if (PICK_NEEDED_BY){
@@ -15554,6 +15588,76 @@ function persistPickList(){
   } else {
     localStorage.removeItem('maison.pickList.neededBy');
   }
+  // Cross-device sync — POST a pick-list audit entry so other devices'
+  // Realtime audit_log subscription picks it up. Debounced 600ms to
+  // avoid fan-out on rapid writes. _suppressPickListPush is set true
+  // when we apply an INCOMING pick-list update so we don't echo it back.
+  if (_suppressPickListPush) return;
+  const now = Date.now();
+  if (now - _lastPickListPushedAt < 600) return;  // debounce
+  _lastPickListPushedAt = now;
+  try {
+    fetch('/api/audit-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        kind: 'pick-list',
+        what: `Pick list updated · ${PICK_IDS.length} piece${PICK_IDS.length===1?'':'s'}`,
+        actor: 'system',
+        details: {
+          source: _PICKLIST_SESSION_ID,
+          ids: PICK_IDS.slice(0, 40),  // safety cap
+          neededBy: PICK_NEEDED_BY || null
+        }
+      })
+    }).catch(()=>{ /* offline — localStorage still saved */ });
+  } catch(_){}
+  // Also fan out to other tabs in the same browser
+  if (typeof broadcastStateChange === 'function') broadcastStateChange();
+}
+
+/* Apply an incoming pick-list audit entry. Skipped if it originated from
+   this same tab (source matches our session id), or if it's older than
+   our last local write. */
+function _applyIncomingPickList(details){
+  if (!details || !Array.isArray(details.ids)) return;
+  if (details.source === _PICKLIST_SESSION_ID) return; // our own echo
+  _suppressPickListPush = true;
+  try {
+    PICK_IDS.length = 0;
+    details.ids.forEach(id => PICK_IDS.push(id));
+    if (details.neededBy != null) PICK_NEEDED_BY = details.neededBy || '';
+    // Save locally so the next tab opens with this state
+    localStorage.setItem('maison.pickList', JSON.stringify(PICK_IDS));
+    if (PICK_NEEDED_BY){
+      localStorage.setItem('maison.pickList.neededBy', PICK_NEEDED_BY);
+    } else {
+      localStorage.removeItem('maison.pickList.neededBy');
+    }
+    if (typeof renderPickList === 'function') renderPickList();
+  } finally {
+    _suppressPickListPush = false;
+  }
+}
+
+/* Boot-time hydrate: fetch the most recent pick-list audit entry so a
+   device coming online for the first time picks up whatever state the
+   other devices have already committed. Runs after audit_log realtime
+   is subscribed so we don't miss intermediate updates. */
+async function _hydratePickListFromAuditLog(){
+  try {
+    const r = await fetch('/api/audit-log?limit=80', { cache:'no-store' });
+    const j = await r.json();
+    if (!j || !j.success || !Array.isArray(j.entries)) return;
+    const latest = j.entries.find(e => e.kind === 'pick-list');
+    if (latest) _applyIncomingPickList(latest.details);
+  } catch(_){ /* offline — keep local state */ }
+}
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => { setTimeout(_hydratePickListFromAuditLog, 600); });
+} else {
+  setTimeout(_hydratePickListFromAuditLog, 600);
 }
 
 // Pretty-format the "needed by" date for the meta string (e.g. "by 23 May")
