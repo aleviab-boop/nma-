@@ -12283,18 +12283,38 @@ function renderGarment(item){
 
 function paintRecentlyAdded(){
   const cutoff = Date.now() - 14*24*60*60*1000;
-  // Dedupe by id — Realtime ticks + baseline merges can leave the same
-  // item in INVENTORY twice, which surfaced as a duplicate card in the
-  // Recently Added strip on Madame's home page. Keep the most recently
-  // added copy when duplicates occur.
-  const seenIds = new Set();
+  // Multi-key dedupe — Realtime ticks + baseline merges + ops captures
+  // can leave the same garment in INVENTORY multiple times under
+  // different ids/skus (Supabase-assigned UUIDs after a re-capture, for
+  // example). Keying on id alone wasn't enough — duplicate captures
+  // showed as side-by-side cards on Madame's Recently Added strip.
+  // Now we reject on the FIRST matching key:
+  //   - id        (canonical row identifier)
+  //   - sku       (legacy/baseline identifier)
+  //   - photo URL (same Supabase Storage file → same garment)
+  //   - name + designer normalised (catches re-captures with new ids)
+  const seen = new Set();
+  function dedupKeys(i){
+    const keys = [];
+    if (i.id)  keys.push('id:'  + i.id);
+    if (i.sku) keys.push('sku:' + i.sku);
+    if (i.photo) keys.push('ph:' + i.photo);
+    if (i.capturedPhoto) keys.push('cp:' + i.capturedPhoto.slice(0,80));
+    const n = String(i.name || '').toLowerCase().replace(/\s+/g,' ').trim();
+    const d = String(i.designer || '').toLowerCase().replace(/\s+/g,' ').trim();
+    if (n && d) keys.push('nd:' + n + '|' + d);
+    else if (n) keys.push('n:' + n);
+    return keys;
+  }
   const recent = INVENTORY
     .filter(i => i.addedAt && i.addedAt >= cutoff)
     .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0))
     .filter(i => {
-      const key = i.id || i.sku || `${i.name}|${i.designer}`;
-      if (seenIds.has(key)) return false;
-      seenIds.add(key);
+      const keys = dedupKeys(i);
+      // Reject if ANY key already seen — the newest copy wins (we
+      // already sorted by addedAt desc).
+      for (const k of keys) if (seen.has(k)) return false;
+      keys.forEach(k => seen.add(k));
       return true;
     });
   const html = recent.map(renderGarment).join('');
