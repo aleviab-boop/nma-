@@ -1318,9 +1318,9 @@ body.role-ops-dashboard .sidebar-collapse-toggle{
 }
 body.role-ops-dashboard .sidebar-collapse-toggle:hover{background:#dbeafe;border-color:#2563eb;}
 
-/* Collapsed state — grid column shrinks, sidebar narrows, labels hide */
-body.sidebar-collapsed .app{grid-template-columns:64px 1fr;}
-body.sidebar-collapsed .sidebar{padding-left:6px!important;padding-right:6px!important;}
+/* Collapsed state — grid column shrinks to 52px (icon-only), sidebar narrows, labels hide */
+body.sidebar-collapsed .app{grid-template-columns:52px 1fr;}
+body.sidebar-collapsed .sidebar{padding-left:2px!important;padding-right:2px!important;}
 body.sidebar-collapsed .sidebar .logo,
 body.sidebar-collapsed .sidebar .logo-sub,
 body.sidebar-collapsed .sidebar .nav-label,
@@ -1333,19 +1333,19 @@ body.sidebar-collapsed .sidebar-footer .user-chip > div:not(.avatar){
 }
 body.sidebar-collapsed .sidebar .nav-item,
 body.sidebar-collapsed .sidebar .sidebar-action{
-  justify-content:center!important;padding:11px 0!important;width:52px;margin:0 auto 2px;
+  justify-content:center!important;padding:10px 0!important;width:44px;margin:0 auto 2px;
   position:relative;
 }
 body.sidebar-collapsed .sidebar .nav-item svg,
 body.sidebar-collapsed .sidebar .sidebar-action svg{
-  width:20px!important;height:20px!important;margin:0!important;
+  width:18px!important;height:18px!important;margin:0!important;
 }
-body.sidebar-collapsed .sidebar-footer .user-chip{justify-content:center!important;padding:8px!important;}
+body.sidebar-collapsed .sidebar-footer .user-chip{justify-content:center!important;padding:6px!important;}
 body.sidebar-collapsed .sidebar-footer .avatar{margin:0!important;}
 body.sidebar-collapsed .sidebar-footer button:not(.user-chip){
-  width:44px;height:44px;padding:0!important;margin:6px auto!important;
+  width:38px;height:38px;padding:0!important;margin:6px auto!important;
 }
-body.sidebar-collapsed .sidebar-collapse-toggle{position:relative;top:0;right:0;margin:8px auto 14px;}
+body.sidebar-collapsed .sidebar-collapse-toggle{position:relative;top:0;right:0;margin:8px auto 12px;width:26px;height:26px;}
 
 /* Tooltip on hover when collapsed */
 body.sidebar-collapsed .sidebar .nav-item:hover::after,
@@ -1365,7 +1365,15 @@ body.role-ops-dashboard.sidebar-collapsed .sidebar .sidebar-action:hover::after{
 }
 
 /* When sidebar is collapsed, shift the Wardrobe Layout modal left edge too */
-body.role-ops-dashboard.sidebar-collapsed .wlayout-modal{left:64px;}
+body.role-ops-dashboard.sidebar-collapsed .wlayout-modal{left:52px;}
+/* Belt-and-braces — keep the sidebar visible/clickable even when the
+   Wardrobe Layout modal is open. The modal's z-index is 2700, sidebar
+   sits below it but at its own grid column to the left, so as long as
+   the modal honours the left offset the sidebar stays interactive. */
+body.role-ops-dashboard .wlayout-modal.show ~ .sidebar,
+body.role-ops-dashboard .sidebar{
+  z-index:2800; /* above the wlayout modal so clicks land on nav items */
+}
 /* Tablet/auth gates — when user is not yet authed, hide app chrome */
 body.gate-active .app{display:none;}
 body.gate-active .royal-petals,body.gate-active .paisley{display:none;}
@@ -7378,25 +7386,11 @@ body.role-madame .confirm-ok.is-safe{
 
 /* Floating red × close button — anchored top-right of the viewport.
    Pure icon, no text. */
-.wlayout-close-floating{
-  position:fixed;top:18px;right:22px;z-index:2710;
-  width:44px;height:44px;border-radius:50%;
-  background:#dc2626;color:#ffffff;
-  border:1px solid #b91c1c;cursor:pointer;
-  display:grid;place-items:center;
-  box-shadow:0 6px 18px -4px rgba(220,38,38,.5),0 2px 4px rgba(15,23,42,.12);
-  transition:all .18s ease;
-}
-.wlayout-close-floating svg{width:18px;height:18px;stroke:#fff;stroke-width:2.6;fill:none;}
-.wlayout-close-floating:hover{
-  background:#b91c1c;border-color:#991b1b;
-  transform:rotate(90deg);
-}
-.wlayout-close-floating:active{transform:rotate(90deg) scale(.94);}
-.wlayout-close-floating:focus-visible{outline:2px solid #fff;outline-offset:3px;}
-/* Only visible when the modal is actually open */
-.wlayout-modal:not(.show) .wlayout-close-floating,
-.wlayout-modal:not(.show) ~ .wlayout-close-floating{display:none;}
+/* Floating red × close button — REMOVED per user request. Users now
+   close the Wardrobe Layout by clicking any other item in the sidebar.
+   Markup left in place so existing handlers (Escape key, modal backdrop
+   click) keep functioning; the button itself is hidden via display:none. */
+.wlayout-close-floating{display:none!important;}
 
 .wlayout-body{flex:1;display:grid;grid-template-columns:1fr 280px;gap:0;overflow:hidden;min-height:0;}
 .wlayout-body.no-side{grid-template-columns:1fr;}
@@ -19424,6 +19418,21 @@ function closeWardrobeLayout(){
 document.getElementById('wlayoutClose')?.addEventListener('click', closeWardrobeLayout);
 document.getElementById('wlayoutClose2')?.addEventListener('click', closeWardrobeLayout);
 document.getElementById('wlayoutCloseFloating')?.addEventListener('click', closeWardrobeLayout);
+
+// Sidebar navigation now closes the Wardrobe Layout — users toggle
+// between pages via the side bar instead of a dedicated close button.
+// Any nav-item (other than open-wlayout itself) or any sidebar-action
+// that ISN'T the open-wlayout trigger dismisses the modal first, then
+// lets the default click handler run navigateTo() on the chosen page.
+document.addEventListener('click', (e) => {
+  const m = document.getElementById('wlayoutModal');
+  if (!m || !m.classList.contains('show')) return;
+  const navItem = e.target.closest('.sidebar .nav-item, .sidebar .sidebar-action');
+  if (!navItem) return;
+  // If they tapped "Wardrobe Layout" itself, leave the modal open.
+  if (navItem.dataset.action === 'open-wlayout') return;
+  closeWardrobeLayout();
+});
 // Escape closes the layout too — matches the title="Close (Esc)" hint
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
