@@ -20157,21 +20157,37 @@ function openThisWeek(){
   modal.classList.add('show');
 }
 
+/* Unified nav-highlight refresh — keeps the sidebar (.nav-item), the
+   bottom-nav (.b-item), and the hamburger drawer (.drawer-item) all
+   showing the same active page. Previously only the bottom-nav got
+   resynced post-transition, so the sidebar could end up highlighting
+   a stale page (e.g. "Lookbook" while the user was on Wardrobe). */
 function refreshBottomNavActive(){
   const active = document.querySelector('.page.active')?.id?.replace('page-','');
   document.querySelectorAll('.bottom-nav .b-item[data-page]').forEach(b=>{
     b.classList.toggle('active', b.dataset.page === active);
   });
+  document.querySelectorAll('.sidebar .nav-item[data-page]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page === active);
+  });
+  document.querySelectorAll('#drawerNavList .drawer-item[data-page]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page === active);
+  });
 }
 
-// Wrap navigateTo so bottom-nav highlight stays in sync with the page transition.
-// The transition itself takes ~320ms; we fire updates twice to cover both
-// the immediate target and the post-transition completion.
+// Wrap navigateTo so every nav surface stays in sync with the page
+// transition AND so the browser back button moves WITHIN the app
+// instead of exiting it entirely.
 const _navigateInner = navigateTo;
-navigateTo = function(page){
+navigateTo = function(page, opts){
+  opts = opts || {};
   _navigateInner(page);
-  // Optimistic update — mark the target tab active right away
+  // Optimistic update — mark the target tab active right away across
+  // all three nav surfaces (sidebar, bottom-nav, drawer).
   document.querySelectorAll('.bottom-nav .b-item[data-page]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page === page);
+  });
+  document.querySelectorAll('.sidebar .nav-item[data-page]').forEach(b=>{
     b.classList.toggle('active', b.dataset.page === page);
   });
   document.querySelectorAll('#drawerNavList .drawer-item').forEach(b=>{
@@ -20179,7 +20195,41 @@ navigateTo = function(page){
   });
   // Authoritative re-sync once the new page becomes the .active page
   setTimeout(refreshBottomNavActive, 380);
+
+  // Browser-history integration — push a state entry tagged with the
+  // page name so Chrome's back button moves to the previous SPA page
+  // instead of leaving the app. opts.fromPopState=true means the call
+  // came from the popstate handler itself; skip the push so we don't
+  // build up an infinite history stack.
+  if (!opts.fromPopState){
+    try {
+      history.pushState({ maisonPage: page }, '', '#' + page);
+    } catch (_) { /* silent — history API blocked in some embed contexts */ }
+  }
 };
+
+// Browser back / forward button — navigate to the page the user came
+// from instead of leaving the app. Reads the page name from the state
+// entry pushed by navigateTo (or from the URL hash as a fallback).
+window.addEventListener('popstate', (ev) => {
+  const fromState = (ev.state && ev.state.maisonPage) ? ev.state.maisonPage : null;
+  const fromHash  = (location.hash || '').replace(/^#/, '');
+  const target = fromState || fromHash || 'home';
+  if (document.getElementById('page-' + target)){
+    navigateTo(target, { fromPopState: true });
+  } else {
+    navigateTo('home', { fromPopState: true });
+  }
+});
+
+// Seed the initial history entry on first load so the first back press
+// has something to land on (Madame's home page).
+(function _seedNavHistory(){
+  try {
+    const initialPage = document.querySelector('.page.active')?.id?.replace('page-','') || 'home';
+    history.replaceState({ maisonPage: initialPage }, '', '#' + initialPage);
+  } catch (_) {}
+})();
 
 /* Ops Dashboard hamburger drawer */
 function renderDrawerNav(){
