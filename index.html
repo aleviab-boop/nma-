@@ -18454,15 +18454,33 @@ function renderRecentCaptures(){
   const el = document.getElementById('recentCaptures');
   if(!el) return;
   // Show session captures first, then a slice of the curated inventory.
-  // Dedupe by id — captured items are pushed into BOTH mobileCapturedToday
-  // AND INVENTORY, so without this guard each fresh capture would appear
-  // twice in the strip (once as session, once as seeded).
-  const seeded = INVENTORY.slice(0,6);
+  // Multi-key dedupe — same garment can land in INVENTORY under multiple
+  // ids when ops captures it more than once (Supabase assigns a fresh
+  // UUID per upload). Without this we'd see the same Gold Blue twice on
+  // the Ops Mobile recent strip. Reject on any matching key:
+  //   id, sku, photo URL, capturedPhoto prefix, name+designer normalised.
+  const seeded = INVENTORY.slice(0, 14); // wider window so dedup has room
   const seen = new Set();
+  function dedupKeys(i){
+    const keys = [];
+    if (i.id)  keys.push('id:'  + i.id);
+    if (i.sku) keys.push('sku:' + i.sku);
+    if (i.photo) keys.push('ph:' + i.photo);
+    if (i.capturedPhoto) keys.push('cp:' + i.capturedPhoto.slice(0, 80));
+    const n = String(i.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const d = String(i.designer || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (n && d) keys.push('nd:' + n + '|' + d);
+    else if (n) keys.push('n:' + n);
+    return keys;
+  }
   const all = [];
   for (const i of [...mobileCapturedToday, ...seeded]){
-    if (!i || !i.id || seen.has(i.id)) continue;
-    seen.add(i.id);
+    if (!i) continue;
+    const keys = dedupKeys(i);
+    let dup = false;
+    for (const k of keys){ if (seen.has(k)) { dup = true; break; } }
+    if (dup) continue;
+    keys.forEach(k => seen.add(k));
     all.push(i);
     if (all.length >= 10) break;
   }
