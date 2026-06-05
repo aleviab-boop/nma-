@@ -11389,14 +11389,17 @@ function renderNotifPanel(){
   const countEl = document.getElementById('notifCount');
   if (!list || !bell) return;
 
-  // FILTER: garment-added only — no removed/edited noise
+  // FILTER: garment-added only — no removed/edited noise.
+  // Older code wrote n.type='garment-added'; the newer cross-device path
+  // writes n.kind='garment-added'. Accept both so legacy + new
+  // notifications all surface. ts fallbacks to addedAt for the same reason.
   const all = (NOTIFICATIONS || [])
-    .filter(n => n && n.type === 'garment-added')
+    .filter(n => n && (n.type === 'garment-added' || n.kind === 'garment-added'))
     .slice()
-    .sort((a,b) => (b.ts||0) - (a.ts||0));
+    .sort((a,b) => ((b.ts||b.addedAt||0) - (a.ts||a.addedAt||0)));
 
   const lastRead = getPanelLastReadTs();
-  const unread = all.filter(n => (n.ts || 0) > lastRead).length;
+  const unread = all.filter(n => (n.ts || n.addedAt || 0) > lastRead).length;
   bell.classList.toggle('has-unread', unread > 0);
   if (countEl) countEl.textContent = unread > 9 ? '9+' : String(unread);
   if (sub){
@@ -11419,14 +11422,15 @@ function renderNotifPanel(){
   const startOfYesterday = startOfToday - 86_400_000;
   const groups = { today: [], yesterday: [], earlier: [] };
   for (const n of all){
-    const ts = n.ts || 0;
+    const ts = n.ts || n.addedAt || 0;
     if (ts >= startOfToday) groups.today.push(n);
     else if (ts >= startOfYesterday) groups.yesterday.push(n);
     else groups.earlier.push(n);
   }
   function renderTile(n){
     const photoSrc = n.photo || (n.itemId && (typeof PHOTO_MAP !== 'undefined') && PHOTO_MAP[n.itemId]) || '';
-    const isUnread = (n.ts || 0) > lastRead;
+    const ts = n.ts || n.addedAt || 0;
+    const isUnread = ts > lastRead;
     const designer = n.designer || 'Added to wardrobe';
     return `
       <div class="notif-tile ${isUnread?'unread':''}" data-item="${n.itemId || ''}">
@@ -11434,7 +11438,7 @@ function renderNotifPanel(){
         <div class="info">
           <div class="n">${n.name || 'New piece'}</div>
           <div class="d">${designer}</div>
-          <div class="when">${_fmtNotifTime(n.ts || Date.now())}${n.zone ? ' · Zone ' + n.zone : ''}</div>
+          <div class="when">${_fmtNotifTime(ts || Date.now())}${n.zone ? ' · Zone ' + n.zone : ''}</div>
         </div>
         <span class="badge">Added</span>
       </div>`;
