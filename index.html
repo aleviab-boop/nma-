@@ -11491,69 +11491,111 @@ function _persistNotifications(){
   try { localStorage.setItem('maison.notifications', JSON.stringify(NOTIFICATIONS.slice(0, 30))); } catch (_) {}
 }
 
-/* Cross-device notification catch-up.
-   When Madame opens the iPad app, she should see notifications for
-   pieces that ops captured on the phone WHILE she was offline. Realtime
-   only delivers events that fire while the device is connected — so on
-   every boot we fetch the most recent audit_log entries with kind='intake'
-   and seed any notifications she hasn't seen yet.
+/* Cross-device notification catch-up — items diff approach.
 
-   Dedupe is by audit_log row id (mapped to a stable notification id
-   prefix). Audit entries older than the last existing notification get
-   skipped so we don't backfill ancient captures every boot.
+   The previous audit_log strategy was fragile: it required the intake
+   POST to also fire logAudit() successfully, AND for the audit_log
+   Supabase table to have the row before the hydrate ran. If either
+   leg failed silently, Madame on her iPad never got the notification
+   for pieces ops captured on the phone.
+
+   New approach: source of truth is the canonical /api/items endpoint.
+   On every boot we fetch the latest item list, compare against the
+   ids we saw last time (cached in localStorage), and for every NEW id
+   that has a recent addedAt we synthesise a "garment-added"
+   notification. The last-seen id set is then refreshed.
+
+   Bonus: this also catches items uploaded before audit_log existed.
 */
-async function _hydrateNotificationsFromAuditLog(){
+async function _hydrateNotificationsFromItems(){
   try {
-    const r = await fetch('/api/audit-log?limit=50', { cache: 'no-store' });
+    // Read the canonical inventory off the API — Supabase items + photos
+    const r = await fetch('/api/items', { cache: 'no-store' });
     const j = await r.json();
-    if (!j || !j.success || !Array.isArray(j.entries)) return;
-    // Find the newest "garment-added" notification we already know about
-    // so we only seed entries newer than it (avoids repainting the bell
-    // every boot with old intake records).
-    const knownNewestTs = (NOTIFICATIONS || [])
-      .filter(n => n && (n.kind === 'garment-added' || n.kind === 'intake'))
-      .reduce((acc, n) => Math.max(acc, n.addedAt || n.ts || 0), 0);
-
+    if (!j || !j.success || !Array.isArray(j.items)) return;
+    // Last-seen set: ids we've already shown notifications for
+    let seenIds = new Set();
+    try {
+      const raw = JSON.parse(localStorage.getItem('maison.notifSeenIds') || '[]');
+      if (Array.isArray(raw)) seenIds = new Set(raw);
+    } catch(_){}
+    // Only notify for items added in the last 7 days — anything older is
+    // historical inventory the user has presumably already seen.
+    const RECENT_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
     const toAdd = [];
-    for (const e of j.entries){
-      if (!e || e.kind !== 'intake') continue;
-      const ts = e.ts || 0;
-      if (knownNewestTs && ts <= knownNewestTs) continue;  // already seen
-      const meta = e.details || {};
-      const id = 'audit-' + e.id;
-      if (NOTIFICATIONS.some(n => n && n.id === id)) continue;
+    for (const it of j.items){
+      const id = it.id || it.sku;
+      if (!id) continue;
+      const addedAt = it.addedAt || (it.created_at ? new Date(it.created_at).getTime() : 0);
+      if (!addedAt || (now - addedAt) > RECENT_MS) continue;
+      if (seenIds.has(id)) continue;
+      // Also skip if NOTIFICATIONS already has a matching id
+      const notifId = 'item-' + id;
+      if (NOTIFICATIONS.some(n => n && n.id === notifId)) continue;
       toAdd.push({
-        id,
+        id: notifId,
         kind: 'garment-added',
-        name: meta.name || (e.what || '').replace(/^New piece captured — /, ''),
-        designer: meta.designer || '',
-        photo: meta.photo || null,
-        addedAt: ts,
-        ts
+        name: it.name || 'New piece',
+        designer: it.designer || '',
+        photo: it.photo || null,
+        addedAt,
+        ts: addedAt
       });
+      seenIds.add(id);
     }
+    // Always update the seen-ids cache so future boots compare against the
+    // full current inventory (otherwise we'd keep re-notifying the same
+    // pieces if NOTIFICATIONS gets cleared).
+    try {
+      // Cap at last 300 ids to keep localStorage tight
+      const allIds = (j.items || []).map(it => it.id || it.sku).filter(Boolean);
+      const merged = [...new Set([...allIds, ...seenIds])].slice(0, 300);
+      localStorage.setItem('maison.notifSeenIds', JSON.stringify(merged));
+    } catch(_){}
     if (!toAdd.length) return;
-    // Prepend in chronological order so newest ends up first
+    // Prepend in newest-first order
     toAdd.sort((a,b) => (b.ts||0) - (a.ts||0));
     NOTIFICATIONS = [...toAdd, ...NOTIFICATIONS].slice(0, 30);
     _persistNotifications();
     if (typeof renderNotifPanel === 'function') renderNotifPanel();
-    // Pulse the bell so Madame notices the unread badge updated
+    // Pulse the bell so Madame notices new items waiting
     const bell = document.getElementById('bellBtn');
-    if (bell && toAdd.length > 0){
+    if (bell){
       bell.classList.add('just-arrived');
       setTimeout(()=> bell.classList.remove('just-arrived'), 2400);
     }
-  } catch (_) { /* offline — keep local cache */ }
+    // Madame-specific toast highlighting the freshest piece
+    if (document.body.classList.contains('role-madame') && typeof showToast === 'function'){
+      const newest = toAdd[0];
+      const label = toAdd.length === 1
+        ? `✨ New piece in your wardrobe — ${newest.name}${newest.designer ? ' by ' + newest.designer : ''}`
+        : `✨ ${toAdd.length} new pieces added to your wardrobe`;
+      showToast(label);
+    }
+  } catch (e) {
+    console.warn('[notifications] items hydrate failed', e);
+  }
 }
-// Kick off the catch-up shortly after boot so the first paint isn't
-// blocked. 800ms delay lets initSupabaseLive subscribe to Realtime
-// first, so we don't fight a concurrent live INSERT for the same row.
+// Kick off shortly after boot — 800ms delay so the initial paint isn't
+// blocked and Realtime has time to subscribe (so we don't fight a
+// concurrent live INSERT for the same row).
+function _scheduleNotifHydrate(){
+  setTimeout(_hydrateNotificationsFromItems, 800);
+}
 if (document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', () => setTimeout(_hydrateNotificationsFromAuditLog, 800));
+  document.addEventListener('DOMContentLoaded', _scheduleNotifHydrate);
 } else {
-  setTimeout(_hydrateNotificationsFromAuditLog, 800);
+  _scheduleNotifHydrate();
 }
+// Re-run when the tab becomes visible again (user returns from another tab
+// or comes back to the iPad app) so they immediately see anything captured
+// while they were away.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible'){
+    setTimeout(_hydrateNotificationsFromItems, 300);
+  }
+});
 
 let SERVER_REMOVALS = new Set();
 
@@ -20001,11 +20043,10 @@ document.getElementById('captureConfirmModal')?.addEventListener('click', (e)=>{
 let _aiPendingResult = null;
 let _aiResultPromise = null;
 
-/* Client-side palette extraction — guaranteed colour detection even when
-   the AI endpoint is offline or unconfigured. Samples ~2000 pixels from
-   the image, buckets them into 12 hue/brightness bins, and returns the
-   3 most populated bins as hex colours. Skips near-white/black noise so
-   the result reflects the garment, not the background. */
+/* Client-side palette extraction — safety net when the AI provider is
+   unavailable. Restricts sampling to the CENTER 60% of the image (where
+   the garment typically sits) so background pixels don't dominate the
+   bucket counts. Skips near-white / near-black / low-chroma noise. */
 async function _extractClientPalette(dataUrl){
   return new Promise((resolve) => {
     const img = new Image();
@@ -20013,23 +20054,25 @@ async function _extractClientPalette(dataUrl){
     img.onerror = () => resolve(null);
     img.onload = () => {
       try {
-        const W = 96, H = Math.max(64, Math.round(W * (img.height / img.width)));
+        const W = 128, H = Math.max(96, Math.round(W * (img.height / img.width)));
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(img, 0, 0, W, H);
-        const data = ctx.getImageData(0, 0, W, H).data;
+        // Sample only the centre 60% rectangle — avoids backdrop / studio
+        // floor pixels that would otherwise dominate the histogram.
+        const xMin = Math.floor(W * 0.20), xMax = Math.ceil(W * 0.80);
+        const yMin = Math.floor(H * 0.15), yMax = Math.ceil(H * 0.90);
+        const data = ctx.getImageData(xMin, yMin, xMax - xMin, yMax - yMin).data;
         const buckets = new Map();
         for (let i = 0; i < data.length; i += 4){
           const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
           if (a < 128) continue;
-          // Skip near-white / near-black backgrounds
           const lum = 0.299*r + 0.587*g + 0.114*b;
-          if (lum > 240 || lum < 16) continue;
-          // Skip greys (low chroma)
+          if (lum > 235 || lum < 20) continue;          // skip near-white / near-black
           const max = Math.max(r,g,b), min = Math.min(r,g,b);
-          if (max - min < 18) continue;
-          // Quantise to a coarse bucket
+          if (max - min < 22) continue;                 // skip low-chroma greys
+          // Slightly finer 16-step bucket so similar shades coalesce
           const key = (r >> 4) + '|' + (g >> 4) + '|' + (b >> 4);
           buckets.set(key, (buckets.get(key) || 0) + 1);
         }
@@ -20048,12 +20091,16 @@ async function _extractClientPalette(dataUrl){
 }
 
 async function detectGarmentAI(dataUrl){
-  // Always extract palette on the client first — even if the server call
-  // fails or returns demo, we have a real colour read from the image.
-  const clientPalette = await _extractClientPalette(dataUrl);
+  // Client-side palette as a SAFETY NET — only used when the AI provider
+  // returns nothing useful. The AI vision model sees the whole composition
+  // and identifies actual garment colours; the pixel sampler can be fooled
+  // by busy backgrounds, lighting, or shadow regions. We trust the AI when
+  // it answers, and fall back to client extraction only when it doesn't.
+  let clientPalette = null;
+  const clientPalettePromise = _extractClientPalette(dataUrl).then(p => { clientPalette = p; });
   try {
     // Compress the image down before sending — Vercel has a body limit and
-    // Gemini doesn't need a high-res image to classify it.
+    // the model doesn't need a high-res image to classify it.
     let smallDataUrl = dataUrl;
     if (typeof compressDataUrl === 'function'){
       try { smallDataUrl = await compressDataUrl(dataUrl, 512, 0.7); } catch(_){}
@@ -20066,23 +20113,22 @@ async function detectGarmentAI(dataUrl){
     });
     const j = await r.json();
     if (j && j.success){
-      // Prefer the client-extracted palette when available — it's sampled
-      // directly from the user's photo, more accurate than the model's
-      // colour guess. Server palette as fallback for when client extraction
-      // failed (CORS, decode error, etc.).
-      if (clientPalette && Array.isArray(clientPalette) && clientPalette.length === 3){
-        j.palette = clientPalette;
+      // Trust the AI's palette — it just looked at the whole image and
+      // picked the dominant garment colours. Only patch in the client
+      // palette if the AI returned an empty / malformed array.
+      if (!Array.isArray(j.palette) || j.palette.length < 3){
+        await clientPalettePromise;
+        if (clientPalette && clientPalette.length === 3) j.palette = clientPalette;
       }
       return j;
     }
-    // Server returned demo / failure but we still have the client palette
-    // and at least a best-guess category from category heuristics.
+    // Server returned demo / failure — fall back to client palette.
+    await clientPalettePromise;
     if (clientPalette){
       return {
         success: false,
         demo: true,
         palette: clientPalette,
-        // Heuristic name + cat: dominant warm vs cool tone hints category
         name: 'New Garment',
         cat: 'gown',
         designer: 'Pending',
@@ -20092,6 +20138,7 @@ async function detectGarmentAI(dataUrl){
     }
   } catch(_){}
   // Last resort — at least return the client palette if we got that far
+  await clientPalettePromise;
   if (clientPalette){
     return {
       success: false, demo: true, palette: clientPalette,
