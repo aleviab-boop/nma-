@@ -6878,11 +6878,23 @@ body.role-ops-dashboard .sidebar-action.danger:hover{background:#fef2f2;}
 /* ============================================================
    Wardrobe Layout modal — upload + preview
    ============================================================ */
-/* Wardrobe Layout — full-screen page (not a popup overlay).
-   Fills the viewport edge-to-edge so it feels like a dedicated section
-   of the dashboard rather than a modal hovering over content. */
-.wlayout-modal{position:fixed;inset:0;z-index:2700;display:none;background:#f8fafc;padding:0;}
+/* Wardrobe Layout — opens as a panel to the right of the Ops Dashboard
+   sidebar so the nav stays visible while editing the map. The .app grid
+   reserves 220px for the sidebar on Ops Dashboard, so the modal's left
+   edge starts at that offset. Madame and Ops Mobile (no persistent
+   sidebar) keep the full-screen behaviour. */
+.wlayout-modal{position:fixed;top:0;right:0;bottom:0;left:0;z-index:2700;display:none;background:#f8fafc;padding:0;}
 .wlayout-modal.show{display:block;animation:fadeIn .2s ease-out;}
+/* Ops Dashboard: shift the modal right by the sidebar width so the nav
+   remains tappable while the Wardrobe Layout map is open. */
+body.role-ops-dashboard .wlayout-modal{left:220px;}
+/* Floating red × close button needs to clear the sidebar too, otherwise
+   it sits over the nav. The button is anchored to viewport right edge
+   so no offset adjustment needed — but DO suppress the version that
+   appears flush-left on small screens. */
+@media (min-width:900px){
+  body.role-ops-dashboard .wlayout-close-floating{right:22px;}
+}
 .wlayout-card{
   position:relative;width:100%;max-width:none;height:100vh;max-height:100vh;
   background:#fff;border:0;border-radius:0;box-shadow:none;overflow:hidden;
