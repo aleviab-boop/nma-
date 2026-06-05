@@ -4,12 +4,15 @@
  *   POST /api/detect-garment
  *   { imageBase64, mimeType }
  *
- * Calls Vertex AI's Gemini 1.5 Flash with the photo and asks for structured
- * JSON describing: name, cat, designer, fabric, occasion, palette.
+ * Two auth paths, tried in order:
+ *   1. GEMINI_API_KEY  — Google AI Studio key, simplest setup. Set this
+ *      single env var on Vercel and you get free-tier Gemini access.
+ *      Get one at https://aistudio.google.com/apikey
+ *   2. GCP_SERVICE_ACCOUNT_KEY — full Vertex AI path via JWT signing.
+ *      Use this when you need Vertex's higher quotas / enterprise features.
  *
- * Falls back to a clear { success:false, demo:true } signal when the GCP
- * service-account key isn't configured — the client then keeps a simple
- * placeholder flow instead of hard-failing.
+ * Falls back to a clear { success:false, demo:true } signal when NEITHER
+ * is configured so the client can warn the user clearly.
  */
 
 const crypto = require('node:crypto');
@@ -17,6 +20,9 @@ const crypto = require('node:crypto');
 const PROJECT_ID = process.env.GCP_PROJECT_ID || 'fynd-jio-impetus-non-prod';
 const REGION = process.env.GCP_REGION || 'us-central1';
 const MODEL_ID = process.env.GCP_GEMINI_MODEL || 'gemini-1.5-flash-002';
+// Simple-key model id (Google AI Studio uses slightly different version
+// names than Vertex AI). 'gemini-1.5-flash' is the alias for the latest.
+const SIMPLE_MODEL_ID = process.env.GEMINI_MODEL || 'gemini-1.5-flash-latest';
 
 let _tokenCache = { token: null, expiresAt: 0 };
 
@@ -93,17 +99,21 @@ module.exports = async function handler(req, res) {
   // Strip data URL prefix if present
   const cleanB64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-  if (!process.env.GCP_SERVICE_ACCOUNT_KEY) {
-    return res.status(200).json({ success: false, demo: true, error: 'GCP_NOT_CONFIGURED' });
+  // Decide which auth path to use. Prefer GEMINI_API_KEY (simpler / free
+  // tier) and fall back to the Vertex AI service-account flow.
+  const simpleKey = process.env.GEMINI_API_KEY;
+  const hasGcp = !!process.env.GCP_SERVICE_ACCOUNT_KEY;
+  if (!simpleKey && !hasGcp) {
+    return res.status(200).json({
+      success: false,
+      demo: true,
+      error: 'AI_NOT_CONFIGURED',
+      hint: 'Set GEMINI_API_KEY (https://aistudio.google.com/apikey) or GCP_SERVICE_ACCOUNT_KEY on Vercel to enable garment detection.'
+    });
   }
 
-  let token;
-  try { token = await getAccessToken(); }
-  catch (e) { return res.status(500).json({ success: false, error: 'AUTH_FAILED', detail: String(e.message || e) }); }
-
-  const endpoint = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/publishers/google/models/${MODEL_ID}:generateContent`;
-
-  const requestBody = {
+  // Shared model request body — same shape works for both endpoints
+  const modelRequest = {
     contents: [{
       role: 'user',
       parts: [
@@ -111,12 +121,12 @@ module.exports = async function handler(req, res) {
         { inline_data: { mime_type: mimeType, data: cleanB64 } }
       ]
     }],
-    generation_config: {
+    generationConfig: {
       temperature: 0.2,
-      max_output_tokens: 512,
-      response_mime_type: 'application/json'
+      maxOutputTokens: 512,
+      responseMimeType: 'application/json'
     },
-    safety_settings: [
+    safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
@@ -125,18 +135,38 @@ module.exports = async function handler(req, res) {
   };
 
   let resp;
+  let endpoint;
+  let headers;
+  if (simpleKey){
+    // Google AI Studio path — single API key, no JWT signing.
+    endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${SIMPLE_MODEL_ID}:generateContent?key=${encodeURIComponent(simpleKey)}`;
+    headers = { 'Content-Type': 'application/json' };
+  } else {
+    // Vertex AI path — service-account JWT exchange.
+    let token;
+    try { token = await getAccessToken(); }
+    catch (e) { return res.status(500).json({ success: false, error: 'AUTH_FAILED', detail: String(e.message || e) }); }
+    endpoint = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/publishers/google/models/${MODEL_ID}:generateContent`;
+    headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  }
+
   try {
     resp = await fetch(endpoint, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      headers,
+      body: JSON.stringify(modelRequest)
     });
   } catch (e) {
     return res.status(502).json({ success: false, error: 'UPSTREAM_NETWORK', detail: String(e.message || e) });
   }
   if (!resp.ok) {
     const txt = await resp.text().catch(() => '');
-    return res.status(resp.status).json({ success: false, error: 'VERTEX_ERROR', status: resp.status, detail: txt.slice(0, 500) });
+    return res.status(resp.status).json({
+      success: false,
+      error: simpleKey ? 'GEMINI_ERROR' : 'VERTEX_ERROR',
+      status: resp.status,
+      detail: txt.slice(0, 500)
+    });
   }
 
   let json;

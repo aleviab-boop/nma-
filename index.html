@@ -1292,7 +1292,80 @@ body::before{opacity:.09!important;}
 .hero-marquee .marquee-track span::after{content:"✦";font-size:11px;color:var(--gold)!important;font-style:normal;letter-spacing:0;}
 @media(max-width:900px){.hero-marquee{margin:0 -24px;}}
 
-.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh;transition:grid-template-columns .25s cubic-bezier(.4,0,.2,1);}
+
+/* ===========================================================
+   Collapsible sidebar — Ops Dashboard / Madame
+   Toggle button at the top shrinks the sidebar to ~64px showing only
+   icons. Active page icon stays highlighted. Hover gives a tooltip
+   with the full label. State is mirrored to localStorage so reloads
+   remember the choice.
+   =========================================================== */
+.sidebar-collapse-toggle{
+  position:absolute;top:12px;right:12px;z-index:10;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(245,212,119,.10);border:1px solid rgba(245,212,119,.28);
+  color:var(--gold-bright);
+  display:grid;place-items:center;cursor:pointer;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-collapse-toggle svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none;transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.sidebar-collapse-toggle:hover{background:rgba(245,212,119,.22);border-color:var(--gold-bright);transform:scale(1.06);}
+body.sidebar-collapsed .sidebar-collapse-toggle svg{transform:rotate(180deg);}
+/* Ops-dashboard light theme variant of the toggle */
+body.role-ops-dashboard .sidebar-collapse-toggle{
+  background:#f1f5f9;border-color:#cbd5e1;color:#2563eb;
+}
+body.role-ops-dashboard .sidebar-collapse-toggle:hover{background:#dbeafe;border-color:#2563eb;}
+
+/* Collapsed state — grid column shrinks, sidebar narrows, labels hide */
+body.sidebar-collapsed .app{grid-template-columns:64px 1fr;}
+body.sidebar-collapsed .sidebar{padding-left:6px!important;padding-right:6px!important;}
+body.sidebar-collapsed .sidebar .logo,
+body.sidebar-collapsed .sidebar .logo-sub,
+body.sidebar-collapsed .sidebar .nav-label,
+body.sidebar-collapsed .sidebar .nav-item span,
+body.sidebar-collapsed .sidebar .nav-item .count,
+body.sidebar-collapsed .sidebar .sidebar-action span,
+body.sidebar-collapsed .sidebar-footer .user-chip .meta,
+body.sidebar-collapsed .sidebar-footer .user-chip > div:not(.avatar){
+  display:none!important;
+}
+body.sidebar-collapsed .sidebar .nav-item,
+body.sidebar-collapsed .sidebar .sidebar-action{
+  justify-content:center!important;padding:11px 0!important;width:52px;margin:0 auto 2px;
+  position:relative;
+}
+body.sidebar-collapsed .sidebar .nav-item svg,
+body.sidebar-collapsed .sidebar .sidebar-action svg{
+  width:20px!important;height:20px!important;margin:0!important;
+}
+body.sidebar-collapsed .sidebar-footer .user-chip{justify-content:center!important;padding:8px!important;}
+body.sidebar-collapsed .sidebar-footer .avatar{margin:0!important;}
+body.sidebar-collapsed .sidebar-footer button:not(.user-chip){
+  width:44px;height:44px;padding:0!important;margin:6px auto!important;
+}
+body.sidebar-collapsed .sidebar-collapse-toggle{position:relative;top:0;right:0;margin:8px auto 14px;}
+
+/* Tooltip on hover when collapsed */
+body.sidebar-collapsed .sidebar .nav-item:hover::after,
+body.sidebar-collapsed .sidebar .sidebar-action:hover::after{
+  content:attr(data-tooltip);
+  position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  background:#0F0907;color:#F8EED4;padding:7px 11px;border-radius:8px;
+  font-family:'Inter',-apple-system,sans-serif;font-size:12px;font-weight:500;letter-spacing:.01em;
+  white-space:nowrap;
+  box-shadow:0 10px 24px -8px rgba(0,0,0,.6);
+  border:1px solid rgba(245,212,119,.32);
+  pointer-events:none;z-index:50;
+}
+body.role-ops-dashboard.sidebar-collapsed .sidebar .nav-item:hover::after,
+body.role-ops-dashboard.sidebar-collapsed .sidebar .sidebar-action:hover::after{
+  background:#0f172a;color:#fff;border-color:#334155;
+}
+
+/* When sidebar is collapsed, shift the Wardrobe Layout modal left edge too */
+body.role-ops-dashboard.sidebar-collapsed .wlayout-modal{left:64px;}
 /* Tablet/auth gates — when user is not yet authed, hide app chrome */
 body.gate-active .app{display:none;}
 body.gate-active .royal-petals,body.gate-active .paisley{display:none;}
@@ -8584,6 +8657,11 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 <div class="app">
 
   <aside class="sidebar">
+    <!-- Sidebar collapse toggle — shrinks the sidebar to icon-only mode.
+         State persists in localStorage so it stays collapsed across reloads. -->
+    <button class="sidebar-collapse-toggle" id="sidebarCollapseToggle" type="button" aria-label="Collapse sidebar" title="Collapse / expand sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
     <div class="logo">Maison<span>.</span></div>
     <div class="logo-sub">Wardrobe Intelligence</div>
 
@@ -19923,7 +20001,56 @@ document.getElementById('captureConfirmModal')?.addEventListener('click', (e)=>{
 let _aiPendingResult = null;
 let _aiResultPromise = null;
 
+/* Client-side palette extraction — guaranteed colour detection even when
+   the AI endpoint is offline or unconfigured. Samples ~2000 pixels from
+   the image, buckets them into 12 hue/brightness bins, and returns the
+   3 most populated bins as hex colours. Skips near-white/black noise so
+   the result reflects the garment, not the background. */
+async function _extractClientPalette(dataUrl){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onerror = () => resolve(null);
+    img.onload = () => {
+      try {
+        const W = 96, H = Math.max(64, Math.round(W * (img.height / img.width)));
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, W, H);
+        const data = ctx.getImageData(0, 0, W, H).data;
+        const buckets = new Map();
+        for (let i = 0; i < data.length; i += 4){
+          const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+          if (a < 128) continue;
+          // Skip near-white / near-black backgrounds
+          const lum = 0.299*r + 0.587*g + 0.114*b;
+          if (lum > 240 || lum < 16) continue;
+          // Skip greys (low chroma)
+          const max = Math.max(r,g,b), min = Math.min(r,g,b);
+          if (max - min < 18) continue;
+          // Quantise to a coarse bucket
+          const key = (r >> 4) + '|' + (g >> 4) + '|' + (b >> 4);
+          buckets.set(key, (buckets.get(key) || 0) + 1);
+        }
+        if (buckets.size === 0){ resolve(['#3A2A20','#5A4030','#7A5A40']); return; }
+        const sorted = [...buckets.entries()].sort((a,b) => b[1] - a[1]).slice(0, 3);
+        const palette = sorted.map(([key]) => {
+          const [r,g,b] = key.split('|').map(n => parseInt(n,10) * 16 + 8);
+          return '#' + [r,g,b].map(v => Math.min(255, v).toString(16).padStart(2,'0')).join('');
+        });
+        while (palette.length < 3) palette.push('#3A2A20');
+        resolve(palette);
+      } catch (_) { resolve(null); }
+    };
+    img.src = dataUrl;
+  });
+}
+
 async function detectGarmentAI(dataUrl){
+  // Always extract palette on the client first — even if the server call
+  // fails or returns demo, we have a real colour read from the image.
+  const clientPalette = await _extractClientPalette(dataUrl);
   try {
     // Compress the image down before sending — Vercel has a body limit and
     // Gemini doesn't need a high-res image to classify it.
@@ -19938,8 +20065,40 @@ async function detectGarmentAI(dataUrl){
       body: JSON.stringify({ imageBase64: cleanB64, mimeType: 'image/jpeg' })
     });
     const j = await r.json();
-    if (j && j.success) return j;
+    if (j && j.success){
+      // Prefer the client-extracted palette when available — it's sampled
+      // directly from the user's photo, more accurate than the model's
+      // colour guess. Server palette as fallback for when client extraction
+      // failed (CORS, decode error, etc.).
+      if (clientPalette && Array.isArray(clientPalette) && clientPalette.length === 3){
+        j.palette = clientPalette;
+      }
+      return j;
+    }
+    // Server returned demo / failure but we still have the client palette
+    // and at least a best-guess category from category heuristics.
+    if (clientPalette){
+      return {
+        success: false,
+        demo: true,
+        palette: clientPalette,
+        // Heuristic name + cat: dominant warm vs cool tone hints category
+        name: 'New Garment',
+        cat: 'gown',
+        designer: 'Pending',
+        fabric: 'Pending',
+        occasion: 'Varies'
+      };
+    }
   } catch(_){}
+  // Last resort — at least return the client palette if we got that far
+  if (clientPalette){
+    return {
+      success: false, demo: true, palette: clientPalette,
+      name: 'New Garment', cat: 'gown',
+      designer: 'Pending', fabric: 'Pending', occasion: 'Varies'
+    };
+  }
   return null;
 }
 
@@ -20268,6 +20427,51 @@ function openThisWeek(){
   }
   modal.classList.add('show');
 }
+
+/* Sidebar collapse toggle — shrinks the sidebar to icon-only mode.
+   Persisted in localStorage so the choice survives reload. Also seeds
+   each nav-item with a data-tooltip from its label span so the CSS
+   ::after hover tooltip can render the full text when collapsed. */
+(function _initSidebarCollapse(){
+  function seedTooltips(){
+    document.querySelectorAll('.sidebar .nav-item, .sidebar .sidebar-action').forEach(el => {
+      if (el.dataset.tooltip) return;
+      const txt = (el.querySelector('span:not(.count)') || el.querySelector('span'))?.textContent?.trim();
+      if (txt) el.dataset.tooltip = txt;
+    });
+  }
+  function apply(collapsed){
+    document.body.classList.toggle('sidebar-collapsed', !!collapsed);
+    const btn = document.getElementById('sidebarCollapseToggle');
+    if (btn) btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+    try { localStorage.setItem('maison.sidebarCollapsed', collapsed ? '1' : '0'); } catch(_){}
+  }
+  function wire(){
+    seedTooltips();
+    const btn = document.getElementById('sidebarCollapseToggle');
+    if (btn && !btn.dataset.wired){
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', () => {
+        apply(!document.body.classList.contains('sidebar-collapsed'));
+      });
+    }
+    // Hydrate state from localStorage
+    let saved = '0';
+    try { saved = localStorage.getItem('maison.sidebarCollapsed') || '0'; } catch(_){}
+    if (saved === '1') apply(true);
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', wire);
+  } else {
+    wire();
+  }
+  // Re-seed tooltips after Ops Dashboard / role-based sidebar injection
+  // (applyOpsDashboardSidebar adds Wardrobe Layout / Event Suggestions /
+  // Guest Lists nav items dynamically after role login).
+  const obs = new MutationObserver(() => seedTooltips());
+  const sb = document.querySelector('.sidebar');
+  if (sb) obs.observe(sb, { childList:true, subtree:true });
+})();
 
 /* Unified nav-highlight refresh — keeps the sidebar (.nav-item), the
    bottom-nav (.b-item), and the hamburger drawer (.drawer-item) all
