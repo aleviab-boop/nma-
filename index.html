@@ -1318,15 +1318,24 @@ body.role-ops-dashboard .sidebar-collapse-toggle{
 }
 body.role-ops-dashboard .sidebar-collapse-toggle:hover{background:#dbeafe;border-color:#2563eb;}
 
-/* Collapsed state — grid column shrinks to 44px (icon-only), sidebar narrows, labels hide.
-   !important needed because role-specific rules later in the cascade pin
-   the .app grid-template-columns and would otherwise win the override. */
+/* Collapsed state — grid column shrinks to 52px (icon-only), sidebar
+   narrows, labels hide. 52px gives icons breathing room AND keeps all
+   buttons / footer items center-aligned on the same vertical axis.
+   !important needed because role-specific rules later in the cascade
+   pin the .app grid-template-columns and would otherwise win. */
 body.sidebar-collapsed .app,
 body.role-ops-dashboard.sidebar-collapsed .app,
 body.role-ops-dashboard.tablet-view.sidebar-collapsed .app{
-  grid-template-columns:44px 1fr!important;
+  grid-template-columns:52px 1fr!important;
 }
-body.sidebar-collapsed .sidebar{padding-left:2px!important;padding-right:2px!important;}
+body.sidebar-collapsed .sidebar{padding-left:0!important;padding-right:0!important;}
+/* Force every direct child of the sidebar to flow centered on the column
+   axis so the chevron toggle, nav items, sidebar actions, and footer
+   buttons all line up on the same vertical line. */
+body.sidebar-collapsed .sidebar,
+body.sidebar-collapsed .sidebar > *{
+  align-items:center!important;text-align:center!important;
+}
 body.sidebar-collapsed .sidebar .logo,
 body.sidebar-collapsed .sidebar .logo-sub,
 body.sidebar-collapsed .sidebar .nav-label,
@@ -1337,22 +1346,44 @@ body.sidebar-collapsed .sidebar-footer .user-chip .meta,
 body.sidebar-collapsed .sidebar-footer .user-chip > div:not(.avatar){
   display:none!important;
 }
+/* Every clickable button in the collapsed sidebar gets the SAME 40px
+   square so they all line up on the central vertical axis. The chevron
+   toggle, nav items, sidebar-action items, and footer buttons all
+   share this geometry. */
 body.sidebar-collapsed .sidebar .nav-item,
 body.sidebar-collapsed .sidebar .sidebar-action{
-  justify-content:center!important;padding:9px 0!important;width:38px;margin:0 auto 2px;
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  width:40px!important;height:40px!important;padding:0!important;
+  margin:0 auto 4px!important;border-radius:10px!important;
   position:relative;
 }
 body.sidebar-collapsed .sidebar .nav-item svg,
 body.sidebar-collapsed .sidebar .sidebar-action svg{
-  width:17px!important;height:17px!important;margin:0!important;
+  width:18px!important;height:18px!important;margin:0!important;
 }
-body.sidebar-collapsed .sidebar-footer .user-chip{justify-content:center!important;padding:5px!important;}
+body.sidebar-collapsed .sidebar-footer{
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;padding:8px 0!important;
+}
+body.sidebar-collapsed .sidebar-footer .user-chip{
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  padding:0!important;width:40px!important;height:40px!important;margin:0 auto 4px!important;
+}
 body.sidebar-collapsed .sidebar-footer .avatar{margin:0!important;}
 body.sidebar-collapsed .sidebar-footer button:not(.user-chip){
-  width:34px;height:34px;padding:0!important;margin:5px auto!important;
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  width:40px!important;height:40px!important;padding:0!important;
+  margin:4px auto!important;border-radius:10px!important;
 }
-body.sidebar-collapsed .sidebar-collapse-toggle{position:relative;top:0;right:0;margin:8px auto 10px;width:24px;height:24px;}
-body.sidebar-collapsed .sidebar-collapse-toggle svg{width:12px;height:12px;}
+body.sidebar-collapsed .sidebar-footer button:not(.user-chip) svg{
+  width:18px!important;height:18px!important;
+}
+body.sidebar-collapsed .sidebar-collapse-toggle{
+  position:relative;top:0;right:0;
+  margin:10px auto 12px!important;
+  width:28px!important;height:28px!important;
+}
+body.sidebar-collapsed .sidebar-collapse-toggle svg{width:13px;height:13px;}
 
 /* Hide hover tooltips when collapsed — user requested no name highlight */
 body.sidebar-collapsed .sidebar .nav-item:hover::after,
@@ -1376,7 +1407,7 @@ body.role-ops-dashboard.sidebar-collapsed .sidebar .sidebar-action:hover::after{
 }
 
 /* When sidebar is collapsed, shift the Wardrobe Layout modal left edge too */
-body.role-ops-dashboard.sidebar-collapsed .wlayout-modal{left:44px;}
+body.role-ops-dashboard.sidebar-collapsed .wlayout-modal{left:52px;}
 /* Belt-and-braces — keep the sidebar visible/clickable even when the
    Wardrobe Layout modal is open. The modal's z-index is 2700, sidebar
    sits below it but at its own grid column to the left, so as long as
