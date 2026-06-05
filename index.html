@@ -11387,7 +11387,84 @@ document.addEventListener('keydown', (e)=>{
    ============================================================ */
 const _INVENTORY_BASELINE = INVENTORY.slice();   // immutable seed
 let SERVER_STATE_VERSION = 0;
-let NOTIFICATIONS = [];
+// NOTIFICATIONS — in-memory cache for the bell-panel feed. Hydrated from
+// localStorage on boot so the user keeps their unread items across
+// reloads, AND topped up from /api/audit-log so notifications generated
+// on OTHER devices reach the current one. Persisted on every change.
+let NOTIFICATIONS = (function _hydrateNotifs(){
+  try {
+    const raw = JSON.parse(localStorage.getItem('maison.notifications') || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (_) { return []; }
+})();
+function _persistNotifications(){
+  try { localStorage.setItem('maison.notifications', JSON.stringify(NOTIFICATIONS.slice(0, 30))); } catch (_) {}
+}
+
+/* Cross-device notification catch-up.
+   When Madame opens the iPad app, she should see notifications for
+   pieces that ops captured on the phone WHILE she was offline. Realtime
+   only delivers events that fire while the device is connected — so on
+   every boot we fetch the most recent audit_log entries with kind='intake'
+   and seed any notifications she hasn't seen yet.
+
+   Dedupe is by audit_log row id (mapped to a stable notification id
+   prefix). Audit entries older than the last existing notification get
+   skipped so we don't backfill ancient captures every boot.
+*/
+async function _hydrateNotificationsFromAuditLog(){
+  try {
+    const r = await fetch('/api/audit-log?limit=50', { cache: 'no-store' });
+    const j = await r.json();
+    if (!j || !j.success || !Array.isArray(j.entries)) return;
+    // Find the newest "garment-added" notification we already know about
+    // so we only seed entries newer than it (avoids repainting the bell
+    // every boot with old intake records).
+    const knownNewestTs = (NOTIFICATIONS || [])
+      .filter(n => n && (n.kind === 'garment-added' || n.kind === 'intake'))
+      .reduce((acc, n) => Math.max(acc, n.addedAt || n.ts || 0), 0);
+
+    const toAdd = [];
+    for (const e of j.entries){
+      if (!e || e.kind !== 'intake') continue;
+      const ts = e.ts || 0;
+      if (knownNewestTs && ts <= knownNewestTs) continue;  // already seen
+      const meta = e.details || {};
+      const id = 'audit-' + e.id;
+      if (NOTIFICATIONS.some(n => n && n.id === id)) continue;
+      toAdd.push({
+        id,
+        kind: 'garment-added',
+        name: meta.name || (e.what || '').replace(/^New piece captured — /, ''),
+        designer: meta.designer || '',
+        photo: meta.photo || null,
+        addedAt: ts,
+        ts
+      });
+    }
+    if (!toAdd.length) return;
+    // Prepend in chronological order so newest ends up first
+    toAdd.sort((a,b) => (b.ts||0) - (a.ts||0));
+    NOTIFICATIONS = [...toAdd, ...NOTIFICATIONS].slice(0, 30);
+    _persistNotifications();
+    if (typeof renderNotifPanel === 'function') renderNotifPanel();
+    // Pulse the bell so Madame notices the unread badge updated
+    const bell = document.getElementById('bellBtn');
+    if (bell && toAdd.length > 0){
+      bell.classList.add('just-arrived');
+      setTimeout(()=> bell.classList.remove('just-arrived'), 2400);
+    }
+  } catch (_) { /* offline — keep local cache */ }
+}
+// Kick off the catch-up shortly after boot so the first paint isn't
+// blocked. 800ms delay lets initSupabaseLive subscribe to Realtime
+// first, so we don't fight a concurrent live INSERT for the same row.
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => setTimeout(_hydrateNotificationsFromAuditLog, 800));
+} else {
+  setTimeout(_hydrateNotificationsFromAuditLog, 800);
+}
+
 let SERVER_REMOVALS = new Set();
 
 // Now backed by Supabase via /api/items. Returns the same shape applySharedState
@@ -11962,8 +12039,13 @@ function _addLocalNotification(note){
   if (typeof NOTIFICATIONS === 'undefined' || !Array.isArray(NOTIFICATIONS)){
     window.NOTIFICATIONS = [];
   }
+  // Dedupe — never add the same notif twice (Realtime fires repeats when
+  // multiple tabs are open, and the audit-log hydrate path overlaps with
+  // the Realtime push). Keyed on the stable note.id where possible.
+  if (note.id && NOTIFICATIONS.some(n => n && n.id === note.id)) return;
   // Prepend, cap at 30 to stay light
   NOTIFICATIONS = [note, ...NOTIFICATIONS].slice(0, 30);
+  _persistNotifications();
   if (typeof renderNotifPanel === 'function') renderNotifPanel();
 
   if (typeof showToast === 'function'){
