@@ -7481,18 +7481,39 @@ body.role-madame .confirm-ok.is-safe{
 }
 
 /* ============================================================
-   Layout: FIXED sidebar (no hamburger) on Ops Dashboard.
-   tablet-view normally hides .sidebar — override to keep it
-   visible, restore the 220px grid column, hide the hamburger
-   button entirely along with the drawer.
+   Layout: FIXED sidebar (no hamburger) on Ops Dashboard — but
+   ONLY on the wide hardware this role actually targets (13"
+   laptop 1280-1440, iPad landscape, 4K).
+
+   This used to be unconditional, which broke narrow screens: the
+   240px rail was pinned even at 390px, leaving a ~150px content
+   column that truncated every card ("OPEN REQUE…"), while the
+   hamburger AND drawer were both display:none — and .bottom-nav
+   is already hidden for this role, so there was no nav left at
+   all. Below the breakpoint we now drop the rail and hand over
+   to the slide-out drawer, whose JS was already fully wired.
    ============================================================ */
-body.role-ops-dashboard.tablet-view .app,
-body.role-ops-dashboard .app{grid-template-columns:240px 1fr!important;}
-body.role-ops-dashboard.tablet-view .sidebar,
-body.role-ops-dashboard aside.sidebar{display:flex!important;visibility:visible!important;width:auto!important;}
-body.role-ops-dashboard .hamburger-btn{display:none!important;}
-body.role-ops-dashboard .ops-drawer,
-body.role-ops-dashboard .ops-drawer-overlay{display:none!important;}
+@media(min-width:1024px){
+  body.role-ops-dashboard.tablet-view .app,
+  body.role-ops-dashboard .app{grid-template-columns:240px 1fr!important;}
+  body.role-ops-dashboard.tablet-view .sidebar,
+  body.role-ops-dashboard aside.sidebar{display:flex!important;visibility:visible!important;width:auto!important;}
+  body.role-ops-dashboard .hamburger-btn{display:none!important;}
+  body.role-ops-dashboard .ops-drawer,
+  body.role-ops-dashboard .ops-drawer-overlay{display:none!important;}
+}
+
+@media(max-width:1023.98px){
+  body.role-ops-dashboard.tablet-view .app,
+  body.role-ops-dashboard .app{grid-template-columns:1fr!important;}
+  body.role-ops-dashboard.tablet-view .sidebar,
+  body.role-ops-dashboard aside.sidebar{display:none!important;}
+  body.role-ops-dashboard .hamburger-btn{display:inline-flex!important;}
+  /* Drawer stays hidden via transform:translateX(-100%) / opacity:0 —
+     these just undo the display:none so .open and .show can work. */
+  body.role-ops-dashboard .ops-drawer{display:flex!important;}
+  body.role-ops-dashboard .ops-drawer-overlay{display:block!important;}
+}
 
 /* Hide date chip + bell from topbar on Ops Dashboard */
 body.role-ops-dashboard .topbar .date-chip{display:none!important;}
