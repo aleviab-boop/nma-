@@ -17379,14 +17379,14 @@ function loadImage(src){
 // collar bleed). Mask uses tight bottom clipping (35-50% of face height).
 // ============================================================
 async function detectFace(image){
-  // Heuristic fallback used when FaceDetector isn't available
-  const heuristic = {
-    x: image.width * 0.325,
-    y: image.height * 0.06,
-    width: image.width * 0.35,
-    height: image.height * 0.22
-  };
-  if (typeof window === 'undefined' || !window.FaceDetector) return heuristic;
+  // Only trust REAL detection (Chrome FaceDetector). Previously this fell back to
+  // a fixed "face is top-center" heuristic when FaceDetector was unavailable —
+  // but FaceDetector is absent in most browsers, so the heuristic ran every time
+  // and its elliptical mask grabbed a large chunk of the ORIGINAL body photo,
+  // stamping the person's existing outfit back over the VTO render ("output over
+  // existing outfit" bug). Return null instead so the caller skips the face-paste
+  // and shows the clean Imagen VTO result (which already preserves identity).
+  if (typeof window === 'undefined' || !window.FaceDetector) return null;
   try {
     const fd = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
     const faces = await fd.detect(image);
@@ -17395,7 +17395,7 @@ async function detectFace(image){
       return { x: bb.x, y: bb.y, width: bb.width, height: bb.height };
     }
   } catch (_){ /* fall through */ }
-  return heuristic;
+  return null;
 }
 
 async function compositeFaceOntoVTO(originalBodyDataUrl, vtoDataUrl){
@@ -17408,6 +17408,10 @@ async function compositeFaceOntoVTO(originalBodyDataUrl, vtoDataUrl){
       detectFace(bodyImg),
       detectFace(vtoImg)
     ]);
+
+    // No reliable face box on either image → do NOT paste original pixels back
+    // (that would stamp the original outfit over the render). Show the clean VTO.
+    if (!bodyFace || !vtoFace) return vtoDataUrl;
 
     const W = vtoImg.width, H = vtoImg.height;
     const out = document.createElement('canvas');

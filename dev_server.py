@@ -444,7 +444,7 @@ GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 # Best quality on the free tier — strong instruction following, ~75th-percentile
 # style sense. Swap to "llama-3.1-8b-instant" if you need lower latency or hit
 # the 70B daily request cap (1,000/day on the free tier as of writing).
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
 
 class StylistAuthError(Exception):

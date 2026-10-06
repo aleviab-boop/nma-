@@ -21,7 +21,10 @@
  */
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+// llama-3.3-70b-versatile was retired by Groq (404 model_not_found). Default to
+// OpenAI's gpt-oss-120b, which this key has access to and handles the stylist
+// persona well. Override via GROQ_MODEL env var if needed.
+const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 // Best-effort logger — writes each turn to Supabase chat_messages so the
 // admin Anaita page has real KPIs + a real chart. Never throws (we don't
