@@ -2409,8 +2409,12 @@ function _groupAnaitaByDay(log){
   };
 }
 
-function _groupAnaitaIntoThreads(log){
-  // Group consecutive turns with <30 min gaps into one "thread".
+function _groupAnaitaIntoThreads(logIn){
+  // Group consecutive turns with <30 min gaps into one "thread". The API returns
+  // messages newest-first; sort ascending first, otherwise every message collapses
+  // into a single thread (negative gaps never exceed 30 min) and lastTs/startTs
+  // end up wrong — which broke "sessions today" and per-day session counts.
+  const log = (logIn || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
   const threads = [];
   let current = null;
   log.forEach(entry => {
