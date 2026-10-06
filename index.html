@@ -8114,6 +8114,58 @@ body.role-ops-mobile #page-ops{display:none!important;}
   .modal-actions-3{grid-template-columns:1fr;}
 }
 
+/* ============================================================
+   Ops Dashboard: item PDP modal in the dashboard's white/blue
+   SaaS theme. The shared #itemModal defaults to Swadesh-Dark
+   (gold-on-black), which clashed with the light dashboard when
+   opened from the live inventory. Scoped to role-ops-dashboard
+   only — the Madame (iPad) view keeps the gold look.
+   ============================================================ */
+body.role-ops-dashboard #itemModal .modal{background:var(--ods-card)!important;border:1px solid var(--ods-line)!important;}
+body.role-ops-dashboard #itemModal .modal-img{background:var(--ods-bg)!important;}
+body.role-ops-dashboard #itemModal .modal-body{background:var(--ods-card)!important;color:var(--ods-text)!important;}
+body.role-ops-dashboard #itemModal .modal-tag{color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-body h2{color:var(--ods-text)!important;}
+body.role-ops-dashboard #itemModal .modal-body h2 em{color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-body .designer-line{color:var(--ods-text-mute)!important;}
+/* location row */
+body.role-ops-dashboard #itemModal .modal-loc{background:var(--ods-blue-tint)!important;border:1px solid var(--ods-blue-border)!important;}
+body.role-ops-dashboard #itemModal .modal-loc svg{stroke:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-loc .modal-loc-label{color:var(--ods-text)!important;}
+body.role-ops-dashboard #itemModal .modal-loc .modal-loc-code{background:var(--ods-card)!important;border:1px solid var(--ods-blue-border)!important;color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-loc-edit{background:var(--ods-card)!important;border:1px solid var(--ods-line)!important;color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-loc-edit svg{stroke:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-loc-edit:hover{background:var(--ods-blue-tint)!important;border-color:var(--ods-blue)!important;}
+/* chips */
+body.role-ops-dashboard #itemModal .modal-chips span{background:var(--ods-blue-tint)!important;border:1px solid var(--ods-line)!important;color:var(--ods-text)!important;}
+/* meta grid */
+body.role-ops-dashboard #itemModal .modal-meta-grid{border-top-color:var(--ods-line)!important;border-bottom-color:var(--ods-line)!important;}
+body.role-ops-dashboard #itemModal .modal-meta-grid .k{color:var(--ods-text-mute)!important;}
+/* .v uses a gold gradient-text trick (-webkit-background-clip:text + transparent
+   fill) — neutralize it so the value renders solid black, not gold. */
+body.role-ops-dashboard #itemModal .modal-meta-grid .v{
+  background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;
+  -webkit-text-fill-color:var(--ods-text)!important;color:var(--ods-text)!important;
+}
+/* wear history */
+body.role-ops-dashboard #itemModal .modal-history{border-top-color:var(--ods-line)!important;}
+body.role-ops-dashboard #itemModal .modal-history h5{color:var(--ods-text)!important;}
+body.role-ops-dashboard #itemModal .modal-history .history-line{color:var(--ods-text)!important;}
+body.role-ops-dashboard #itemModal .modal-history .history-line .date{color:var(--ods-text-mute)!important;}
+/* action buttons — secondary = white/outline, primary(VTO) = blue */
+body.role-ops-dashboard #itemModal .m-btn.secondary{background:var(--ods-card)!important;border:1px solid var(--ods-line)!important;color:var(--ods-text)!important;}
+body.role-ops-dashboard #itemModal .m-btn.secondary:hover{border-color:var(--ods-blue)!important;background:var(--ods-blue-tint)!important;color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-actions-3 .m-btn.plan-btn{background:var(--ods-card)!important;border:1px solid var(--ods-line)!important;color:var(--ods-text)!important;box-shadow:none!important;}
+body.role-ops-dashboard #itemModal .modal-actions-3 .m-btn.plan-btn:hover{border-color:var(--ods-blue)!important;background:var(--ods-blue-tint)!important;color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .modal-actions-3 .m-btn.vto-btn{background:var(--ods-blue)!important;border:1px solid var(--ods-blue)!important;color:#fff!important;box-shadow:none!important;}
+body.role-ops-dashboard #itemModal .modal-actions-3 .m-btn.vto-btn:hover{background:var(--ods-blue-dark)!important;border-color:var(--ods-blue-dark)!important;transform:none!important;}
+body.role-ops-dashboard #itemModal .modal-actions-3 .m-btn.vto-btn svg{stroke:#fff!important;}
+body.role-ops-dashboard #itemModal .m-btn.fav.active{color:var(--ods-blue)!important;}
+body.role-ops-dashboard #itemModal .m-btn.fav.active svg{fill:var(--ods-blue)!important;stroke:var(--ods-blue)!important;}
+/* close button */
+body.role-ops-dashboard #itemModal .modal-close{background:var(--ods-card)!important;border:1px solid var(--ods-line)!important;}
+body.role-ops-dashboard #itemModal .modal-close svg{stroke:var(--ods-text)!important;}
+
 /* Plan-outfit modal — narrower than full event modal, with item preview at top */
 .plan-outfit-card{padding:28px 32px 26px;display:flex;flex-direction:column;gap:18px;}
 .plan-outfit-head{display:flex;gap:14px;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--line-soft);}
