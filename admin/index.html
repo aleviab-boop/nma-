@@ -1101,12 +1101,12 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
         <div class="card-head">
           <h3>Key Highlights</h3>
         </div>
-        <div class="hl-row"><span class="hl-label">Most-worn piece</span><span class="hl-value"><b>Sabya Maroon Saree</b></span></div>
-        <div class="hl-row"><span class="hl-label">Busiest hour</span><span class="hl-value">17:00 – 18:00</span></div>
-        <div class="hl-row"><span class="hl-label">Avg prep time</span><span class="hl-value">23 min</span></div>
-        <div class="hl-row"><span class="hl-label">Avg Anaita reply</span><span class="hl-value">1.2 s</span></div>
-        <div class="hl-row"><span class="hl-label">Top designer</span><span class="hl-value">Sabyasachi</span></div>
-        <div class="hl-row"><span class="hl-label">Last alert</span><span class="hl-value">none</span></div>
+        <div class="hl-row"><span class="hl-label">Latest addition</span><span class="hl-value"><b id="hlLatest">—</b></span></div>
+        <div class="hl-row"><span class="hl-label">Busiest hour</span><span class="hl-value" id="hlBusiest">—</span></div>
+        <div class="hl-row"><span class="hl-label">Available now</span><span class="hl-value" id="hlAvailable">—</span></div>
+        <div class="hl-row"><span class="hl-label">Avg Anaita reply</span><span class="hl-value" id="hlReply">—</span></div>
+        <div class="hl-row"><span class="hl-label">Top designer</span><span class="hl-value" id="hlDesigner">—</span></div>
+        <div class="hl-row"><span class="hl-label">Last alert</span><span class="hl-value" id="hlAlert">none</span></div>
       </div>
     </section>
 
@@ -1637,15 +1637,23 @@ function computeKPIs(rangeDays){
   const cleaning    = INVENTORY.filter(i => i.status === 'cleaning').length;
   const newWeek     = INVENTORY.filter(i => i.addedAt && i.addedAt > cutoffWeek).length;
 
-  // Sessions: synth a small realistic number per day using a deterministic
-  // pseudo-hash so the dashboard feels live but stable.
-  const today = new Date();
-  const seed = today.getDate() + today.getMonth();
-  const sessionsToday = 3 + (seed % 5);   // 3–7
-  const chatsWeek     = 8 + ((seed*3) % 12); // 8–19
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayStartTs = todayStart.getTime();
 
-  // Open requests = synth small constant for the week
-  const openRequests = 2;
+  // Anaita chats — real, from the Supabase-backed chat log (_ANAITA_CACHE).
+  const chatLog = (typeof _ANAITA_CACHE !== 'undefined' && Array.isArray(_ANAITA_CACHE)) ? _ANAITA_CACHE : [];
+  const chatsWeek = chatLog.filter(e => e.role === 'user' && (e.ts || 0) > cutoffWeek).length;
+
+  // Sessions today — real, = chat threads (30-min gap grouping) active today.
+  const threads = (typeof _groupAnaitaIntoThreads === 'function') ? _groupAnaitaIntoThreads(chatLog) : [];
+  const sessionsToday = threads.filter(t => (t.lastTs || t.startTs || 0) >= todayStartTs).length;
+
+  // Open requests — real, = upcoming events with no confirmed outfit assigned.
+  const events = (typeof _EVENTS_CACHE !== 'undefined' && Array.isArray(_EVENTS_CACHE)) ? _EVENTS_CACHE : [];
+  const openRequests = events.filter(ev => {
+    const d = ev.event_date ? new Date(ev.event_date).getTime() : 0;
+    return d >= todayStartTs && !ev.confirmed_outfit_id && !ev.outfit_item_id;
+  }).length;
 
   return { total, available, cleaning, newWeek, sessionsToday, chatsWeek, openRequests };
 }
@@ -1660,6 +1668,40 @@ function paintKPIs(){
   document.getElementById('kpiNew').textContent      = k.newWeek;
   document.getElementById('kpiOpen').textContent     = k.openRequests;
   document.getElementById('kpiChats').textContent    = k.chatsWeek;
+  paintHighlights();
+}
+
+// Most-frequent value in an array (ignores falsy).
+function _mode(arr){
+  const c = {}; let best = null, bestN = 0;
+  (arr || []).forEach(v => { if (v == null || v === '') return; c[v] = (c[v]||0)+1; if (c[v] > bestN){ bestN = c[v]; best = v; } });
+  return best;
+}
+
+// Key Highlights — all derived from real data (items, chat log, audit log).
+function paintHighlights(){
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const inv = Array.isArray(INVENTORY) ? INVENTORY : [];
+  // Latest addition
+  const newest = inv.filter(i => i.addedAt).sort((a,b) => b.addedAt - a.addedAt)[0];
+  set('hlLatest', newest ? newest.name : '—');
+  // Available now
+  set('hlAvailable', inv.filter(i => i.status === 'in-wardrobe').length + ' pieces');
+  // Top designer (ignore placeholders)
+  set('hlDesigner', _mode(inv.map(i => i.designer).filter(d => d && !/^(pending|unknown)$/i.test(d))) || '—');
+  // Busiest hour — from chat log timestamps, fall back to audit log
+  const chatLog = (typeof _ANAITA_CACHE !== 'undefined' && Array.isArray(_ANAITA_CACHE)) ? _ANAITA_CACHE : [];
+  const tsList = (chatLog.length ? chatLog.map(e => e.ts) : ((typeof _loadAudit === 'function' ? _loadAudit() : []) || []).map(a => a.ts)).filter(Boolean);
+  if (tsList.length){
+    const h = _mode(tsList.map(ts => new Date(ts).getHours()));
+    set('hlBusiest', h != null ? (pad(h) + ':00 – ' + pad((Number(h)+1)%24) + ':00') : '—');
+  } else set('hlBusiest', '—');
+  // Avg Anaita reply
+  const stats = (typeof _anaitaStats === 'function') ? _anaitaStats(chatLog) : { avgReplyMs: 0 };
+  set('hlReply', stats.avgReplyMs ? (stats.avgReplyMs/1000).toFixed(1) + ' s' : '—');
+  // Last alert — most recent audit entry
+  const audit = ((typeof _loadAudit === 'function' ? _loadAudit() : []) || []).slice().sort((a,b) => (b.ts||0) - (a.ts||0));
+  set('hlAlert', audit.length ? (audit[0].what || audit[0].kind || 'none') : 'none');
 }
 
 // ---- 14-day activity chart ----
@@ -1668,6 +1710,8 @@ function buildActivitySeries(){
   const captures = [];
   const sessions = [];
   const now = new Date();
+  const _actChatLog = (typeof _ANAITA_CACHE !== 'undefined' && Array.isArray(_ANAITA_CACHE)) ? _ANAITA_CACHE : [];
+  const _actThreads = (typeof _groupAnaitaIntoThreads === 'function') ? _groupAnaitaIntoThreads(_actChatLog) : [];
   for (let i = 13; i >= 0; i--){
     const d = new Date(now);
     d.setDate(d.getDate() - i);
@@ -1676,9 +1720,9 @@ function buildActivitySeries(){
     const dayEnd   = dayStart + 86400000;
     const captured = INVENTORY.filter(it => it.addedAt && it.addedAt >= dayStart && it.addedAt < dayEnd).length;
     captures.push(captured);
-    // deterministic synth sessions: 0–6 per day
-    const seed = (d.getDate()*7 + d.getMonth()*3) % 7;
-    sessions.push(seed);
+    // Real sessions = Anaita chat threads that started that day.
+    const daySessions = _actThreads.filter(t => (t.startTs || 0) >= dayStart && (t.startTs || 0) < dayEnd).length;
+    sessions.push(daySessions);
   }
   return { labels, captures, sessions };
 }
@@ -2911,6 +2955,9 @@ async function bootDashboard(){
   // Seed the audit cache up front so the Overview activity feed shows real
   // entries on first paint instead of the synthesized filler placeholders.
   try { if (typeof _fetchAudit === 'function') await _fetchAudit(); } catch(_){}
+  // Seed chat log + events so the Overview KPIs/highlights compute from real data.
+  try { if (typeof _fetchAnaitaLog === 'function') await _fetchAnaitaLog(); } catch(_){}
+  try { const r = await fetch('/api/events', { cache:'no-store' }); const j = await r.json(); if (j && j.success) _EVENTS_CACHE = j.events || []; } catch(_){}
   _liveLastSyncAt = Date.now();
   _updateLivePill();
   paintKPIs();
