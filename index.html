@@ -11843,6 +11843,18 @@ function applySharedState(state){
 
 // pushItem — now writes to Supabase via /api/items. Same return contract:
 // { ok:true, item } on success, { ok:false, error, detail } on failure.
+// Generate a real UUID for new inventory items. The server (api/items.js) only
+// accepts a caller id if it's a valid UUID; a non-UUID (e.g. "M7-ABC") gets
+// routed to `sku` and Supabase mints a DIFFERENT UUID for `id`. That id mismatch
+// broke dedupe — the optimistic local copy and the Realtime/server copy showed
+// as two entries ("double upload"). Matching ids fixes it at the source.
+function _genItemId(){
+  try { if (self.crypto && typeof self.crypto.randomUUID === 'function') return self.crypto.randomUUID(); } catch(_){}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8); return v.toString(16);
+  });
+}
+
 async function pushItem(item){
   try {
     const r = await fetch('/api/items', {
@@ -18919,7 +18931,7 @@ async function saveCaptureToCloset(){
   const thumbPhoto = capturePhoto;
 
   // Create new inventory item
-  const newId = 'M' + (5000 + INVENTORY.filter(x => x.id.startsWith('M5')).length);
+  const newId = _genItemId();
   const baseFields = {
     id: newId,
     name, designer, cat,
@@ -20503,7 +20515,7 @@ async function saveAIDetectedItem(){
   const localPhoto = capturePhoto;
   const thumbPhoto = capturePhoto;
 
-  const newId = 'M7-' + Date.now().toString(36).toUpperCase();
+  const newId = _genItemId();
   const baseFields = {
     id:newId, name, designer, cat, slot:slotMap[cat]||'main',
     c1:'#3A2A20', c2:'#1A0E08',

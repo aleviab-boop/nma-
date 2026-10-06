@@ -24,6 +24,11 @@ const crypto = require('node:crypto');
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct';
 
+// OpenAI Vision (preferred when OPENAI_API_KEY is set) — reliable colour/pattern
+// detection. Groq's vision model is often unavailable on free keys.
+const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_VISION_MODEL = process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini';
+
 // Gemini AI Studio (fallback)
 const SIMPLE_MODEL_ID = process.env.GEMINI_MODEL || 'gemini-1.5-flash-latest';
 
@@ -116,6 +121,40 @@ function parseModelJson(text){
   // response_format and wrapped its output.
   const cleaned = String(text || '').replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
   return JSON.parse(cleaned);
+}
+
+/* ---------- Provider 0: OpenAI Vision (preferred) ---------- */
+async function callOpenAI(cleanB64, mimeType){
+  const apiKey = process.env.OPENAI_API_KEY;
+  const dataUrl = `data:${mimeType};base64,${cleanB64}`;
+  const body = {
+    model: OPENAI_VISION_MODEL,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: PROMPT },
+        { type: 'image_url', image_url: { url: dataUrl } }
+      ]
+    }],
+    response_format: { type: 'json_object' },
+    max_tokens: 512,
+    temperature: 0.2
+  };
+  const resp = await fetch(OPENAI_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok){
+    const txt = await resp.text().catch(() => '');
+    const err = new Error(`OPENAI_ERROR ${resp.status}: ${txt.slice(0, 300)}`);
+    err.status = resp.status; err.detail = txt.slice(0, 500);
+    throw err;
+  }
+  const json = await resp.json();
+  const text = json.choices?.[0]?.message?.content || '';
+  if (!text) throw new Error('OPENAI_NO_TEXT');
+  return parseModelJson(text);
 }
 
 /* ---------- Provider 1: Groq (primary) ---------- */
@@ -244,11 +283,12 @@ module.exports = async function handler(req, res) {
   // Strip data URL prefix if present
   const cleanB64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
+  const hasOpenAI  = !!process.env.OPENAI_API_KEY;
   const hasGroq    = !!process.env.GROQ_API_KEY;
   const hasGemini  = !!process.env.GEMINI_API_KEY;
   const hasVertex  = !!process.env.GCP_SERVICE_ACCOUNT_KEY;
 
-  if (!hasGroq && !hasGemini && !hasVertex){
+  if (!hasOpenAI && !hasGroq && !hasGemini && !hasVertex){
     return res.status(200).json({
       success: false,
       demo: true,
@@ -261,6 +301,13 @@ module.exports = async function handler(req, res) {
   // return a useful summary if every provider fails.
   const errors = [];
 
+  if (hasOpenAI){
+    try { return res.status(200).json(shapeResult(await callOpenAI(cleanB64, mimeType))); }
+    catch (e) {
+      console.warn('[detect-garment] openai failed:', e.message);
+      errors.push({ provider: 'openai', status: e.status, detail: e.detail || String(e.message) });
+    }
+  }
   if (hasGroq){
     try { return res.status(200).json(shapeResult(await callGroq(cleanB64, mimeType))); }
     catch (e) {
