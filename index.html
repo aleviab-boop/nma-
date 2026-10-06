@@ -11474,6 +11474,27 @@ function _fmtNotifTime(ts){
   if (d < 7*86_400_000) return Math.floor(d/86_400_000) + 'd ago';
   return new Date(ts).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
 }
+// Collapse duplicate notifications: the same garment event arrives via the
+// optimistic local push, the Realtime echo, and the shared-state hydrate — often
+// with different or missing ids — producing 2-3 identical "Added" tiles. Group by
+// kind + garment (itemId or name) within a 10-min window and keep the newest.
+function _dedupeNotifs(listIn){
+  const list = (listIn || []).slice().sort((a,b)=>(((b&&(b.ts||b.addedAt))||0)-((a&&(a.ts||a.addedAt))||0)));
+  const out = [], seen = [];
+  for (const n of list){
+    if (!n) continue;
+    const type = n.type || n.kind;
+    const name = (n.name || '').trim().toLowerCase();
+    const item = n.itemId || null;
+    const ts = n.ts || n.addedAt || 0;
+    const dup = seen.find(s => s.type===type && ((item && s.item===item) || (name && s.name===name)) && Math.abs(s.ts - ts) < 600000);
+    if (dup) continue;
+    seen.push({type, name, item, ts});
+    out.push(n);
+  }
+  return out;
+}
+
 function renderNotifPanel(){
   const list = document.getElementById('notifPanelList');
   const sub  = document.getElementById('notifPanelSub');
@@ -11485,10 +11506,8 @@ function renderNotifPanel(){
   // Older code wrote n.type='garment-added'; the newer cross-device path
   // writes n.kind='garment-added'. Accept both so legacy + new
   // notifications all surface. ts fallbacks to addedAt for the same reason.
-  const all = (NOTIFICATIONS || [])
-    .filter(n => n && (n.type === 'garment-added' || n.kind === 'garment-added'))
-    .slice()
-    .sort((a,b) => ((b.ts||b.addedAt||0) - (a.ts||a.addedAt||0)));
+  const all = _dedupeNotifs((NOTIFICATIONS || [])
+    .filter(n => n && (n.type === 'garment-added' || n.kind === 'garment-added')));
 
   const lastRead = getPanelLastReadTs();
   const unread = all.filter(n => (n.ts || n.addedAt || 0) > lastRead).length;
@@ -11616,7 +11635,7 @@ let SERVER_STATE_VERSION = 0;
 let NOTIFICATIONS = (function _hydrateNotifs(){
   try {
     const raw = JSON.parse(localStorage.getItem('maison.notifications') || '[]');
-    return Array.isArray(raw) ? raw : [];
+    return Array.isArray(raw) ? _dedupeNotifs(raw) : [];
   } catch (_) { return []; }
 })();
 function _persistNotifications(){
@@ -12320,7 +12339,7 @@ function _addLocalNotification(note){
   // the Realtime push). Keyed on the stable note.id where possible.
   if (note.id && NOTIFICATIONS.some(n => n && n.id === note.id)) return;
   // Prepend, cap at 30 to stay light
-  NOTIFICATIONS = [note, ...NOTIFICATIONS].slice(0, 30);
+  NOTIFICATIONS = _dedupeNotifs([note, ...NOTIFICATIONS]).slice(0, 30);
   _persistNotifications();
   if (typeof renderNotifPanel === 'function') renderNotifPanel();
 
