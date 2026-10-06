@@ -11368,6 +11368,25 @@ async function maybeShowMadamNews(email){
   const since = NOTIFICATIONS.filter(n => (n.ts || 0) > lastSeen);
   if (since.length === 0) return;
 
+  // Collapse churn: if the same piece was both ADDED and REMOVED since the last
+  // visit (e.g. a duplicate intake later cleaned up), it's a net no-op — showing
+  // it as both "Added" and "Removed" looks like a bug. Group by item; drop any
+  // piece that has both, otherwise keep its most recent event.
+  // Key by NAME first: an optimistic add and its later removal can carry
+  // different ids (local vs server UUID), but share the garment name.
+  const _noteKey = (n) => (n.name && n.name.trim().toLowerCase()) || n.itemId || ('_' + (n.ts || Math.random()));
+  const _noteGroups = {};
+  since.forEach(n => { const k = _noteKey(n); (_noteGroups[k] = _noteGroups[k] || []).push(n); });
+  const deduped = [];
+  Object.values(_noteGroups).forEach(group => {
+    const hasAdd = group.some(n => n.type === 'garment-added');
+    const hasRemove = group.some(n => n.type !== 'garment-added');
+    if (hasAdd && hasRemove) return; // added then removed → net wash, skip both
+    deduped.push(group.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0]);
+  });
+  deduped.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  if (deduped.length === 0) return;
+
   // Build the popup body
   const body = document.getElementById('madamNewsBody');
   const sub = document.getElementById('madamNewsSub');
@@ -11378,7 +11397,7 @@ async function maybeShowMadamNews(email){
     if (d < 86_400_000) return Math.floor(d/3_600_000) + ' hr ago';
     return Math.floor(d/86_400_000) + 'd ago';
   };
-  body.innerHTML = since.slice(0, 8).map(n => {
+  body.innerHTML = deduped.slice(0, 8).map(n => {
     const isAdd = n.type === 'garment-added';
     const photoSrc = n.photo || (n.itemId && PHOTO_MAP && PHOTO_MAP[n.itemId]) || '';
     return `
@@ -11392,8 +11411,8 @@ async function maybeShowMadamNews(email){
         <span class="badge ${isAdd ? 'added' : 'removed'}">${isAdd ? 'Added' : 'Removed'}</span>
       </div>`;
   }).join('');
-  const addedCount = since.filter(n => n.type === 'garment-added').length;
-  const removedCount = since.length - addedCount;
+  const addedCount = deduped.filter(n => n.type === 'garment-added').length;
+  const removedCount = deduped.length - addedCount;
   const parts = [];
   if (addedCount) parts.push(`${addedCount} new piece${addedCount===1?'':'s'} added`);
   if (removedCount) parts.push(`${removedCount} removed`);
