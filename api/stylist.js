@@ -26,6 +26,12 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 // persona well. Override via GROQ_MODEL env var if needed.
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
+// Optional OpenAI provider. If OPENAI_API_KEY is set on the server, the stylist
+// uses OpenAI (avoids Groq free-tier rate limits); otherwise it falls back to
+// Groq. Both are OpenAI-compatible chat APIs, so only endpoint/key/model differ.
+const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
 // Best-effort logger — writes each turn to Supabase chat_messages so the
 // admin Anaita page has real KPIs + a real chart. Never throws (we don't
 // want a logging failure to break the actual chat reply).
@@ -287,9 +293,15 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   }
 
-  const apiKey = (process.env.GROQ_API_KEY || '').trim();
+  // Provider selection: prefer OpenAI when its key is present, else Groq.
+  const openaiKey = (process.env.OPENAI_API_KEY || '').trim();
+  const groqKey = (process.env.GROQ_API_KEY || '').trim();
+  const provider = openaiKey ? 'openai' : 'groq';
+  const apiKey = provider === 'openai' ? openaiKey : groqKey;
+  const endpoint = provider === 'openai' ? OPENAI_ENDPOINT : GROQ_ENDPOINT;
+  const model = provider === 'openai' ? OPENAI_MODEL : GROQ_MODEL;
   if (!apiKey) {
-    return res.status(401).json({ error: 'GROQ_API_KEY missing on the server' });
+    return res.status(401).json({ error: 'No AI key on the server — set OPENAI_API_KEY or GROQ_API_KEY' });
   }
 
   let body;
@@ -330,7 +342,7 @@ module.exports = async function handler(req, res) {
   ];
 
   const requestBody = {
-    model: GROQ_MODEL,
+    model,
     messages: [...systemBlocks, ...messages],
     max_tokens: 512,
     temperature: 0.88,         // was 0.7 — looser sampling for varied phrasing
@@ -343,7 +355,7 @@ module.exports = async function handler(req, res) {
   const t0 = Date.now();
   let groqResp;
   try {
-    groqResp = await fetch(GROQ_ENDPOINT, {
+    groqResp = await fetch(endpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -359,12 +371,12 @@ module.exports = async function handler(req, res) {
   if (!groqResp.ok) {
     const detail = await groqResp.text().catch(() => '');
     if (groqResp.status === 401) {
-      return res.status(401).json({ error: `GROQ_API_KEY rejected: ${detail.slice(0,200)}` });
+      return res.status(401).json({ error: `${provider} key rejected: ${detail.slice(0,200)}` });
     }
     if (groqResp.status === 429) {
-      return res.status(429).json({ error: `rate limited by Groq: ${detail.slice(0,200)}` });
+      return res.status(429).json({ error: `rate limited by ${provider}: ${detail.slice(0,200)}` });
     }
-    return res.status(502).json({ error: `upstream Groq error (${groqResp.status}): ${detail.slice(0,200)}` });
+    return res.status(502).json({ error: `upstream ${provider} error (${groqResp.status}): ${detail.slice(0,200)}` });
   }
 
   let data;
@@ -405,7 +417,7 @@ module.exports = async function handler(req, res) {
       prompt_tokens: usage.prompt_tokens || 0,
       completion_tokens: usage.completion_tokens || 0,
       total_tokens: usage.total_tokens || 0,
-      model: data.model || GROQ_MODEL
+      model: data.model || model
     },
     replyMs
   });

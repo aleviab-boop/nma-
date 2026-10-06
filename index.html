@@ -18620,7 +18620,15 @@ function renderOpsInventory(){
       const id = r.dataset.id;
       const isCurated = e.currentTarget.dataset.curated === '1';
       const it = INVENTORY.find(x=>x.id===id);
-      if (!confirm(`Remove "${it ? it.name : id}" from inventory?`)) return;
+      const confirmed = await (typeof showConfirm === 'function'
+        ? showConfirm({
+            title: 'Remove from inventory?',
+            message: `"${it ? it.name : id}" will be removed from the live inventory.`,
+            confirmLabel: 'Remove',
+            danger: true
+          })
+        : Promise.resolve(window.confirm(`Remove "${it ? it.name : id}" from inventory?`)));
+      if (!confirmed) return;
       // Optimistic local removal
       const idx = INVENTORY.findIndex(x=>x.id===id);
       if (idx >= 0) INVENTORY.splice(idx,1);
