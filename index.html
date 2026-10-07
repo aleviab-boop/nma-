@@ -11968,6 +11968,7 @@ function updateGlobalCounters(){
   const total      = INVENTORY.length;
   const available  = INVENTORY.filter(i => !i.status || i.status === 'in-wardrobe').length;
   const cleaning   = INVENTORY.filter(i => i.status === 'cleaning').length;
+  const overdueCleaning = INVENTORY.filter(i => i.status === 'cleaning' && i.cleaningDueAt && Date.now() > i.cleaningDueAt).length;
   const outOfWardrobe = INVENTORY.filter(i => i.status && i.status !== 'in-wardrobe').length;
 
   // Unworn 60d+ — uses the same heuristic that drives the per-card badge,
@@ -11997,7 +11998,7 @@ function updateGlobalCounters(){
                               ? `▲ ${thisWeek} this week`
                               : 'no new this week');
   setText('heroAvailableSpark', `${readyPct}% ready`);
-  setText('heroCleaningSpark',  cleaning > 0 ? `${cleaning} priority` : '0 priority');
+  setText('heroCleaningSpark',  cleaning > 0 ? (overdueCleaning > 0 ? `${overdueCleaning} overdue` : `${cleaning} priority`) : '0 priority');
 
   // Ops Dashboard stats — Open Requests = upcoming events without an outfit
   const today = new Date(); today.setHours(0,0,0,0);
@@ -12021,7 +12022,9 @@ function updateGlobalCounters(){
   const outSub = document.getElementById('opsStatOutOfSub');
   if (outSub) outSub.textContent = outOfWardrobe === 0
     ? 'All pieces in storage'
-    : `${cleaning} at cleaner · ${outOfWardrobe - cleaning} elsewhere`;
+    : (overdueCleaning > 0
+        ? `${cleaning} at cleaner · ${overdueCleaning} overdue`
+        : `${cleaning} at cleaner · ${outOfWardrobe - cleaning} elsewhere`);
 
   setText('opsStatIntake', fmt(intakeToday));
   const intakeSub = document.getElementById('opsStatIntakeSub');
@@ -12913,6 +12916,19 @@ function openItemModal(itemId){
         <h5>Wear History</h5>
         <div style="opacity:.55;font-size:12px;font-style:italic;padding:4px 0;">Not yet worn — added recently.</div>
       </div>`}
+      ${document.body.classList.contains('role-ops-dashboard') ? `
+      <div class="modal-clean-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 16px;padding:12px 14px;border:1px solid var(--ods-line,#e2e8f0);border-radius:10px;background:var(--ods-blue-tint,#eff6ff);">
+        <div style="font-size:12px;color:var(--ods-text,#0f172a);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${item.status==='cleaning'
+            ? ((item.cleaningDueAt && Date.now()>item.cleaningDueAt)
+                ? `<span style="background:#fee2e2;color:#b91c1c;font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;">Overdue</span> due ${item.cleaningDueAt?new Date(item.cleaningDueAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'—'}`
+                : `<span style="background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;">At cleaner</span> due ${item.cleaningDueAt?new Date(item.cleaningDueAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'—'}`)
+            : `<span style="background:#dcfce7;color:#15803d;font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;">In wardrobe</span> ready`}
+        </div>
+        <button class="m-btn secondary clean-toggle-btn" data-action="toggleCleaning" data-id="${item.id}" style="flex:0 0 auto;width:auto;padding:8px 14px;">
+          ${item.status==='cleaning' ? 'Mark Returned' : 'Send to Cleaning'}
+        </button>
+      </div>` : ''}
       <div class="modal-actions modal-actions-3">
         <button class="m-btn secondary fav ${isFav?'active':''}" data-action="fav" data-id="${item.id}">
           <svg viewBox="0 0 24 24" fill="${isFav?'currentColor':'none'}"><path d="M12 21s-8-5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-8 11-8 11z"/></svg>
@@ -17051,6 +17067,42 @@ document.getElementById('itemModal')?.addEventListener('click',(e)=>{
         else showToast('Location saved locally — server sync failed');
       }).catch(() => showToast('Location saved locally — offline'));
     })();
+    return;
+  }
+  // Cleaning workflow — send to / return from the cleaner (Ops Dashboard).
+  const cleanBtn = e.target.closest('[data-action="toggleCleaning"]');
+  if (cleanBtn){
+    e.stopPropagation();
+    const id = cleanBtn.dataset.id;
+    const item = INVENTORY.find(i => i.id === id);
+    if (!item) return;
+    const sending = item.status !== 'cleaning';
+    const now = Date.now();
+    const DUE_DAYS = 3;
+    if (sending){
+      item.status = 'cleaning'; item.statusLabel = 'Cleaning';
+      item.cleaningSentAt = now; item.cleaningDueAt = now + DUE_DAYS*86400000;
+    } else {
+      item.status = 'in-wardrobe'; item.statusLabel = 'Available';
+      item.cleaningSentAt = null; item.cleaningDueAt = null;
+    }
+    openItemModal(id);
+    rerenderInventoryViews && rerenderInventoryViews();
+    const isUuidC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
+    const lookupC = isUuidC ? { id: item.id } : { sku: item.sku || item.id };
+    fetch('/api/items', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...lookupC,
+        status: item.status,
+        cleaning_sent_at: item.cleaningSentAt ? new Date(item.cleaningSentAt).toISOString() : null,
+        cleaning_due_at:  item.cleaningDueAt  ? new Date(item.cleaningDueAt).toISOString()  : null
+      })
+    }).then(r => r.json()).then(j => {
+      showToast(sending ? '✓ Sent to cleaning' : '✓ Marked returned');
+      if (typeof broadcastStateChange === 'function') broadcastStateChange();
+    }).catch(() => showToast(sending ? 'Sent to cleaning (offline)' : 'Returned (offline)'));
     return;
   }
   const fav = e.target.closest('[data-action="fav"]');

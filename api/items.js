@@ -152,6 +152,10 @@ module.exports = async function handler(req, res) {
       if ('cat' in body) patch.category = body.cat;
       if ('c1' in body) patch.colour = body.c1;
       if ('loc' in body && !('zone' in body)) patch.zone = body.loc;
+      // Cleaning workflow — set when sent, null to clear on return (explicit so
+      // nulls aren't dropped by the "supplied fields only" loop above).
+      if ('cleaning_sent_at' in body) patch.cleaning_sent_at = body.cleaning_sent_at;
+      if ('cleaning_due_at'  in body) patch.cleaning_due_at  = body.cleaning_due_at;
       patch.updated_at = new Date().toISOString();
 
       // Look up by UUID id (if it's a UUID) or by sku
