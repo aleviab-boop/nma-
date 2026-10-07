@@ -100,6 +100,9 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .crumb svg{width:11px;height:11px;stroke:var(--pearl);opacity:.5;}
 .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid rgba(143,160,107,.4);background:rgba(143,160,107,.1);border-radius:999px;font-size:11px;color:var(--ok);font-weight:500;letter-spacing:.02em;}
 .status-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px rgba(143,160,107,.7);}
+.inv-clean-select{font-size:12px;padding:5px 9px;border:1px solid #d8dee9;border-radius:7px;background:#fff;color:#1f2937;cursor:pointer;max-width:150px;}
+.inv-clean-select:hover{border-color:#2563eb;}
+.inv-clean-select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .topbar-right{display:flex;align-items:center;gap:14px;}
 .topbar-stat{font-size:12px;color:var(--pearl);font-variant-numeric:tabular-nums;}
 .topbar-stat b{color:var(--ivory);font-weight:600;}
@@ -1172,7 +1175,7 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
             <table class="data-table" id="invTable">
               <thead>
                 <tr>
-                  <th style="width:60px;">Photo</th><th>Name</th><th>Designer</th><th>Category</th><th>Status</th><th>Added</th>
+                  <th style="width:60px;">Photo</th><th>Name</th><th>Designer</th><th>Category</th><th>Status</th><th>Cleaning</th><th>Added</th>
                 </tr>
               </thead>
               <tbody id="invTableBody"></tbody>
@@ -2132,6 +2135,12 @@ function paintInventoryPage(){
           <td>${i.designer}</td>
           <td style="text-transform:capitalize;">${i.cat}</td>
           <td><span class="pill pill-status-${i.status}">${i.status === 'in-wardrobe' ? 'Available' : 'Cleaning'}</span></td>
+          <td>
+            <select class="inv-clean-select" data-id="${String(i.id||'').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" title="Laundry / cleaning status">
+              <option value="in-wardrobe" ${i.status!=='cleaning'?'selected':''}>In wardrobe</option>
+              <option value="cleaning" ${i.status==='cleaning'?'selected':''}>Send to cleaning</option>
+            </select>
+          </td>
           <td><span class="muted">${_fmtTime(i.addedAt || Date.now())}</span></td>
         </tr>
       `;
@@ -2161,8 +2170,42 @@ function paintInventoryPage(){
       const item = INVENTORY.find(x => String(x.id) === String(id));
       if (item) openInvDetail(item);
     });
+    // Per-row cleaning dropdown — send a piece to / return from the cleaner
+    body.addEventListener('change', (e) => {
+      const seldrop = e.target.closest('.inv-clean-select');
+      if (!seldrop) return;
+      e.stopPropagation();
+      _setItemCleaning(seldrop.dataset.id, seldrop.value === 'cleaning');
+    });
   }
   renderInvRows();
+}
+
+/* Send a piece to / return from the cleaner — updates the local row + counters
+   instantly, then PATCHes /api/items (status + cleaning dates) and logs an audit
+   entry so it shows in the activity feed and overdue counts. */
+async function _setItemCleaning(id, toCleaning){
+  const item = INVENTORY.find(x => String(x.id) === String(id));
+  if (!item) return;
+  const now = Date.now(), DUE = 3 * 86400000;
+  if (toCleaning){ item.status = 'cleaning'; item.cleaningSentAt = now; item.cleaningDueAt = now + DUE; }
+  else { item.status = 'in-wardrobe'; item.cleaningSentAt = null; item.cleaningDueAt = null; }
+  if (typeof renderInvRows === 'function') renderInvRows();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
+  const lookup = isUuid ? { id: item.id } : { sku: item.sku || item.id };
+  try {
+    await fetch('/api/items', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...lookup, status: item.status,
+        cleaning_sent_at: item.cleaningSentAt ? new Date(item.cleaningSentAt).toISOString() : null,
+        cleaning_due_at:  item.cleaningDueAt  ? new Date(item.cleaningDueAt).toISOString()  : null })
+    });
+    if (typeof _logAudit === 'function') _logAudit({
+      actor: (typeof currentSignedInEmail === 'function' ? currentSignedInEmail() : 'admin') || 'admin',
+      kind: 'clean',
+      what: `${item.name} ${toCleaning ? 'sent to cleaning' : 'returned from cleaning'}`
+    });
+  } catch (e) { /* local update already applied; server will reconcile on next sync */ }
 }
 
 /* Inventory item detail lightbox — opens when ops clicks any row in
