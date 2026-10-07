@@ -1432,6 +1432,8 @@ function signIn(email){
   try { localStorage.setItem(AUTH_KEY, email); } catch(_){}
   showApp();
   refreshSignedInUI();
+  // Record the sign-in to the audit log so it counts toward "Sessions today".
+  try { if (typeof _logAudit === 'function') _logAudit({ actor: email, kind: 'login', what: 'Signed in to Admin' }); } catch(_){}
   if (!window.__bootedDashboard){
     window.__bootedDashboard = true;
     bootDashboard();
@@ -1644,9 +1646,12 @@ function computeKPIs(rangeDays){
   const chatLog = (typeof _ANAITA_CACHE !== 'undefined' && Array.isArray(_ANAITA_CACHE)) ? _ANAITA_CACHE : [];
   const chatsWeek = chatLog.filter(e => e.role === 'user' && (e.ts || 0) > cutoffWeek).length;
 
-  // Sessions today — real, = chat threads (30-min gap grouping) active today.
+  // Sessions today — real, = Anaita chat threads active today + admin logins today.
   const threads = (typeof _groupAnaitaIntoThreads === 'function') ? _groupAnaitaIntoThreads(chatLog) : [];
-  const sessionsToday = threads.filter(t => (t.lastTs || t.startTs || 0) >= todayStartTs).length;
+  const chatSessionsToday = threads.filter(t => (t.lastTs || t.startTs || 0) >= todayStartTs).length;
+  const auditForLogins = (typeof _loadAudit === 'function' ? _loadAudit() : []) || [];
+  const loginsToday = auditForLogins.filter(a => a.kind === 'login' && (a.ts || 0) >= todayStartTs).length;
+  const sessionsToday = chatSessionsToday + loginsToday;
 
   // Open requests — real, = upcoming events with no confirmed outfit assigned.
   const events = (typeof _EVENTS_CACHE !== 'undefined' && Array.isArray(_EVENTS_CACHE)) ? _EVENTS_CACHE : [];
@@ -2805,6 +2810,8 @@ async function liveSyncTick(){
   try {
     const beforeIds = new Set(INVENTORY.map(i => i.id));
     await fetchLive();
+    // Refresh the audit log too so login counts + "Last alert" stay live.
+    try { if (typeof _fetchAudit === 'function') await _fetchAudit(); } catch(_){}
     _liveLastSyncAt = Date.now();
     _updateLivePill();
 
