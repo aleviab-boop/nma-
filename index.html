@@ -11399,7 +11399,12 @@ async function maybeShowMadamNews(email){
   };
   body.innerHTML = deduped.slice(0, 8).map(n => {
     const isAdd = n.type === 'garment-added';
-    const photoSrc = n.photo || (n.itemId && PHOTO_MAP && PHOTO_MAP[n.itemId]) || '';
+    const _invItem = (typeof INVENTORY !== 'undefined')
+      ? (INVENTORY.find(i => i.id === n.itemId) || (n.name && INVENTORY.find(i => (i.name||'').toLowerCase() === (n.name||'').toLowerCase())))
+      : null;
+    const photoSrc = n.photo
+      || (_invItem && (_invItem.photo || _invItem.capturedPhoto))
+      || (n.itemId && PHOTO_MAP && PHOTO_MAP[n.itemId]) || '';
     return `
       <div class="madam-news-tile" data-item="${n.itemId || ''}">
         <div class="thumb">${photoSrc ? `<img src="${photoSrc}" alt="${n.name||''}"/>` : ''}</div>
@@ -11539,7 +11544,12 @@ function renderNotifPanel(){
     else groups.earlier.push(n);
   }
   function renderTile(n){
-    const photoSrc = n.photo || (n.itemId && (typeof PHOTO_MAP !== 'undefined') && PHOTO_MAP[n.itemId]) || '';
+    const _invItem = (typeof INVENTORY !== 'undefined')
+      ? (INVENTORY.find(i => i.id === n.itemId) || (n.name && INVENTORY.find(i => (i.name||'').toLowerCase() === (n.name||'').toLowerCase())))
+      : null;
+    const photoSrc = n.photo
+      || (_invItem && (_invItem.photo || _invItem.capturedPhoto))
+      || (n.itemId && (typeof PHOTO_MAP !== 'undefined') && PHOTO_MAP[n.itemId]) || '';
     const ts = n.ts || n.addedAt || 0;
     const isUnread = ts > lastRead;
     const designer = n.designer || 'Added to wardrobe';
