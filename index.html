@@ -11512,7 +11512,16 @@ function renderNotifPanel(){
   // writes n.kind='garment-added'. Accept both so legacy + new
   // notifications all surface. ts fallbacks to addedAt for the same reason.
   const all = _dedupeNotifs((NOTIFICATIONS || [])
-    .filter(n => n && (n.type === 'garment-added' || n.kind === 'garment-added')));
+    .filter(n => n && (n.type === 'garment-added' || n.kind === 'garment-added'))
+    // Drop orphaned notifications: a piece that no longer exists in inventory and
+    // carries no image of its own (e.g. a deleted test item) → stale blank tile.
+    .filter(n => {
+      if (n.photo) return true;
+      if (!(typeof INVENTORY !== 'undefined' && INVENTORY.length)) return true;
+      const found = INVENTORY.find(i => i.id === n.itemId)
+        || (n.name && INVENTORY.find(i => (i.name||'').toLowerCase() === (n.name||'').toLowerCase()));
+      return !!found;
+    }));
 
   const lastRead = getPanelLastReadTs();
   const unread = all.filter(n => (n.ts || n.addedAt || 0) > lastRead).length;
