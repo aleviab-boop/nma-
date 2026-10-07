@@ -7521,7 +7521,10 @@ body.role-ops-dashboard .topbar .btn-bell{display:none!important;}
 
 /* Inventory row — fix the 5-column grid so View/Remove buttons fit
    and Zone/status text don't overflow. */
-body.role-ops-dashboard .inv-row{grid-template-columns:56px minmax(0,1fr) 110px 120px 168px!important;gap:14px!important;}
+body.role-ops-dashboard .inv-row{grid-template-columns:56px minmax(0,1fr) 100px 110px 290px!important;gap:14px!important;}
+body.role-ops-dashboard .inv-clean-select{font-size:12px!important;padding:6px 8px!important;border:1px solid var(--ods-line)!important;border-radius:7px!important;background:var(--ods-card)!important;color:var(--ods-text)!important;cursor:pointer!important;max-width:140px!important;font-family:'Inter',-apple-system,sans-serif!important;text-transform:none!important;letter-spacing:0!important;}
+body.role-ops-dashboard .inv-clean-select:hover{border-color:var(--ods-blue)!important;}
+body.role-ops-dashboard .inv-clean-select:focus{outline:none!important;border-color:var(--ods-blue)!important;box-shadow:0 0 0 2px rgba(37,99,235,.15)!important;}
 body.role-ops-dashboard .inv-name{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;}
 body.role-ops-dashboard .inv-name .designer{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-width:100%!important;}
 body.role-ops-dashboard .inv-loc,
@@ -18725,7 +18728,11 @@ function renderOpsInventory(){
       <div class="inv-name">${newPill}<span style="vertical-align:middle;">${i.name}</span><span class="designer">${i.designer} · ${i.id}</span></div>
       <div class="inv-loc">Zone ${i.loc}</div>
       <div class="inv-status ${i.status}">${i.statusLabel}</div>
-      <div class="inv-action" style="display:flex;gap:6px;">
+      <div class="inv-action" style="display:flex;gap:6px;align-items:center;">
+        <select class="inv-clean-select" data-id="${i.id}" onclick="event.stopPropagation()" title="Laundry / cleaning status">
+          <option value="in-wardrobe" ${i.status!=='cleaning'?'selected':''}>In wardrobe</option>
+          <option value="cleaning" ${i.status==='cleaning'?'selected':''}>Send to cleaning</option>
+        </select>
         <button class="c-btn inv-view" style="padding:6px 10px;font-size:9px;" type="button">View</button>
         <button class="c-btn inv-remove" data-curated="${isCurated ? '1' : '0'}" style="padding:6px 10px;font-size:9px;color:#F2A89B;border-color:rgba(176,78,62,.4);" type="button" title="Remove from inventory">Remove</button>
       </div>
@@ -18735,6 +18742,27 @@ function renderOpsInventory(){
     r.querySelector('.inv-view')?.addEventListener('click',(e)=>{
       e.stopPropagation();
       openItemModal(r.dataset.id);
+    });
+    // Cleaning dropdown — send to / return from the cleaner
+    r.querySelector('.inv-clean-select')?.addEventListener('change', async (e)=>{
+      e.stopPropagation();
+      const item = INVENTORY.find(x => x.id === r.dataset.id);
+      if (!item) return;
+      const toCleaning = e.target.value === 'cleaning';
+      const now = Date.now(), DUE = 3*86400000;
+      if (toCleaning){ item.status='cleaning'; item.statusLabel='Cleaning'; item.cleaningSentAt=now; item.cleaningDueAt=now+DUE; }
+      else { item.status='in-wardrobe'; item.statusLabel='Available'; item.cleaningSentAt=null; item.cleaningDueAt=null; }
+      rerenderInventoryViews && rerenderInventoryViews();
+      const isUuidC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
+      const lookupC = isUuidC ? { id:item.id } : { sku: item.sku || item.id };
+      try {
+        await fetch('/api/items',{ method:'PATCH', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ ...lookupC, status:item.status,
+            cleaning_sent_at: item.cleaningSentAt ? new Date(item.cleaningSentAt).toISOString() : null,
+            cleaning_due_at:  item.cleaningDueAt  ? new Date(item.cleaningDueAt).toISOString()  : null }) });
+        showToast(toCleaning ? '✓ Sent to cleaning' : '✓ Returned to wardrobe');
+        if (typeof broadcastStateChange === 'function') broadcastStateChange();
+      } catch(_){ showToast(toCleaning ? 'Sent to cleaning (offline)' : 'Returned (offline)'); }
     });
     r.querySelector('.inv-remove')?.addEventListener('click',async (e)=>{
       e.stopPropagation();
