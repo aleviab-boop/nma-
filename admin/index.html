@@ -1741,7 +1741,38 @@ function paintKPIs(){
   document.getElementById('kpiNew').textContent      = k.newWeek;
   document.getElementById('kpiOpen').textContent     = k.openRequests;
   document.getElementById('kpiChats').textContent    = k.chatsWeek;
+  _saveKpiSnapshot(k);   // cache so the next boot can show these numbers instantly
   paintHighlights();
+}
+
+// --- Instant-load helpers ---------------------------------------------------
+// The Overview metrics used to appear only after four network calls finished
+// in series. We now cache the last computed numbers and paint them on boot
+// before any fetch returns, then refine as live data arrives.
+const _KPI_CACHE_KEY = 'maison.admin.kpis';
+function _saveKpiSnapshot(k){ try { localStorage.setItem(_KPI_CACHE_KEY, JSON.stringify(k)); } catch(_){} }
+function _paintKpiSnapshot(){
+  let k = null; try { k = JSON.parse(localStorage.getItem(_KPI_CACHE_KEY) || 'null'); } catch(_){}
+  if (!k) return false;
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+  set('hdrInv', k.total); set('hdrAvail', k.available); set('hdrClean', k.cleaning);
+  set('navInvCount', k.total); set('kpiSessions', k.sessionsToday); set('kpiNew', k.newWeek);
+  set('kpiOpen', k.openRequests); set('kpiChats', k.chatsWeek);
+  return true;
+}
+// Update just the inventory-derived tiles (total/available/cleaning/new) the
+// instant /api/items resolves — without waiting on chat/events/audit — so the
+// headline numbers snap in first. The other tiles keep their cached values
+// until the full paintKPIs() runs.
+function _paintInventoryKpisFast(){
+  const inv = Array.isArray(INVENTORY) ? INVENTORY : [];
+  const cutoffWeek = Date.now() - 7*86400000;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('hdrInv', inv.length);
+  set('navInvCount', inv.length);
+  set('hdrAvail', inv.filter(i => i.status === 'in-wardrobe').length);
+  set('hdrClean', inv.filter(i => i.status === 'cleaning').length);
+  set('kpiNew', inv.filter(i => i.addedAt && i.addedAt > cutoffWeek).length);
 }
 
 // Most-frequent value in an array (ignores falsy).
@@ -3321,22 +3352,36 @@ async function initAdminSupabaseLive(){
 
 // ---- Boot (runs only AFTER successful sign-in) ----
 async function bootDashboard(){
-  await fetchLive();
-  // Seed the audit cache up front so the Overview activity feed shows real
-  // entries on first paint instead of the synthesized filler placeholders.
-  try { if (typeof _fetchAudit === 'function') await _fetchAudit(); } catch(_){}
-  // Seed chat log + events so the Overview KPIs/highlights compute from real data.
-  try { if (typeof _fetchAnaitaLog === 'function') await _fetchAnaitaLog(); } catch(_){}
-  try { const r = await fetch('/api/events', { cache:'no-store' }); const j = await r.json(); if (j && j.success) _EVENTS_CACHE = j.events || []; } catch(_){}
+  // 1) INSTANT: paint the last-known KPI numbers from cache so the metrics
+  //    show up immediately, before any network call returns.
+  _paintKpiSnapshot();
+  _paintedPages.overview = true;
+  updateRefreshClock();
+  setInterval(updateRefreshClock, 30_000);
+
+  // 2) Fetch everything the Overview needs IN PARALLEL. These four calls used
+  //    to run one-after-another (await chained), so the wait was the SUM of all
+  //    four round-trips; now it's ~the slowest single one.
+  const pItems  = fetchLive();
+  const pAudit  = (typeof _fetchAudit === 'function')     ? Promise.resolve(_fetchAudit()).catch(()=>{})     : Promise.resolve();
+  const pChat   = (typeof _fetchAnaitaLog === 'function') ? Promise.resolve(_fetchAnaitaLog()).catch(()=>{}) : Promise.resolve();
+  const pEvents = fetch('/api/events', { cache:'no-store' })
+    .then(r => r.json()).then(j => { if (j && j.success) _EVENTS_CACHE = j.events || []; })
+    .catch(()=>{});
+
+  // 3) The moment inventory lands, snap the headline tiles in (don't wait on
+  //    chat/events/audit for the big numbers).
+  pItems.then(() => { try { _paintInventoryKpisFast(); } catch(_){} }).catch(()=>{});
+
+  // 4) When everything is in, do one full, accurate repaint + refresh the cache.
+  await Promise.allSettled([pItems, pAudit, pChat, pEvents]);
   _liveLastSyncAt = Date.now();
   _updateLivePill();
   paintKPIs();
   paintActivityChart();
   paintCategoryChart();
   paintActivityFeed();
-  _paintedPages.overview = true;
-  updateRefreshClock();
-  setInterval(updateRefreshClock, 30_000);
+
   // Live poll — every 8s as a fallback. Supabase Realtime delivers instant
   // updates when it's available; the poll just covers the case where the WS
   // connection drops or the SDK fails to load.
