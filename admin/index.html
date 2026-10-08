@@ -114,6 +114,19 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .checklist-row.overdue{background:#fef2f2;}
 .checklist-check{width:17px;height:17px;cursor:pointer;accent-color:#2563eb;}
 .checklist-empty{padding:16px 6px;color:#15803d;font-size:13px;}
+/* Stage colour-coding — scannable at a glance */
+.cl-stage.care-dry-cleaning{color:#7c3aed!important;}
+.cl-stage.care-washing{color:#2563eb!important;}
+.cl-stage.care-drying{color:#b45309!important;}
+.cl-stage.care-steaming{color:#0d9488!important;}
+.cl-stage.care-repair{color:#ea580c!important;}
+.cl-stage.care-quality-check{color:#4f46e5!important;}
+.pill.care-pill.care-dry-cleaning{background:#f3e8ff!important;color:#7c3aed!important;border:1px solid #e9d5ff!important;}
+.pill.care-pill.care-washing{background:#dbeafe!important;color:#1d4ed8!important;border:1px solid #bfdbfe!important;}
+.pill.care-pill.care-drying{background:#fef3c7!important;color:#b45309!important;border:1px solid #fde68a!important;}
+.pill.care-pill.care-steaming{background:#ccfbf1!important;color:#0d9488!important;border:1px solid #99f6e4!important;}
+.pill.care-pill.care-repair{background:#ffedd5!important;color:#ea580c!important;border:1px solid #fed7aa!important;}
+.pill.care-pill.care-quality-check{background:#e0e7ff!important;color:#4f46e5!important;border:1px solid #c7d2fe!important;}
 .topbar-right{display:flex;align-items:center;gap:14px;}
 .topbar-stat{font-size:12px;color:var(--pearl);font-variant-numeric:tabular-nums;}
 .topbar-stat b{color:var(--ivory);font-weight:600;}
@@ -2154,7 +2167,7 @@ function paintInventoryPage(){
           </td>
           <td>${i.designer}</td>
           <td style="text-transform:capitalize;">${i.cat}</td>
-          <td><span class="pill pill-status-${i.status}">${i.status === 'cleaning' ? _careLabel(i.careStage) : 'Available'}</span></td>
+          <td><span class="pill pill-status-${i.status} ${i.status==='cleaning' ? 'care-pill care-'+(i.careStage||'none') : ''}">${i.status === 'cleaning' ? _careLabel(i.careStage) : 'Available'}</span></td>
           <td>
             <select class="inv-clean-select" data-id="${String(i.id||'').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" title="Garment care status">
               ${_careOptions(i.status==='cleaning' ? (i.careStage || 'dry-cleaning') : '')}
@@ -2276,7 +2289,7 @@ function renderCleaningChecklist(){
       <label class="checklist-row ${overdue?'overdue':''}">
         <input type="checkbox" class="checklist-check" data-id="${String(i.id||'').replace(/"/g,'&quot;')}">
         <span class="cl-name">${nm}</span>
-        <span class="cl-stage">${_careLabel(i.careStage)}</span>
+        <span class="cl-stage care-${i.careStage||'none'}">${_careLabel(i.careStage)}</span>
         <span class="cl-due ${overdue?'overdue':''}">${overdue ? 'Overdue · ' : 'Due '}${due}</span>
       </label>`;
   }).join('');
