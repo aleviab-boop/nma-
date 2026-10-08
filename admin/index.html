@@ -2338,25 +2338,56 @@ function renderCleaningChecklist(){
   }).join('');
 }
 
-/* Custom checklist tasks — free-text to-dos stored locally (e.g. "Call the
-   cleaner", "Steam the Sabyasachi"). Add / tick / delete. */
+/* Custom checklist tasks — SERVER-BACKED via the Supabase `cleaning_tasks`
+   table, so the list is shared across every admin device in real time
+   (Realtime subscription in admin-live-all reloads it on any change).
+   localStorage is kept only as an offline cache / pre-connect fallback. */
 const _TASKS_KEY = 'maison.cleaningTasks';
-// In-memory mirror so the feature keeps working even when localStorage is
-// unavailable (private mode, partitioned/blocked storage, file:// previews).
-// localStorage is the durable store when it works; _tasksMem is the always-on
-// session copy so Add/edit/delete are never silently swallowed.
-let _tasksMem = null;
-function _loadTasks(){
+let _customTasks = [];   // in-memory render source; the server is the source of truth
+
+function _tasksClient(){ return (typeof _adminSupabaseClient !== 'undefined' && _adminSupabaseClient) ? _adminSupabaseClient : null; }
+function _isLocalId(id){ const s = String(id||''); return s.startsWith('tk-') || s.startsWith('tmp-'); }
+
+// Offline cache so a reload shows the last-known list before the server replies.
+function _loadCache(){ try { const r = JSON.parse(localStorage.getItem(_TASKS_KEY)||'[]'); if (Array.isArray(r)) return r; } catch(_){} return []; }
+function _saveCache(arr){ try { localStorage.setItem(_TASKS_KEY, JSON.stringify((arr||[]).slice(0,200))); } catch(_){} }
+
+function _rowToTask(r){ return { id:r.id, text:r.text||'', service:r.service||null, due:r.due||null, done:!!r.done, created_at:r.created_at }; }
+
+// Pull the shared list from the server (falls back to the local cache when the
+// client isn't up yet). Safe to call repeatedly — boot + Realtime both call it.
+let _fetchingTasks = false;
+async function _fetchTasks(){
+  const client = _tasksClient();
+  if (!client){ if (!_customTasks.length) _customTasks = _loadCache(); renderCustomTasks(); return; }
+  if (_fetchingTasks) return;
+  _fetchingTasks = true;
   try {
-    const r = JSON.parse(localStorage.getItem(_TASKS_KEY)||'[]');
-    if (Array.isArray(r)){ _tasksMem = r; return r; }
-  } catch(_){}
-  return Array.isArray(_tasksMem) ? _tasksMem : (_tasksMem = []);
+    const { data, error } = await client.from('cleaning_tasks').select('*').order('created_at', { ascending:false });
+    if (error) throw error;
+    _customTasks = (data||[]).map(_rowToTask);
+    _saveCache(_customTasks);
+    renderCustomTasks();
+  } catch(e){
+    console.warn('[tasks] fetch failed, using cache', e && e.message);
+    if (!_customTasks.length){ _customTasks = _loadCache(); renderCustomTasks(); }
+  } finally { _fetchingTasks = false; }
 }
-function _saveTasks(arr){
-  const safe = Array.isArray(arr) ? arr.slice(0,100) : [];
-  _tasksMem = safe;                                   // always keep the session copy
-  try { localStorage.setItem(_TASKS_KEY, JSON.stringify(safe)); } catch(_){}
+
+async function _toggleTask(id, done){
+  _customTasks = _customTasks.map(t => t.id === id ? { ...t, done } : t); _saveCache(_customTasks); renderCustomTasks();
+  const client = _tasksClient(); if (!client || _isLocalId(id)) return;
+  try { await client.from('cleaning_tasks').update({ done }).eq('id', id); } catch(e){ console.warn('[tasks] toggle failed', e && e.message); }
+}
+async function _deleteTask(id){
+  _customTasks = _customTasks.filter(t => t.id !== id); _saveCache(_customTasks); renderCustomTasks();
+  const client = _tasksClient(); if (!client || _isLocalId(id)) return;
+  try { await client.from('cleaning_tasks').delete().eq('id', id); } catch(e){ console.warn('[tasks] delete failed', e && e.message); }
+}
+async function _editTask(id, text){
+  _customTasks = _customTasks.map(t => t.id === id ? { ...t, text } : t); _saveCache(_customTasks); renderCustomTasks();
+  const client = _tasksClient(); if (!client || _isLocalId(id)) return;
+  try { await client.from('cleaning_tasks').update({ text }).eq('id', id); } catch(e){ console.warn('[tasks] edit failed', e && e.message); }
 }
 // Pretty-print a "YYYY-MM-DD" due date. Local-parse (append T00:00) so it
 // doesn't shift a day in timezones west of UTC.
@@ -2375,7 +2406,7 @@ function _taskOverdue(t){
 function renderCustomTasks(){
   const wrap = document.getElementById('customTaskList');
   if (!wrap) return;
-  const tasks = _loadTasks();
+  const tasks = _customTasks;
   if (!tasks.length){ wrap.innerHTML = ''; return; }
   wrap.innerHTML = tasks.map(t => {
     const dueLabel = _fmtTaskDue(t.due);
@@ -2396,7 +2427,7 @@ function renderCustomTasks(){
     </div>`;
   }).join('');
 }
-function _addTask(){
+async function _addTask(){
   const inp = document.getElementById('newTaskInput');
   if (!inp) return;
   const text = (inp.value||'').trim();
@@ -2405,16 +2436,32 @@ function _addTask(){
   const due = (dateInp && dateInp.value) ? dateInp.value : null;  // "YYYY-MM-DD" or null
   const svcInp = document.getElementById('newTaskService');
   const service = (svcInp && svcInp.value) ? svcInp.value : null;  // care-stage value or null
-  const tasks = _loadTasks();
-  tasks.unshift({ id: 'tk-' + Date.now().toString(36), text, service, due, done: false, ts: Date.now() });
-  _saveTasks(tasks);
-  inp.value = '';
-  if (dateInp) dateInp.value = '';
-  if (svcInp) svcInp.value = '';
-  renderCustomTasks();
+  // Clear inputs immediately for a snappy feel.
+  inp.value = ''; if (dateInp) dateInp.value = ''; if (svcInp) svcInp.value = '';
+
+  const client = _tasksClient();
+  if (client){
+    // Optimistic insert — show it now with a temp id, then reconcile from server.
+    const temp = { id: 'tmp-' + Date.now().toString(36), text, service, due, done:false, created_at:new Date().toISOString() };
+    _customTasks = [temp, ..._customTasks]; _saveCache(_customTasks); renderCustomTasks();
+    try {
+      const actor = (typeof currentSignedInEmail === 'function' ? currentSignedInEmail() : null) || null;
+      const { error } = await client.from('cleaning_tasks').insert({ text, service, due, done:false, created_by: actor });
+      if (error) throw error;
+      _fetchTasks();  // reconcile: replaces the temp row with the real server row
+    } catch(e){
+      console.warn('[tasks] add failed', e && e.message);
+      if (typeof showAdminToast === 'function') showAdminToast('Could not save task — check connection');
+      _fetchTasks();
+    }
+  } else {
+    // Offline / pre-connect fallback → local cache only.
+    _customTasks = [{ id: 'tk-' + Date.now().toString(36), text, service, due, done:false, created_at:new Date().toISOString() }, ..._customTasks];
+    _saveCache(_customTasks); renderCustomTasks();
+  }
 }
 function _startEditTask(row, id){
-  const task = _loadTasks().find(t => t.id === id);
+  const task = _customTasks.find(t => t.id === id);
   if (!task || !row) return;
   const span = row.querySelector('.tk-text');
   if (!span) return;
@@ -2426,9 +2473,9 @@ function _startEditTask(row, id){
   const save = () => {
     if (committed) return; committed = true;
     const v = (input.value||'').trim();
-    // Preserve the existing due date when editing the text.
-    if (v) _saveTasks(_loadTasks().map(t => t.id === id ? { ...t, text: v } : t));
-    renderCustomTasks();
+    // Preserve service + due; only the text changes.
+    if (v && v !== task.text) _editTask(id, v);
+    else renderCustomTasks();
   };
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter'){ e.preventDefault(); save(); }
@@ -2457,7 +2504,7 @@ function _startEditTask(row, id){
       const edit = e.target.closest('.tk-edit');
       if (edit){ const r = edit.closest('.task-row'); if (r) _startEditTask(r, r.dataset.id); return; }
       const del = e.target.closest('.tk-del');
-      if (del){ const row = del.closest('.task-row'); if (row){ _saveTasks(_loadTasks().filter(t => t.id !== row.dataset.id)); renderCustomTasks(); } }
+      if (del){ const row = del.closest('.task-row'); if (row){ _deleteTask(row.dataset.id); } }
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target && e.target.id === 'newTaskInput'){ e.preventDefault(); _addTask(); }
@@ -2466,10 +2513,10 @@ function _startEditTask(row, id){
       const cb = e.target.closest('.tk-check');
       if (!cb) return;
       const row = cb.closest('.task-row'); if (!row) return;
-      _saveTasks(_loadTasks().map(t => t.id === row.dataset.id ? { ...t, done: cb.checked } : t));
-      renderCustomTasks();
+      _toggleTask(row.dataset.id, cb.checked);
     });
-    renderCustomTasks();
+    // Seed from cache/server (falls back to local cache until the client is up).
+    _fetchTasks();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
   else bind();
@@ -3265,8 +3312,10 @@ async function initAdminSupabaseLive(){
     .on('postgres_changes', { event:'*', schema:'public', table:'audit_log' },      () => _refreshAuditEverywhere())
     .on('postgres_changes', { event:'*', schema:'public', table:'events' },         () => { if (_currentAdminPage() === 'events') paintEventsPage(); })
     .on('postgres_changes', { event:'*', schema:'public', table:'chat_messages' },  () => { if (_currentAdminPage() === 'anaita') paintAnaitaPage(); })
+    // Custom cleaning-checklist tasks — server-backed + shared across devices.
+    .on('postgres_changes', { event:'*', schema:'public', table:'cleaning_tasks' }, () => { if (typeof _fetchTasks === 'function') _fetchTasks(); })
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') console.info('[admin] supabase realtime: items/members/audit_log/events/chat_messages all live');
+      if (status === 'SUBSCRIBED') console.info('[admin] supabase realtime: items/members/audit_log/events/chat_messages/cleaning_tasks all live');
     });
 }
 
@@ -3294,6 +3343,8 @@ async function bootDashboard(){
   setInterval(liveSyncTick, 8_000);
   // Kick off cross-device Realtime sync (Supabase WebSocket → push updates)
   initAdminSupabaseLive().catch(() => {});
+  // Load server-backed cleaning tasks (shared across devices)
+  if (typeof _fetchTasks === 'function') _fetchTasks();
   // Honor deep-link hash on first load
   const hash = (location.hash || '').slice(1);
   if (hash && PAGE_TITLES[hash]) switchPage(hash);
