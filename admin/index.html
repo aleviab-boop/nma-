@@ -2285,8 +2285,11 @@ function paintInventoryPage(){
     // Commit known-IDs after rendering so the next paint correctly flags fresh ones
     INVENTORY.forEach(i => _invKnownIds.add(i.id));
     renderCleaningChecklist();
-    renderCustomTasks();
-    if (typeof _populateTaskItemDropdown === 'function') _populateTaskItemDropdown();
+    // NOTE: custom tasks are NOT re-rendered here. renderInvRows runs on every
+    // 8s live-sync, and re-rendering the task list rebuilt its <img> thumbnails
+    // each time → constant buffering/flicker. Tasks render via _fetchTasks and
+    // the task mutation handlers instead; the item dropdown repopulates when
+    // it's opened. (Thumbnails also use a resolved-URL cache — see _itemThumbHtml.)
   };
 
   if (!_invBound){
@@ -2452,13 +2455,21 @@ function _itemPhotoSrcs(it){
   return chain.filter((s,i) => s && s !== chain[i-1]);
 }
 // Returns <img …>+<fallback> HTML; `cls` prefixes the thumb + fallback classes.
+// Caches the URL that actually loaded per item id (window._imgResolved) so later
+// re-renders start at the known-good URL instead of flashing through the /img/
+// <id>.png 404 → category-template fallback every time (that was the "buffering").
 function _itemThumbHtml(it, cls){
   if (!it) return '';
+  if (!window._imgResolved) window._imgResolved = {};
   const srcs = _itemPhotoSrcs(it);
+  const cached = window._imgResolved[it.id];
+  const ordered = cached ? [cached, ...srcs.filter(s => s !== cached)] : srcs;
   const initial = (it.name||'?').slice(0,1).toUpperCase();
   const swatch = it.c1 || '#3A2A20';
-  const chain = srcs.join('|');
-  return `<img class="${cls}" src="${srcs[0]||''}" data-srcs="${chain.replace(/"/g,'&quot;')}" data-i="0" alt="" loading="lazy"
+  const chain = ordered.join('|');
+  const ik = String(it.id||'').replace(/"/g,'&quot;');
+  return `<img class="${cls}" src="${ordered[0]||''}" data-srcs="${chain.replace(/"/g,'&quot;')}" data-i="0" data-ik="${ik}" alt="" loading="lazy"
+    onload="if(window._imgResolved)window._imgResolved[this.dataset.ik]=this.getAttribute('src');"
     onerror="var s=this.dataset.srcs.split('|');var n=parseInt(this.dataset.i,10)+1;if(n&lt;s.length){this.dataset.i=n;this.src=s[n];}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">
     <span class="${cls}-fallback" style="display:none;background:${swatch};">${initial}</span>`;
 }
