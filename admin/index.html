@@ -2134,11 +2134,10 @@ function paintInventoryPage(){
           </td>
           <td>${i.designer}</td>
           <td style="text-transform:capitalize;">${i.cat}</td>
-          <td><span class="pill pill-status-${i.status}">${i.status === 'in-wardrobe' ? 'Available' : 'Cleaning'}</span></td>
+          <td><span class="pill pill-status-${i.status}">${i.status === 'cleaning' ? _careLabel(i.careStage) : 'Available'}</span></td>
           <td>
-            <select class="inv-clean-select" data-id="${String(i.id||'').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" title="Laundry / cleaning status">
-              <option value="in-wardrobe" ${i.status!=='cleaning'?'selected':''}>In wardrobe</option>
-              <option value="cleaning" ${i.status==='cleaning'?'selected':''}>Send to cleaning</option>
+            <select class="inv-clean-select" data-id="${String(i.id||'').replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" title="Garment care status">
+              ${_careOptions(i.status==='cleaning' ? (i.careStage || 'dry-cleaning') : '')}
             </select>
           </td>
           <td><span class="muted">${_fmtTime(i.addedAt || Date.now())}</span></td>
@@ -2175,7 +2174,7 @@ function paintInventoryPage(){
       const seldrop = e.target.closest('.inv-clean-select');
       if (!seldrop) return;
       e.stopPropagation();
-      _setItemCleaning(seldrop.dataset.id, seldrop.value === 'cleaning');
+      _applyCareStage(seldrop.dataset.id, seldrop.value);
     });
   }
   renderInvRows();
@@ -2184,28 +2183,48 @@ function paintInventoryPage(){
 /* Send a piece to / return from the cleaner — updates the local row + counters
    instantly, then PATCHes /api/items (status + cleaning dates) and logs an audit
    entry so it shows in the activity feed and overdue counts. */
-async function _setItemCleaning(id, toCleaning){
+const CARE_STAGES = [
+  { v:'',             label:'In wardrobe' },
+  { v:'dry-cleaning', label:'Dry cleaning' },
+  { v:'washing',      label:'Washing' },
+  { v:'drying',       label:'Drying' },
+  { v:'steaming',     label:'Steam & press' },
+  { v:'repair',       label:'Repair / Alter' },
+  { v:'quality-check',label:'Quality check' },
+];
+function _careLabel(v){ const s = CARE_STAGES.find(x => x.v === (v||'')); return s ? s.label : 'In wardrobe'; }
+function _careOptions(selected){
+  return CARE_STAGES.map(s => `<option value="${s.v}" ${ (selected||'') === s.v ? 'selected' : '' }>${s.label}</option>`).join('');
+}
+async function _applyCareStage(id, val){
   const item = INVENTORY.find(x => String(x.id) === String(id));
   if (!item) return;
+  const toCleaning = val !== '';
+  const wasCleaning = item.status === 'cleaning';
   const now = Date.now(), DUE = 3 * 86400000;
-  if (toCleaning){ item.status = 'cleaning'; item.cleaningSentAt = now; item.cleaningDueAt = now + DUE; }
-  else { item.status = 'in-wardrobe'; item.cleaningSentAt = null; item.cleaningDueAt = null; }
+  if (toCleaning){
+    item.status = 'cleaning'; item.careStage = val; item.statusLabel = _careLabel(val);
+    if (!wasCleaning){ item.cleaningSentAt = now; item.cleaningDueAt = now + DUE; }
+  } else {
+    item.status = 'in-wardrobe'; item.careStage = null; item.statusLabel = 'Available';
+    item.cleaningSentAt = null; item.cleaningDueAt = null;
+  }
   if (typeof renderInvRows === 'function') renderInvRows();
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
   const lookup = isUuid ? { id: item.id } : { sku: item.sku || item.id };
   try {
     await fetch('/api/items', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...lookup, status: item.status,
+      body: JSON.stringify({ ...lookup, status: item.status, care_stage: item.careStage,
         cleaning_sent_at: item.cleaningSentAt ? new Date(item.cleaningSentAt).toISOString() : null,
         cleaning_due_at:  item.cleaningDueAt  ? new Date(item.cleaningDueAt).toISOString()  : null })
     });
     if (typeof _logAudit === 'function') _logAudit({
       actor: (typeof currentSignedInEmail === 'function' ? currentSignedInEmail() : 'admin') || 'admin',
       kind: 'clean',
-      what: `${item.name} ${toCleaning ? 'sent to cleaning' : 'returned from cleaning'}`
+      what: toCleaning ? `${item.name} → ${_careLabel(val)}` : `${item.name} returned to wardrobe`
     });
-  } catch (e) { /* local update already applied; server will reconcile on next sync */ }
+  } catch (e) { /* local update already applied; server reconciles on next sync */ }
 }
 
 /* Inventory item detail lightbox — opens when ops clicks any row in

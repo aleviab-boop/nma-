@@ -156,6 +156,7 @@ module.exports = async function handler(req, res) {
       // nulls aren't dropped by the "supplied fields only" loop above).
       if ('cleaning_sent_at' in body) patch.cleaning_sent_at = body.cleaning_sent_at;
       if ('cleaning_due_at'  in body) patch.cleaning_due_at  = body.cleaning_due_at;
+      if ('care_stage'       in body) patch.care_stage       = body.care_stage;
       patch.updated_at = new Date().toISOString();
 
       // Look up by UUID id (if it's a UUID) or by sku

@@ -11955,6 +11955,49 @@ async function deleteItemFromServer(id, _isCurated){
 // Re-render any visible grid that depends on INVENTORY.
 // Preserves the user's current filter chip + search query so a Realtime
 // repaint (every few seconds) doesn't blow away "ritu" they just typed.
+// Garment-care stages for the inventory cleaning dropdown. Any non-empty stage
+// sets the item status to 'cleaning' (so it counts in the cleaning queue + overdue);
+// '' returns it to the wardrobe.
+const CARE_STAGES = [
+  { v:'',             label:'In wardrobe' },
+  { v:'dry-cleaning', label:'Dry cleaning' },
+  { v:'washing',      label:'Washing' },
+  { v:'drying',       label:'Drying' },
+  { v:'steaming',     label:'Steam & press' },
+  { v:'repair',       label:'Repair / Alter' },
+  { v:'quality-check',label:'Quality check' },
+];
+function _careLabel(v){ const s = CARE_STAGES.find(x => x.v === (v||'')); return s ? s.label : 'In wardrobe'; }
+function _careOptions(selected){
+  return CARE_STAGES.map(s => `<option value="${s.v}" ${ (selected||'') === s.v ? 'selected' : '' }>${s.label}</option>`).join('');
+}
+// Apply a care-stage change to an item: updates local state + PATCHes the server.
+async function _applyCareStage(id, val){
+  const item = INVENTORY.find(x => x.id === id);
+  if (!item) return;
+  const toCleaning = val !== '';
+  const wasCleaning = item.status === 'cleaning';
+  const now = Date.now(), DUE = 3*86400000;
+  if (toCleaning){
+    item.status='cleaning'; item.careStage=val; item.statusLabel=_careLabel(val);
+    if (!wasCleaning){ item.cleaningSentAt=now; item.cleaningDueAt=now+DUE; }
+  } else {
+    item.status='in-wardrobe'; item.careStage=null; item.statusLabel='Available';
+    item.cleaningSentAt=null; item.cleaningDueAt=null;
+  }
+  rerenderInventoryViews && rerenderInventoryViews();
+  const isUuidC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
+  const lookupC = isUuidC ? { id:item.id } : { sku: item.sku || item.id };
+  try {
+    await fetch('/api/items',{ method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ ...lookupC, status:item.status, care_stage:item.careStage,
+        cleaning_sent_at: item.cleaningSentAt ? new Date(item.cleaningSentAt).toISOString() : null,
+        cleaning_due_at:  item.cleaningDueAt  ? new Date(item.cleaningDueAt).toISOString()  : null }) });
+    if (typeof showToast === 'function') showToast(toCleaning ? `✓ ${_careLabel(val)}` : '✓ Returned to wardrobe');
+    if (typeof broadcastStateChange === 'function') broadcastStateChange();
+  } catch(_){ if (typeof showToast === 'function') showToast('Saved locally — sync failed'); }
+}
+
 function rerenderInventoryViews(){
   if (typeof paintWardrobe === 'function'){
     const activeChip = document.querySelector('#filters .filter-chip.active');
@@ -18727,11 +18770,10 @@ function renderOpsInventory(){
       <div class="inv-thumb">${itemImage(i)}</div>
       <div class="inv-name">${newPill}<span style="vertical-align:middle;">${i.name}</span><span class="designer">${i.designer} · ${i.id}</span></div>
       <div class="inv-loc">Zone ${i.loc}</div>
-      <div class="inv-status ${i.status}">${i.statusLabel}</div>
+      <div class="inv-status ${i.status}">${i.status==='cleaning' ? _careLabel(i.careStage) : (i.statusLabel||'Available')}</div>
       <div class="inv-action" style="display:flex;gap:6px;align-items:center;">
-        <select class="inv-clean-select" data-id="${i.id}" onclick="event.stopPropagation()" title="Laundry / cleaning status">
-          <option value="in-wardrobe" ${i.status!=='cleaning'?'selected':''}>In wardrobe</option>
-          <option value="cleaning" ${i.status==='cleaning'?'selected':''}>Send to cleaning</option>
+        <select class="inv-clean-select" data-id="${i.id}" onclick="event.stopPropagation()" title="Garment care status">
+          ${_careOptions(i.status==='cleaning' ? (i.careStage || 'dry-cleaning') : '')}
         </select>
         <button class="c-btn inv-view" style="padding:6px 10px;font-size:9px;" type="button">View</button>
         <button class="c-btn inv-remove" data-curated="${isCurated ? '1' : '0'}" style="padding:6px 10px;font-size:9px;color:#F2A89B;border-color:rgba(176,78,62,.4);" type="button" title="Remove from inventory">Remove</button>
@@ -18743,26 +18785,10 @@ function renderOpsInventory(){
       e.stopPropagation();
       openItemModal(r.dataset.id);
     });
-    // Cleaning dropdown — send to / return from the cleaner
-    r.querySelector('.inv-clean-select')?.addEventListener('change', async (e)=>{
+    // Garment-care dropdown — washing / drying / dry-cleaning / etc.
+    r.querySelector('.inv-clean-select')?.addEventListener('change', (e)=>{
       e.stopPropagation();
-      const item = INVENTORY.find(x => x.id === r.dataset.id);
-      if (!item) return;
-      const toCleaning = e.target.value === 'cleaning';
-      const now = Date.now(), DUE = 3*86400000;
-      if (toCleaning){ item.status='cleaning'; item.statusLabel='Cleaning'; item.cleaningSentAt=now; item.cleaningDueAt=now+DUE; }
-      else { item.status='in-wardrobe'; item.statusLabel='Available'; item.cleaningSentAt=null; item.cleaningDueAt=null; }
-      rerenderInventoryViews && rerenderInventoryViews();
-      const isUuidC = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id);
-      const lookupC = isUuidC ? { id:item.id } : { sku: item.sku || item.id };
-      try {
-        await fetch('/api/items',{ method:'PATCH', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ ...lookupC, status:item.status,
-            cleaning_sent_at: item.cleaningSentAt ? new Date(item.cleaningSentAt).toISOString() : null,
-            cleaning_due_at:  item.cleaningDueAt  ? new Date(item.cleaningDueAt).toISOString()  : null }) });
-        showToast(toCleaning ? '✓ Sent to cleaning' : '✓ Returned to wardrobe');
-        if (typeof broadcastStateChange === 'function') broadcastStateChange();
-      } catch(_){ showToast(toCleaning ? 'Sent to cleaning (offline)' : 'Returned (offline)'); }
+      _applyCareStage(r.dataset.id, e.target.value);
     });
     r.querySelector('.inv-remove')?.addEventListener('click',async (e)=>{
       e.stopPropagation();

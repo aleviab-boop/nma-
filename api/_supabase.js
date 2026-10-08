@@ -100,7 +100,8 @@ function toClientShape(row) {
     addedAt: row.created_at ? new Date(row.created_at).getTime() : null,
     updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : null,
     cleaningSentAt: row.cleaning_sent_at ? new Date(row.cleaning_sent_at).getTime() : null,
-    cleaningDueAt:  row.cleaning_due_at  ? new Date(row.cleaning_due_at).getTime()  : null
+    cleaningDueAt:  row.cleaning_due_at  ? new Date(row.cleaning_due_at).getTime()  : null,
+    careStage: row.care_stage || null
   };
 }
 
