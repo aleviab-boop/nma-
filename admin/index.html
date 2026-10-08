@@ -134,9 +134,32 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .checklist-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 6px 6px;border-top:1px solid #eef1f5;margin-top:4px;}
 .checklist-add input{flex:1;min-width:0;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;}
 .checklist-add input#newTaskDate{flex:0 0 auto;width:150px;color:#475569;}
-.checklist-add select#newTaskService,.checklist-add select#newTaskItem{flex:0 0 auto;width:150px;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;cursor:pointer;}
-.checklist-add select#newTaskItem{width:180px;}
-.checklist-add select#newTaskService:focus,.checklist-add select#newTaskItem:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.checklist-add select#newTaskService{flex:0 0 auto;width:150px;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;cursor:pointer;}
+.checklist-add select#newTaskService:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+/* Custom "link a wardrobe piece" picker — native <select> can't show thumbnails */
+.task-item-picker{position:relative;flex:0 0 auto;width:200px;}
+.tip-trigger{display:flex;align-items:center;gap:8px;width:100%;font-size:13px;padding:7px 10px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;cursor:pointer;text-align:left;}
+.task-item-picker.open .tip-trigger,.tip-trigger:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);outline:none;}
+.tip-trigger-inner{flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#64748b;}
+.tip-trigger-inner.has-sel{color:#0f172a;}
+.tip-trigger-inner img{width:22px;height:22px;border-radius:5px;object-fit:cover;flex:0 0 auto;}
+.tip-caret{color:#94a3b8;font-size:11px;flex:0 0 auto;}
+.tip-menu{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:300px;max-width:82vw;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 14px 36px -10px rgba(15,23,42,.3);padding:8px;}
+.tip-search{width:100%;font-size:13px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;outline:none;color:#0f172a;}
+.tip-search:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.12);}
+.tip-list{max-height:300px;overflow-y:auto;}
+.tip-opt{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;cursor:pointer;}
+.tip-opt:hover{background:#eef2ff;}
+.tip-opt.clear-opt{color:#64748b;font-size:12.5px;padding:8px;}
+.tip-thumb{width:34px;height:34px;border-radius:6px;object-fit:cover;flex:0 0 auto;background:#f1f5f9;border:1px solid #e2e8f0;}
+.tip-thumb-fallback{width:34px;height:34px;border-radius:6px;flex:0 0 auto;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;}
+.tip-opt .tip-name{font-size:13px;color:#0f172a;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1;min-width:0;}
+.tip-opt .tip-sub{font-size:11px;color:#94a3b8;flex:0 0 auto;}
+.tip-empty{padding:14px 8px;text-align:center;color:#94a3b8;font-size:12.5px;}
+/* thumbnail on the rendered task row's item pill */
+.task-row .tk-item{display:inline-flex;align-items:center;gap:6px;}
+.task-row .tk-item .tk-item-thumb{width:18px;height:18px;border-radius:4px;object-fit:cover;flex:0 0 auto;}
+.task-row .tk-item .tk-item-thumb-fallback{width:18px;height:18px;border-radius:4px;flex:0 0 auto;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:9px;}
 .checklist-add input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .checklist-add button{flex:0 0 auto;font-size:12px;font-weight:600;padding:9px 16px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:8px;cursor:pointer;}
 .checklist-add button:hover{background:#1d4ed8;border-color:#1d4ed8;}
@@ -1220,7 +1243,16 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
           <div id="cleaningChecklist" class="cleaning-checklist"></div>
           <div class="checklist-add">
             <input id="newTaskInput" type="text" placeholder="Add a task — e.g. Call Krishna Dry Cleaners for pickup" maxlength="120"/>
-            <select id="newTaskItem" title="Link to a wardrobe piece"></select>
+            <div class="task-item-picker" id="taskItemPicker">
+              <button type="button" id="tipTrigger" class="tip-trigger" title="Link to a wardrobe piece">
+                <span class="tip-trigger-inner" id="tipTriggerInner">Piece… (optional)</span>
+                <span class="tip-caret">▾</span>
+              </button>
+              <div class="tip-menu" id="tipMenu" hidden>
+                <input type="text" id="tipSearch" class="tip-search" placeholder="Search pieces…" autocomplete="off"/>
+                <div class="tip-list" id="tipList"></div>
+              </div>
+            </div>
             <select id="newTaskService" title="Service"></select>
             <input id="newTaskDate" type="date" title="Optional due date"/>
             <button id="addTaskBtn" type="button">Add task</button>
@@ -2389,19 +2421,81 @@ function _saveCache(arr){ try { localStorage.setItem(_TASKS_KEY, JSON.stringify(
 
 function _rowToTask(r){ return { id:r.id, text:r.text||'', service:r.service||null, due:r.due||null, done:!!r.done, item_id:r.item_id||null, item_name:r.item_name||null, created_at:r.created_at }; }
 
-// Fill the "link to a wardrobe piece" dropdown from the live inventory. Called
-// on bind and again whenever inventory loads/changes (names only, sorted).
-function _populateTaskItemDropdown(){
-  const sel = document.getElementById('newTaskItem');
-  if (!sel) return;
-  const prev = sel.value;
-  const inv = (typeof INVENTORY !== 'undefined' && Array.isArray(INVENTORY)) ? INVENTORY : [];
-  const opts = inv.slice().sort((a,b) => (a.name||'').localeCompare(b.name||''))
-    .map(i => `<option value="${String(i.id||'').replace(/"/g,'&quot;')}" data-name="${(i.name||'').replace(/"/g,'&quot;')}">${(i.name||'Untitled').replace(/</g,'&lt;')}</option>`)
-    .join('');
-  sel.innerHTML = '<option value="">Piece… (optional)</option>' + opts;
-  if (prev) sel.value = prev;
+// ---- Item photo resolver (shared by the picker + the task row) ------------
+// Mirrors the inventory table's photo cascade: captured photo → Supabase URL →
+// hand-curated PHOTO_MAP → /img/<id>.png → per-category template → initials chip.
+const _TASK_CAT_PHOTOS = {
+  saree:    ['M-SAREE-CLASSIC','M-SAREE-EDITORIAL','M-SAREE-EVENING','M-SAREE-FESTIVE','M-SAREE-HERITAGE','M-SAREE-SIGNATURE'],
+  lehenga:  ['M-LEHENGA-EDITORIAL','M-LEHENGA-FESTIVE','M-LEHENGA-HERITAGE','M-LEHENGA-SIGNATURE','M-LEHENGA-WEDDING'],
+  gown:     ['M-GOWN-CLASSIC','M-GOWN-EDITORIAL','M-GOWN-EVENING','M-GOWN-RARE','M-GOWN-SIGNATURE'],
+  anarkali: ['M-ANARKALI-EDITORIAL','M-ANARKALI-FESTIVE','M-ANARKALI-HERITAGE','M-ANARKALI-SIGNATURE'],
+  bag:      ['M-CLUTCH-EDITORIAL','M-CLUTCH-EVENING','M-CLUTCH-HERITAGE'],
+  shoe:     ['M-HEELS-EVENING','M-HEELS-SIGNATURE','M-JUTTIS-FESTIVE'],
+  jewelry:  ['M-EARRINGS-EVENING','M-EARRINGS-HERITAGE','M-EARRINGS-SIGNATURE','M-NECKLACE-EDITORIAL']
+};
+function _taskHashIdx(s, len){ let h = 0; const str = String(s||''); for (let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0; return h % len; }
+function _itemPhotoSrcs(it){
+  const chain = [];
+  if (it.capturedPhoto) chain.push(it.capturedPhoto);
+  if (it.photo) chain.push(it.photo);
+  if (typeof window.PHOTO_MAP === 'object' && window.PHOTO_MAP && window.PHOTO_MAP[it.id]) chain.push(window.PHOTO_MAP[it.id]);
+  chain.push('/img/' + it.id + '.png');
+  const arr = _TASK_CAT_PHOTOS[String(it.cat||'').toLowerCase()];
+  if (arr && arr.length) chain.push('/img/' + arr[_taskHashIdx(it.id || it.name, arr.length)] + '.png');
+  return chain.filter((s,i) => s && s !== chain[i-1]);
 }
+// Returns <img …>+<fallback> HTML; `cls` prefixes the thumb + fallback classes.
+function _itemThumbHtml(it, cls){
+  if (!it) return '';
+  const srcs = _itemPhotoSrcs(it);
+  const initial = (it.name||'?').slice(0,1).toUpperCase();
+  const swatch = it.c1 || '#3A2A20';
+  const chain = srcs.join('|');
+  return `<img class="${cls}" src="${srcs[0]||''}" data-srcs="${chain.replace(/"/g,'&quot;')}" data-i="0" alt="" loading="lazy"
+    onerror="var s=this.dataset.srcs.split('|');var n=parseInt(this.dataset.i,10)+1;if(n&lt;s.length){this.dataset.i=n;this.src=s[n];}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">
+    <span class="${cls}-fallback" style="display:none;background:${swatch};">${initial}</span>`;
+}
+
+// ---- "Link to a wardrobe piece" picker ------------------------------------
+let _selectedTaskItem = null;   // { id, name } or null
+
+function _setSelectedTaskItem(it){
+  _selectedTaskItem = it ? { id: it.id, name: it.name } : null;
+  const inner = document.getElementById('tipTriggerInner');
+  if (!inner) return;
+  if (it){
+    inner.classList.add('has-sel');
+    inner.innerHTML = `<img src="${(_itemPhotoSrcs(it)[0]||'')}" style="width:22px;height:22px;border-radius:5px;object-fit:cover;flex:0 0 auto;" onerror="this.style.display='none'"><span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${(it.name||'').replace(/</g,'&lt;')}</span>`;
+  } else {
+    inner.classList.remove('has-sel');
+    inner.textContent = 'Piece… (optional)';
+  }
+}
+function _closeTaskItemMenu(){
+  const picker = document.getElementById('taskItemPicker');
+  const menu = document.getElementById('tipMenu');
+  if (menu) menu.hidden = true;
+  if (picker) picker.classList.remove('open');
+}
+function _renderTaskItemList(filter){
+  const list = document.getElementById('tipList');
+  if (!list) return;
+  const q = (filter||'').toLowerCase().trim();
+  const inv = (typeof INVENTORY !== 'undefined' && Array.isArray(INVENTORY)) ? INVENTORY : [];
+  const rows = inv.slice()
+    .filter(i => !q || (i.name||'').toLowerCase().includes(q) || (i.designer||'').toLowerCase().includes(q))
+    .sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  const clear = `<div class="tip-opt clear-opt" data-clear="1">✕ No piece / clear selection</div>`;
+  const body = rows.map(i => `
+    <div class="tip-opt" data-id="${String(i.id||'').replace(/"/g,'&quot;')}" data-name="${(i.name||'').replace(/"/g,'&quot;')}">
+      ${_itemThumbHtml(i, 'tip-thumb')}
+      <span class="tip-name">${(i.name||'Untitled').replace(/</g,'&lt;')}</span>
+      <span class="tip-sub">${(i.cat||'').replace(/</g,'&lt;')}</span>
+    </div>`).join('');
+  list.innerHTML = clear + (body || `<div class="tip-empty">No matching pieces</div>`);
+}
+// Kept the old name so existing callers (bind + renderInvRows) still work.
+function _populateTaskItemDropdown(){ _renderTaskItemList(document.getElementById('tipSearch')?.value || ''); }
 
 // Pull the shared list from the server (falls back to the local cache when the
 // client isn't up yet). Safe to call repeatedly — boot + Realtime both call it.
@@ -2465,8 +2559,11 @@ function renderCustomTasks(){
     const svcCell = t.service
       ? `<span class="tk-service pill care-pill care-${t.service}">${_careLabel(t.service)}</span>`
       : `<span></span>`;
+    const invItem = t.item_id && typeof INVENTORY !== 'undefined'
+      ? INVENTORY.find(i => String(i.id) === String(t.item_id)) : null;
+    const itemThumb = invItem ? _itemThumbHtml(invItem, 'tk-item-thumb') : '';
     const itemCell = t.item_name
-      ? `<span class="tk-item" title="${(t.item_name||'').replace(/"/g,'&quot;')}">${(t.item_name||'').replace(/</g,'&lt;')}</span>`
+      ? `<span class="tk-item" title="${(t.item_name||'').replace(/"/g,'&quot;')}">${itemThumb}<span class="tk-item-name">${(t.item_name||'').replace(/</g,'&lt;')}</span></span>`
       : `<span></span>`;
     return `
     <div class="task-row ${t.done?'done':''}" data-id="${t.id}">
@@ -2489,11 +2586,11 @@ async function _addTask(){
   const due = (dateInp && dateInp.value) ? dateInp.value : null;  // "YYYY-MM-DD" or null
   const svcInp = document.getElementById('newTaskService');
   const service = (svcInp && svcInp.value) ? svcInp.value : null;  // care-stage value or null
-  const itemInp = document.getElementById('newTaskItem');
-  const item_id = (itemInp && itemInp.value) ? itemInp.value : null;
-  const item_name = (item_id && itemInp.selectedOptions[0]) ? (itemInp.selectedOptions[0].dataset.name || itemInp.selectedOptions[0].textContent) : null;
+  const item_id = _selectedTaskItem ? _selectedTaskItem.id : null;
+  const item_name = _selectedTaskItem ? _selectedTaskItem.name : null;
   // Clear inputs immediately for a snappy feel.
-  inp.value = ''; if (dateInp) dateInp.value = ''; if (svcInp) svcInp.value = ''; if (itemInp) itemInp.value = '';
+  inp.value = ''; if (dateInp) dateInp.value = ''; if (svcInp) svcInp.value = '';
+  _setSelectedTaskItem(null);
 
   const client = _tasksClient();
   if (client){
@@ -2558,6 +2655,29 @@ function _startEditTask(row, id){
     // Fill the wardrobe-piece dropdown (refreshed again once inventory loads).
     _populateTaskItemDropdown();
     document.addEventListener('click', (e) => {
+      // --- wardrobe-piece picker ---
+      if (e.target.closest('#tipTrigger')){
+        e.preventDefault();
+        const picker = document.getElementById('taskItemPicker');
+        const menu = document.getElementById('tipMenu');
+        const willOpen = menu && menu.hidden;
+        if (willOpen){ _renderTaskItemList(''); menu.hidden = false; picker.classList.add('open');
+          const s = document.getElementById('tipSearch'); if (s){ s.value=''; setTimeout(()=>s.focus(),0); } }
+        else { _closeTaskItemMenu(); }
+        return;
+      }
+      const opt = e.target.closest('.tip-opt');
+      if (opt){
+        if (opt.dataset.clear){ _setSelectedTaskItem(null); }
+        else {
+          const it = (typeof INVENTORY !== 'undefined' ? INVENTORY : []).find(i => String(i.id) === String(opt.dataset.id));
+          _setSelectedTaskItem(it || { id: opt.dataset.id, name: opt.dataset.name });
+        }
+        _closeTaskItemMenu();
+        return;
+      }
+      if (!e.target.closest('#taskItemPicker')) _closeTaskItemMenu();
+      // --- end picker ---
       if (e.target.closest('#addTaskBtn')){ e.preventDefault(); _addTask(); return; }
       const edit = e.target.closest('.tk-edit');
       if (edit){ const r = edit.closest('.task-row'); if (r) _startEditTask(r, r.dataset.id); return; }
@@ -2566,6 +2686,10 @@ function _startEditTask(row, id){
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target && e.target.id === 'newTaskInput'){ e.preventDefault(); _addTask(); }
+      if (e.key === 'Escape' && e.target && e.target.id === 'tipSearch'){ _closeTaskItemMenu(); }
+    });
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'tipSearch') _renderTaskItemList(e.target.value);
     });
     document.addEventListener('change', (e) => {
       const cb = e.target.closest('.tk-check');
