@@ -12463,7 +12463,12 @@ function _opsRenderTasks(rows){
     const overdue = hasD && d.getTime() < todayStart;
     const dueLabel = hasD ? d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) : '';
     const svc = t.service ? (_OPS_CARE_LABELS[t.service] || t.service) : '';
-    const piece = inv ? `<span class="pt-piece">${(inv.name||'').replace(/</g,'&lt;')}</span>` : '';
+    // Piece NAME comes straight off the task (item_name) so it shows even when
+    // the piece isn't in this app's inventory (admin + main app have different
+    // demo baselines; only real captured UUID items are shared). The INVENTORY
+    // lookup is only used for the thumbnail, which just omits if unresolved.
+    const pieceName = t.item_name || (inv && inv.name) || '';
+    const piece = pieceName ? `<span class="pt-piece">${pieceName.replace(/</g,'&lt;')}</span>` : '';
     const svcEl = svc ? `<span class="pt-svc">${svc}</span>` : '';
     const dueEl = dueLabel ? `<span class="pt-due ${overdue?'overdue':''}">${overdue?'Overdue · ':''}${dueLabel}</span>` : '';
     return `<div class="pt-row" data-id="${t.id}">
