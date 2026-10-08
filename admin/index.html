@@ -138,8 +138,11 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .checklist-add select#newTaskService:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 /* Custom "link a wardrobe piece" picker — native <select> can't show thumbnails */
 .task-item-picker{position:relative;flex:0 0 auto;width:200px;}
-.tip-trigger{display:flex;align-items:center;gap:8px;width:100%;font-size:13px;padding:7px 10px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;cursor:pointer;text-align:left;}
-.task-item-picker.open .tip-trigger,.tip-trigger:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);outline:none;}
+/* NB: scoped with .checklist-add so it beats the blue `.checklist-add button`
+   rule (that styling is only meant for the Add-task button). */
+.checklist-add .tip-trigger{display:flex;align-items:center;gap:8px;width:100%;font-size:13px;font-weight:400;padding:8px 10px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;cursor:pointer;text-align:left;}
+.checklist-add .tip-trigger:hover{background:#fff;border-color:#c3ccd9;}
+.task-item-picker.open .tip-trigger,.checklist-add .tip-trigger:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 2px rgba(37,99,235,.15);outline:none;}
 .tip-trigger-inner{flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#64748b;}
 .tip-trigger-inner.has-sel{color:#0f172a;}
 .tip-trigger-inner img{width:22px;height:22px;border-radius:5px;object-fit:cover;flex:0 0 auto;}
