@@ -3346,6 +3346,24 @@ body.role-madame .sh-send svg{width:12px;height:12px;}
 .phone-recent .tile{flex-shrink:0;width:60px;height:76px;border-radius:8px;overflow:hidden;background:var(--chai);position:relative;cursor:pointer;border:1px solid var(--line-soft);}
 .phone-recent .tile img{width:100%;height:100%;object-fit:cover;}
 .phone-recent .tile .n{position:absolute;bottom:0;left:0;right:0;padding:3px 4px;background:rgba(43,34,29,.85);color:#fff;font-family:var(--mono);font-size:7px;letter-spacing:.1em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Ops Mobile · read-only cleaning task list (ticks sync to the shared table) */
+.phone-tasks{background:#0b0604;border-top:1px solid rgba(212,168,74,.14);border-bottom:1px solid rgba(212,168,74,.14);padding:12px 16px;max-height:34vh;overflow-y:auto;}
+.phone-tasks .pt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.phone-tasks .pt-title{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-bright);}
+.phone-tasks .pt-count{font-family:var(--mono);font-size:9px;color:#0b0604;background:var(--gold-bright);border-radius:10px;padding:2px 8px;font-weight:700;}
+.phone-tasks .pt-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(212,168,74,.08);}
+.phone-tasks .pt-row:last-child{border-bottom:0;}
+.phone-tasks .pt-check{flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:1.5px solid rgba(212,168,74,.5);background:transparent;cursor:pointer;transition:transform .12s,background .12s;}
+.phone-tasks .pt-check:active{transform:scale(.88);background:rgba(212,168,74,.2);}
+.phone-tasks .pt-thumb{flex:0 0 auto;width:42px;height:42px;border-radius:8px;overflow:hidden;background:#1a1109;border:1px solid rgba(212,168,74,.18);}
+.phone-tasks .pt-thumb img,.phone-tasks .pt-thumb svg{width:100%;height:100%;object-fit:cover;display:block;}
+.phone-tasks .pt-info{flex:1;min-width:0;}
+.phone-tasks .pt-text{color:var(--ivory);font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.phone-tasks .pt-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px;align-items:center;}
+.phone-tasks .pt-piece{font-size:10px;color:var(--gold-bright);background:rgba(212,168,74,.12);border:1px solid rgba(212,168,74,.25);padding:2px 7px;border-radius:999px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.phone-tasks .pt-svc{font-size:10px;color:#cbd5e1;background:rgba(255,255,255,.06);padding:2px 7px;border-radius:999px;}
+.phone-tasks .pt-due{font-size:10px;color:#94a3b8;}
+.phone-tasks .pt-due.overdue{color:#f87171;font-weight:600;}
 
 /* Phone notch was a cosmetic mockup detail — hidden in full-screen mode */
 .phone-notch{display:none;}
@@ -10264,6 +10282,15 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
               <div class="s"><span class="n" id="phoneStatWardrobe">0</span><span class="l">In the wardrobe</span></div>
             </div>
 
+            <!-- Cleaning tasks (read-only · tick to mark done; synced with admin) -->
+            <div class="phone-tasks" id="phoneTasks" style="display:none;">
+              <div class="pt-head">
+                <span class="pt-title">Cleaning tasks</span>
+                <span class="pt-count" id="phoneTasksCount">0</span>
+              </div>
+              <div class="pt-list" id="phoneTasksList"></div>
+            </div>
+
             <!-- Camera -->
             <div class="camera-view">
               <div class="camera-feed" id="cameraFeed">
@@ -12394,12 +12421,87 @@ async function initSupabaseLive(){
             }
           } catch (e){ console.warn('[supabase] audit live push failed', e); }
         })
+    // Cleaning tasks — shared checklist (admin writes; Ops Mobile shows + ticks).
+    .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'cleaning_tasks' },
+        () => { if (typeof _opsFetchTasks === 'function') _opsFetchTasks(); })
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') console.info('[supabase] realtime: items + events + audit_log channels live');
+      if (status === 'SUBSCRIBED'){
+        console.info('[supabase] realtime: items + events + audit_log + cleaning_tasks channels live');
+        if (typeof _opsFetchTasks === 'function') _opsFetchTasks();
+      }
     });
 
   return _supabaseClient;
 }
+
+/* ===== Ops Mobile · read-only cleaning task list ============================
+   Shows the shared cleaning_tasks checklist (authored in the admin panel) so
+   the person on the floor can see what's pending and tick items done. Ticking
+   flips done=true in the same Supabase table — syncs straight back to admin +
+   every device. Read-only otherwise (no add/edit/delete here). ==============*/
+const _OPS_CARE_LABELS = {
+  'dry-cleaning':'Dry cleaning','washing':'Washing','drying':'Drying',
+  'steaming':'Steam & press','repair':'Repair / Alter','quality-check':'Quality check'
+};
+function _opsRenderTasks(rows){
+  const wrap  = document.getElementById('phoneTasks');
+  const list  = document.getElementById('phoneTasksList');
+  const count = document.getElementById('phoneTasksCount');
+  if (!wrap || !list) return;
+  rows = Array.isArray(rows) ? rows : [];
+  if (!rows.length){ wrap.style.display = 'none'; list.innerHTML = ''; if (count) count.textContent = '0'; return; }
+  wrap.style.display = '';
+  if (count) count.textContent = String(rows.length);
+  const todayStart = new Date(new Date().toDateString()).getTime();
+  list.innerHTML = rows.map(t => {
+    const inv = (t.item_id && typeof INVENTORY !== 'undefined' && Array.isArray(INVENTORY))
+      ? INVENTORY.find(i => String(i.id) === String(t.item_id)) : null;
+    const thumb = inv ? (typeof itemImage === 'function' ? itemImage(inv) : '') : '';
+    const d = t.due ? new Date(t.due + 'T00:00:00') : null;
+    const hasD = d && !isNaN(d);
+    const overdue = hasD && d.getTime() < todayStart;
+    const dueLabel = hasD ? d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) : '';
+    const svc = t.service ? (_OPS_CARE_LABELS[t.service] || t.service) : '';
+    const piece = inv ? `<span class="pt-piece">${(inv.name||'').replace(/</g,'&lt;')}</span>` : '';
+    const svcEl = svc ? `<span class="pt-svc">${svc}</span>` : '';
+    const dueEl = dueLabel ? `<span class="pt-due ${overdue?'overdue':''}">${overdue?'Overdue · ':''}${dueLabel}</span>` : '';
+    return `<div class="pt-row" data-id="${t.id}">
+      <button class="pt-check" data-id="${t.id}" title="Mark done" aria-label="Mark done"></button>
+      ${thumb ? `<div class="pt-thumb">${thumb}</div>` : ''}
+      <div class="pt-info">
+        <div class="pt-text">${(t.text||'').replace(/</g,'&lt;')}</div>
+        <div class="pt-meta">${piece}${svcEl}${dueEl}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function _opsFetchTasks(){
+  if (!document.getElementById('phoneTasksList')) return;   // card not in DOM
+  const client = _supabaseClient;
+  if (!client) return;
+  try {
+    const { data, error } = await client.from('cleaning_tasks')
+      .select('*').eq('done', false).order('due', { ascending: true, nullsFirst: false });
+    if (error) throw error;
+    _opsRenderTasks(data || []);
+  } catch(_){ /* keep last render on error */ }
+}
+async function _opsToggleTaskDone(id){
+  const client = _supabaseClient;
+  // Optimistic: drop the row immediately so the floor action feels instant.
+  const row = document.querySelector('#phoneTasksList .pt-row[data-id="' + id + '"]');
+  if (row) row.remove();
+  const list = document.getElementById('phoneTasksList');
+  if (list && !list.querySelector('.pt-row')) _opsRenderTasks([]);  // hide card if now empty
+  if (!client) return;
+  try { await client.from('cleaning_tasks').update({ done: true }).eq('id', id); } catch(_){}
+  _opsFetchTasks();
+}
+document.addEventListener('click', (e) => {
+  const chk = e.target.closest('.pt-check');
+  if (chk){ e.preventDefault(); _opsToggleTaskDone(chk.dataset.id); }
+});
 
 // Kick off Realtime as soon as the DOM is ready — non-blocking, swallows errors.
 if (document.readyState === 'loading'){
