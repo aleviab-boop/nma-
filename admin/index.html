@@ -134,12 +134,15 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .checklist-add button{flex:0 0 auto;font-size:12px;font-weight:600;padding:9px 16px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:8px;cursor:pointer;}
 .checklist-add button:hover{background:#1d4ed8;border-color:#1d4ed8;}
 /* Custom task rows (checkbox · text · delete) */
-.task-row{display:grid;grid-template-columns:22px 1fr 28px;gap:12px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
+.task-row{display:grid;grid-template-columns:22px 1fr 28px 28px;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
 .task-row:last-child{border-bottom:0;}
 .task-row .tk-text{color:#0f172a;overflow:hidden;text-overflow:ellipsis;}
 .task-row.done .tk-text{text-decoration:line-through;color:#94a3b8;}
-.task-row .tk-del{border:0;background:transparent;color:#94a3b8;font-size:17px;line-height:1;cursor:pointer;border-radius:6px;width:26px;height:26px;}
+.task-row .tk-edit,.task-row .tk-del{border:0;background:transparent;color:#94a3b8;font-size:15px;line-height:1;cursor:pointer;border-radius:6px;width:26px;height:26px;}
+.task-row .tk-edit:hover{background:#dbeafe;color:#2563eb;}
+.task-row .tk-del{font-size:18px;}
 .task-row .tk-del:hover{background:#fee2e2;color:#dc2626;}
+.tk-edit-input{font-size:13px;padding:6px 8px;border:1px solid #2563eb;border-radius:6px;outline:none;width:100%;color:#0f172a;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .topbar-right{display:flex;align-items:center;gap:14px;}
 .topbar-stat{font-size:12px;color:var(--pearl);font-variant-numeric:tabular-nums;}
 .topbar-stat b{color:var(--ivory);font-weight:600;}
@@ -2241,6 +2244,8 @@ function paintInventoryPage(){
       if (e.key === 'Enter'){ e.preventDefault(); _addTask(); }
     });
     document.getElementById('customTaskList')?.addEventListener('click', (e) => {
+      const edit = e.target.closest('.tk-edit');
+      if (edit){ const r = edit.closest('.task-row'); if (r) _startEditTask(r, r.dataset.id); return; }
       const del = e.target.closest('.tk-del');
       if (!del) return;
       const row = del.closest('.task-row'); if (!row) return;
@@ -2342,10 +2347,13 @@ function _saveTasks(arr){ try { localStorage.setItem(_TASKS_KEY, JSON.stringify(
 function renderCustomTasks(){
   const wrap = document.getElementById('customTaskList');
   if (!wrap) return;
-  wrap.innerHTML = _loadTasks().map(t => `
+  const tasks = _loadTasks();
+  if (!tasks.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = tasks.map(t => `
     <div class="task-row ${t.done?'done':''}" data-id="${t.id}">
       <input type="checkbox" class="checklist-check tk-check" ${t.done?'checked':''}>
       <span class="tk-text">${(t.text||'').replace(/</g,'&lt;')}</span>
+      <button class="tk-edit" title="Edit task" aria-label="Edit task" type="button">✎</button>
       <button class="tk-del" title="Delete task" aria-label="Delete task" type="button">×</button>
     </div>`).join('');
 }
@@ -2359,6 +2367,28 @@ function _addTask(){
   _saveTasks(tasks);
   inp.value = '';
   renderCustomTasks();
+}
+function _startEditTask(row, id){
+  const task = _loadTasks().find(t => t.id === id);
+  if (!task || !row) return;
+  const span = row.querySelector('.tk-text');
+  if (!span) return;
+  const input = document.createElement('input');
+  input.type = 'text'; input.className = 'tk-edit-input'; input.value = task.text; input.maxLength = 120;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  let committed = false;
+  const save = () => {
+    if (committed) return; committed = true;
+    const v = (input.value||'').trim();
+    if (v) _saveTasks(_loadTasks().map(t => t.id === id ? { ...t, text: v } : t));
+    renderCustomTasks();
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter'){ e.preventDefault(); save(); }
+    else if (e.key === 'Escape'){ committed = true; renderCustomTasks(); }
+  });
+  input.addEventListener('blur', save);
 }
 
 /* Inventory item detail lightbox — opens when ops clicks any row in
