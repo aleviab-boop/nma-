@@ -131,17 +131,19 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .pill.care-pill.care-repair{background:#ffedd5!important;color:#ea580c!important;border:1px solid #fed7aa!important;}
 .pill.care-pill.care-quality-check{background:#e0e7ff!important;color:#4f46e5!important;border:1px solid #c7d2fe!important;}
 /* Custom task add row */
-.checklist-add{display:flex;gap:8px;align-items:center;padding:12px 6px 6px;border-top:1px solid #eef1f5;margin-top:4px;}
+.checklist-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 6px 6px;border-top:1px solid #eef1f5;margin-top:4px;}
 .checklist-add input{flex:1;min-width:0;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;}
 .checklist-add input#newTaskDate{flex:0 0 auto;width:150px;color:#475569;}
-.checklist-add select#newTaskService{flex:0 0 auto;width:150px;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;cursor:pointer;}
-.checklist-add select#newTaskService:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.checklist-add select#newTaskService,.checklist-add select#newTaskItem{flex:0 0 auto;width:150px;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;cursor:pointer;}
+.checklist-add select#newTaskItem{width:180px;}
+.checklist-add select#newTaskService:focus,.checklist-add select#newTaskItem:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .checklist-add input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .checklist-add button{flex:0 0 auto;font-size:12px;font-weight:600;padding:9px 16px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:8px;cursor:pointer;}
 .checklist-add button:hover{background:#1d4ed8;border-color:#1d4ed8;}
 /* Custom task rows (checkbox · text · delete) */
-.task-row{display:grid;grid-template-columns:22px 1fr auto auto 28px 28px;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
+.task-row{display:grid;grid-template-columns:22px 1fr auto auto auto 28px 28px;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
 .task-row .tk-service{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;}
+.task-row .tk-item{font-size:11px;font-weight:600;color:#334155;background:#eef2f7;border:1px solid #e2e8f0;padding:3px 10px;border-radius:999px;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
 .task-row:last-child{border-bottom:0;}
 .task-row .tk-text{color:#0f172a;overflow:hidden;text-overflow:ellipsis;}
 .task-row.done .tk-text{text-decoration:line-through;color:#94a3b8;}
@@ -1218,6 +1220,7 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
           <div id="cleaningChecklist" class="cleaning-checklist"></div>
           <div class="checklist-add">
             <input id="newTaskInput" type="text" placeholder="Add a task — e.g. Call Krishna Dry Cleaners for pickup" maxlength="120"/>
+            <select id="newTaskItem" title="Link to a wardrobe piece"></select>
             <select id="newTaskService" title="Service"></select>
             <input id="newTaskDate" type="date" title="Optional due date"/>
             <button id="addTaskBtn" type="button">Add task</button>
@@ -2244,6 +2247,7 @@ function paintInventoryPage(){
     INVENTORY.forEach(i => _invKnownIds.add(i.id));
     renderCleaningChecklist();
     renderCustomTasks();
+    if (typeof _populateTaskItemDropdown === 'function') _populateTaskItemDropdown();
   };
 
   if (!_invBound){
@@ -2383,7 +2387,21 @@ function _isLocalId(id){ const s = String(id||''); return s.startsWith('tk-') ||
 function _loadCache(){ try { const r = JSON.parse(localStorage.getItem(_TASKS_KEY)||'[]'); if (Array.isArray(r)) return r; } catch(_){} return []; }
 function _saveCache(arr){ try { localStorage.setItem(_TASKS_KEY, JSON.stringify((arr||[]).slice(0,200))); } catch(_){} }
 
-function _rowToTask(r){ return { id:r.id, text:r.text||'', service:r.service||null, due:r.due||null, done:!!r.done, created_at:r.created_at }; }
+function _rowToTask(r){ return { id:r.id, text:r.text||'', service:r.service||null, due:r.due||null, done:!!r.done, item_id:r.item_id||null, item_name:r.item_name||null, created_at:r.created_at }; }
+
+// Fill the "link to a wardrobe piece" dropdown from the live inventory. Called
+// on bind and again whenever inventory loads/changes (names only, sorted).
+function _populateTaskItemDropdown(){
+  const sel = document.getElementById('newTaskItem');
+  if (!sel) return;
+  const prev = sel.value;
+  const inv = (typeof INVENTORY !== 'undefined' && Array.isArray(INVENTORY)) ? INVENTORY : [];
+  const opts = inv.slice().sort((a,b) => (a.name||'').localeCompare(b.name||''))
+    .map(i => `<option value="${String(i.id||'').replace(/"/g,'&quot;')}" data-name="${(i.name||'').replace(/"/g,'&quot;')}">${(i.name||'Untitled').replace(/</g,'&lt;')}</option>`)
+    .join('');
+  sel.innerHTML = '<option value="">Piece… (optional)</option>' + opts;
+  if (prev) sel.value = prev;
+}
 
 // Pull the shared list from the server (falls back to the local cache when the
 // client isn't up yet). Safe to call repeatedly — boot + Realtime both call it.
@@ -2447,10 +2465,14 @@ function renderCustomTasks(){
     const svcCell = t.service
       ? `<span class="tk-service pill care-pill care-${t.service}">${_careLabel(t.service)}</span>`
       : `<span></span>`;
+    const itemCell = t.item_name
+      ? `<span class="tk-item" title="${(t.item_name||'').replace(/"/g,'&quot;')}">${(t.item_name||'').replace(/</g,'&lt;')}</span>`
+      : `<span></span>`;
     return `
     <div class="task-row ${t.done?'done':''}" data-id="${t.id}">
       <input type="checkbox" class="checklist-check tk-check" ${t.done?'checked':''}>
       <span class="tk-text">${(t.text||'').replace(/</g,'&lt;')}</span>
+      ${itemCell}
       ${svcCell}
       ${dateCell}
       <button class="tk-edit" title="Edit task" aria-label="Edit task" type="button">✎</button>
@@ -2467,17 +2489,20 @@ async function _addTask(){
   const due = (dateInp && dateInp.value) ? dateInp.value : null;  // "YYYY-MM-DD" or null
   const svcInp = document.getElementById('newTaskService');
   const service = (svcInp && svcInp.value) ? svcInp.value : null;  // care-stage value or null
+  const itemInp = document.getElementById('newTaskItem');
+  const item_id = (itemInp && itemInp.value) ? itemInp.value : null;
+  const item_name = (item_id && itemInp.selectedOptions[0]) ? (itemInp.selectedOptions[0].dataset.name || itemInp.selectedOptions[0].textContent) : null;
   // Clear inputs immediately for a snappy feel.
-  inp.value = ''; if (dateInp) dateInp.value = ''; if (svcInp) svcInp.value = '';
+  inp.value = ''; if (dateInp) dateInp.value = ''; if (svcInp) svcInp.value = ''; if (itemInp) itemInp.value = '';
 
   const client = _tasksClient();
   if (client){
     // Optimistic insert — show it now with a temp id, then reconcile from server.
-    const temp = { id: 'tmp-' + Date.now().toString(36), text, service, due, done:false, created_at:new Date().toISOString() };
+    const temp = { id: 'tmp-' + Date.now().toString(36), text, service, due, done:false, item_id, item_name, created_at:new Date().toISOString() };
     _customTasks = [temp, ..._customTasks]; _saveCache(_customTasks); renderCustomTasks();
     try {
       const actor = (typeof currentSignedInEmail === 'function' ? currentSignedInEmail() : null) || null;
-      const { error } = await client.from('cleaning_tasks').insert({ text, service, due, done:false, created_by: actor });
+      const { error } = await client.from('cleaning_tasks').insert({ text, service, due, done:false, item_id, item_name, created_by: actor });
       if (error) throw error;
       _fetchTasks();  // reconcile: replaces the temp row with the real server row
     } catch(e){
@@ -2487,7 +2512,7 @@ async function _addTask(){
     }
   } else {
     // Offline / pre-connect fallback → local cache only.
-    _customTasks = [{ id: 'tk-' + Date.now().toString(36), text, service, due, done:false, created_at:new Date().toISOString() }, ..._customTasks];
+    _customTasks = [{ id: 'tk-' + Date.now().toString(36), text, service, due, done:false, item_id, item_name, created_at:new Date().toISOString() }, ..._customTasks];
     _saveCache(_customTasks); renderCustomTasks();
   }
 }
@@ -2530,6 +2555,8 @@ function _startEditTask(row, id){
       svcSel.innerHTML = '<option value="">Service…</option>' +
         CARE_STAGES.filter(s => s.v).map(s => `<option value="${s.v}">${s.label}</option>`).join('');
     }
+    // Fill the wardrobe-piece dropdown (refreshed again once inventory loads).
+    _populateTaskItemDropdown();
     document.addEventListener('click', (e) => {
       if (e.target.closest('#addTaskBtn')){ e.preventDefault(); _addTask(); return; }
       const edit = e.target.closest('.tk-edit');
