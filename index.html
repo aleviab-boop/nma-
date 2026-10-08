@@ -12315,14 +12315,17 @@ async function initSupabaseLive(){
           // the surrounding try/catch swallowed the error and the
           // notification call never ran.
           const isInsert = payload && (payload.eventType === 'INSERT' || payload.type === 'INSERT' || payload.event === 'INSERT');
+          const row = (payload && payload.new) || {};
           if (isInsert && typeof _addLocalNotification === 'function'){
             try {
-              const row = (payload && payload.new) || {};
               _addLocalNotification({
                 id: 'sb-' + (row.id || Date.now()),
+                itemId: row.id || null,   // so the panel tile can open the item + resolve its photo
                 kind: 'garment-added',
                 name: row.name,
                 designer: row.designer,
+                // The raw items row from Realtime carries no joined photo URL;
+                // left null here and backfilled from INVENTORY after the refresh.
                 photo: row.photo || row.photo_url || null,
                 addedAt: Date.now()
               });
@@ -12334,6 +12337,20 @@ async function initSupabaseLive(){
             const fresh = await fetchSharedState();
             if (fresh) applySharedState(fresh);
             if (typeof rerenderInventoryViews === 'function') rerenderInventoryViews();
+            // Backfill the just-added notification's thumbnail now that the
+            // joined Storage photo URL is present in INVENTORY.
+            if (isInsert && row.id && typeof NOTIFICATIONS !== 'undefined' && Array.isArray(NOTIFICATIONS)){
+              const inv = (typeof INVENTORY !== 'undefined') ? INVENTORY.find(i => i.id === row.id) : null;
+              const resolved = inv && (inv.photo || inv.capturedPhoto);
+              if (resolved){
+                const note = NOTIFICATIONS.find(n => n && (n.id === 'sb-' + row.id || n.itemId === row.id));
+                if (note && !note.photo){
+                  note.photo = resolved;
+                  if (typeof _persistNotifications === 'function') _persistNotifications();
+                  if (typeof renderNotifPanel === 'function') renderNotifPanel();
+                }
+              }
+            }
           } catch (e){ console.warn('[supabase] items live refresh failed', e); }
         })
     // Events table — ops dashboard's outfit-combination saves arrive here
@@ -12446,10 +12463,14 @@ function _notifyNewGarments(prevCount){
   }
 
   if (document.body.classList.contains('role-madame')){
-    // Pull the freshest garment-added notification so we can name it
+    // Pull the freshest garment-added notification so we can name it.
+    // Accept both the legacy `type` and the cross-device `kind` field, and
+    // fall back to `addedAt` when `ts` is absent — the Realtime INSERT path
+    // writes { kind, addedAt } (no type/ts), so the old lookup found nothing
+    // and the toast fell back to the generic "N new pieces" wording.
     const latest = (NOTIFICATIONS || [])
-      .filter(n => n && n.type === 'garment-added')
-      .sort((a,b) => (b.ts||0) - (a.ts||0))[0];
+      .filter(n => n && (n.type === 'garment-added' || n.kind === 'garment-added'))
+      .sort((a,b) => ((b.ts||b.addedAt||0) - (a.ts||a.addedAt||0)))[0];
     const label = (delta === 1 && latest && latest.name)
       ? `✨ New piece in your wardrobe — ${latest.name}${latest.designer ? ' by ' + latest.designer : ''}`
       : `✨ ${delta} new piece${delta===1?'':'s'} added to your wardrobe`;
