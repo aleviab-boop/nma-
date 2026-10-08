@@ -1674,7 +1674,7 @@ const BASELINE = [
   { id:'M043', name:'Elie Saab Beaded Gown',         designer:'Elie Saab',        cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(380) },
   { id:'M044', name:'Valentino Couture',             designer:'Valentino',        cat:'gown',     status:'in-wardrobe', addedAt:_daysAgo(420) },
   { id:'M045', name:'Burmese Ruby Kanthi',           designer:'Inherited',        cat:'jewelry',  status:'in-wardrobe', addedAt:_daysAgo(2000)},
-  { id:'M046', name:'Sabya Heritage Lehenga',        designer:'Sabyasachi',       cat:'lehenga',  status:'cleaning',    addedAt:_daysAgo(260) },
+  { id:'M046', name:'Sabya Heritage Lehenga',        designer:'Sabyasachi',       cat:'lehenga',  status:'in-wardrobe', addedAt:_daysAgo(260) },
   { id:'M047', name:'Manish Malhotra Sharara',       designer:'Manish Malhotra',  cat:'anarkali', status:'in-wardrobe', addedAt:_daysAgo(20)  },
 ];
 
@@ -2174,6 +2174,10 @@ function paintInventoryPage(){
   if (cats.includes(prevFilter)) sel.value = prevFilter;
 
   const search = document.getElementById('invSearch');
+  // Shared across renderInvRows AND the _invBound handler block below — must
+  // live in this (paintInventoryPage) scope, not inside renderInvRows, or the
+  // delegated row/cleaning handlers throw "body is not defined" and never bind.
+  const body = document.getElementById('invTableBody');
   renderInvRows = function(){
     document.getElementById('invTotal').textContent  = INVENTORY.length;
     document.getElementById('invAvail').textContent  = INVENTORY.filter(i => i.status === 'in-wardrobe').length;
@@ -2187,7 +2191,7 @@ function paintInventoryPage(){
       .filter(i => !f || i.cat === f)
       .filter(i => !q || (i.name + ' ' + i.designer + ' ' + i.cat + ' ' + i.id).toLowerCase().includes(q))
       .sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
-    const body = document.getElementById('invTableBody');
+    // `body` comes from the enclosing paintInventoryPage scope (see note there).
     // Photo resolver — full cascade mirroring the role-app's itemImage():
     //   1. it.capturedPhoto    (in-memory base64 from a just-captured camera shot,
     //                           rides on the Realtime payload before the Supabase
