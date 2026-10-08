@@ -134,11 +134,14 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .checklist-add{display:flex;gap:8px;align-items:center;padding:12px 6px 6px;border-top:1px solid #eef1f5;margin-top:4px;}
 .checklist-add input{flex:1;min-width:0;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;}
 .checklist-add input#newTaskDate{flex:0 0 auto;width:150px;color:#475569;}
+.checklist-add select#newTaskService{flex:0 0 auto;width:150px;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;cursor:pointer;}
+.checklist-add select#newTaskService:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .checklist-add input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .checklist-add button{flex:0 0 auto;font-size:12px;font-weight:600;padding:9px 16px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:8px;cursor:pointer;}
 .checklist-add button:hover{background:#1d4ed8;border-color:#1d4ed8;}
 /* Custom task rows (checkbox · text · delete) */
-.task-row{display:grid;grid-template-columns:22px 1fr auto 28px 28px;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
+.task-row{display:grid;grid-template-columns:22px 1fr auto auto 28px 28px;gap:10px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
+.task-row .tk-service{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;}
 .task-row:last-child{border-bottom:0;}
 .task-row .tk-text{color:#0f172a;overflow:hidden;text-overflow:ellipsis;}
 .task-row.done .tk-text{text-decoration:line-through;color:#94a3b8;}
@@ -1215,6 +1218,7 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
           <div id="cleaningChecklist" class="cleaning-checklist"></div>
           <div class="checklist-add">
             <input id="newTaskInput" type="text" placeholder="Add a task — e.g. Call Krishna Dry Cleaners for pickup" maxlength="120"/>
+            <select id="newTaskService" title="Service"></select>
             <input id="newTaskDate" type="date" title="Optional due date"/>
             <button id="addTaskBtn" type="button">Add task</button>
           </div>
@@ -2378,10 +2382,14 @@ function renderCustomTasks(){
     const dateCell = dueLabel
       ? `<span class="tk-date ${_taskOverdue(t)?'overdue':''}">${_taskOverdue(t)?'Overdue · ':''}${dueLabel}</span>`
       : `<span></span>`;
+    const svcCell = t.service
+      ? `<span class="tk-service pill care-pill care-${t.service}">${_careLabel(t.service)}</span>`
+      : `<span></span>`;
     return `
     <div class="task-row ${t.done?'done':''}" data-id="${t.id}">
       <input type="checkbox" class="checklist-check tk-check" ${t.done?'checked':''}>
       <span class="tk-text">${(t.text||'').replace(/</g,'&lt;')}</span>
+      ${svcCell}
       ${dateCell}
       <button class="tk-edit" title="Edit task" aria-label="Edit task" type="button">✎</button>
       <button class="tk-del" title="Delete task" aria-label="Delete task" type="button">×</button>
@@ -2395,11 +2403,14 @@ function _addTask(){
   if (!text) return;
   const dateInp = document.getElementById('newTaskDate');
   const due = (dateInp && dateInp.value) ? dateInp.value : null;  // "YYYY-MM-DD" or null
+  const svcInp = document.getElementById('newTaskService');
+  const service = (svcInp && svcInp.value) ? svcInp.value : null;  // care-stage value or null
   const tasks = _loadTasks();
-  tasks.unshift({ id: 'tk-' + Date.now().toString(36), text, due, done: false, ts: Date.now() });
+  tasks.unshift({ id: 'tk-' + Date.now().toString(36), text, service, due, done: false, ts: Date.now() });
   _saveTasks(tasks);
   inp.value = '';
   if (dateInp) dateInp.value = '';
+  if (svcInp) svcInp.value = '';
   renderCustomTasks();
 }
 function _startEditTask(row, id){
@@ -2433,6 +2444,14 @@ function _startEditTask(row, id){
   if (window._taskHandlersBound) return;
   window._taskHandlersBound = true;
   const bind = () => {
+    // Populate the service dropdown from CARE_STAGES (skip the empty "In wardrobe"
+    // entry; lead with a neutral placeholder so service stays optional).
+    const svcSel = document.getElementById('newTaskService');
+    if (svcSel && !svcSel.dataset.filled && Array.isArray(typeof CARE_STAGES !== 'undefined' ? CARE_STAGES : null)){
+      svcSel.dataset.filled = '1';
+      svcSel.innerHTML = '<option value="">Service…</option>' +
+        CARE_STAGES.filter(s => s.v).map(s => `<option value="${s.v}">${s.label}</option>`).join('');
+    }
     document.addEventListener('click', (e) => {
       if (e.target.closest('#addTaskBtn')){ e.preventDefault(); _addTask(); return; }
       const edit = e.target.closest('.tk-edit');
