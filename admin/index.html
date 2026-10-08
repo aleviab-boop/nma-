@@ -104,9 +104,12 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .inv-clean-select:hover{border-color:#2563eb;}
 .inv-clean-select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
 .cleaning-checklist{display:flex;flex-direction:column;}
-.checklist-row{display:grid;grid-template-columns:22px minmax(0,1fr) 130px 130px;gap:12px;align-items:center;padding:11px 6px;border-bottom:1px solid #eef1f5;cursor:pointer;font-size:13px;}
+.checklist-row{display:grid;grid-template-columns:22px minmax(0,1fr) 150px 110px 34px;gap:12px;align-items:center;padding:11px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
 .checklist-row:last-child{border-bottom:0;}
 .checklist-row:hover{background:#f8fafc;}
+.checklist-row .cl-stage-select{max-width:150px;}
+.checklist-row .cl-remove{border:0;background:transparent;color:#94a3b8;font-size:18px;line-height:1;cursor:pointer;border-radius:6px;width:28px;height:28px;}
+.checklist-row .cl-remove:hover{background:#fee2e2;color:#dc2626;}
 .checklist-row .cl-name{font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .checklist-row .cl-stage{font-size:11px;color:#2563eb;font-weight:600;}
 .checklist-row .cl-due{font-size:12px;color:#64748b;text-align:right;}
@@ -2232,11 +2235,16 @@ function paintInventoryPage(){
       e.stopPropagation();
       _applyCareStage(seldrop.dataset.id, seldrop.value);
     });
-    // Cleaning checklist — ticking a piece returns it to the wardrobe
+    // Cleaning checklist — change stage (edit), tick, or remove (return)
     document.getElementById('cleaningChecklist')?.addEventListener('change', (e) => {
+      const sel = e.target.closest('.cl-stage-select');
+      if (sel){ e.stopPropagation(); _applyCareStage(sel.dataset.id, sel.value); return; }
       const cb = e.target.closest('.checklist-check');
-      if (!cb || !cb.checked) return;
-      _applyCareStage(cb.dataset.id, '');
+      if (cb && cb.checked){ _applyCareStage(cb.dataset.id, ''); }
+    });
+    document.getElementById('cleaningChecklist')?.addEventListener('click', (e) => {
+      const rm = e.target.closest('.cl-remove');
+      if (rm){ e.stopPropagation(); _applyCareStage(rm.dataset.id, ''); }
     });
     // Custom tasks — add / tick / delete
     document.getElementById('addTaskBtn')?.addEventListener('click', _addTask);
@@ -2329,13 +2337,15 @@ function renderCleaningChecklist(){
     const overdue = i.cleaningDueAt && now > i.cleaningDueAt;
     const due = i.cleaningDueAt ? new Date(i.cleaningDueAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '—';
     const nm = (i.name||'').replace(/</g,'&lt;');
+    const idAttr = String(i.id||'').replace(/"/g,'&quot;');
     return `
-      <label class="checklist-row ${overdue?'overdue':''}">
-        <input type="checkbox" class="checklist-check" data-id="${String(i.id||'').replace(/"/g,'&quot;')}">
+      <div class="checklist-row ${overdue?'overdue':''}" data-id="${idAttr}">
+        <input type="checkbox" class="checklist-check" data-id="${idAttr}" title="Mark returned to wardrobe">
         <span class="cl-name">${nm}</span>
-        <span class="cl-stage care-${i.careStage||'none'}">${_careLabel(i.careStage)}</span>
+        <select class="cl-stage-select inv-clean-select" data-id="${idAttr}" title="Change cleaning stage">${_careOptions(i.careStage || 'dry-cleaning')}</select>
         <span class="cl-due ${overdue?'overdue':''}">${overdue ? 'Overdue · ' : 'Due '}${due}</span>
-      </label>`;
+        <button class="cl-remove" data-id="${idAttr}" title="Remove — return to wardrobe" aria-label="Remove" type="button">×</button>
+      </div>`;
   }).join('');
 }
 
