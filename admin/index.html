@@ -127,6 +127,19 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .pill.care-pill.care-steaming{background:#ccfbf1!important;color:#0d9488!important;border:1px solid #99f6e4!important;}
 .pill.care-pill.care-repair{background:#ffedd5!important;color:#ea580c!important;border:1px solid #fed7aa!important;}
 .pill.care-pill.care-quality-check{background:#e0e7ff!important;color:#4f46e5!important;border:1px solid #c7d2fe!important;}
+/* Custom task add row */
+.checklist-add{display:flex;gap:8px;align-items:center;padding:12px 6px 6px;border-top:1px solid #eef1f5;margin-top:4px;}
+.checklist-add input{flex:1;min-width:0;font-size:13px;padding:9px 12px;border:1px solid #d8dee9;border-radius:8px;background:#fff;color:#0f172a;outline:none;}
+.checklist-add input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.checklist-add button{flex:0 0 auto;font-size:12px;font-weight:600;padding:9px 16px;border:1px solid #2563eb;background:#2563eb;color:#fff;border-radius:8px;cursor:pointer;}
+.checklist-add button:hover{background:#1d4ed8;border-color:#1d4ed8;}
+/* Custom task rows (checkbox · text · delete) */
+.task-row{display:grid;grid-template-columns:22px 1fr 28px;gap:12px;align-items:center;padding:10px 6px;border-bottom:1px solid #eef1f5;font-size:13px;}
+.task-row:last-child{border-bottom:0;}
+.task-row .tk-text{color:#0f172a;overflow:hidden;text-overflow:ellipsis;}
+.task-row.done .tk-text{text-decoration:line-through;color:#94a3b8;}
+.task-row .tk-del{border:0;background:transparent;color:#94a3b8;font-size:17px;line-height:1;cursor:pointer;border-radius:6px;width:26px;height:26px;}
+.task-row .tk-del:hover{background:#fee2e2;color:#dc2626;}
 .topbar-right{display:flex;align-items:center;gap:14px;}
 .topbar-stat{font-size:12px;color:var(--pearl);font-variant-numeric:tabular-nums;}
 .topbar-stat b{color:var(--ivory);font-weight:600;}
@@ -1191,6 +1204,11 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
             <span class="pill" id="cleaningChecklistCount">0 out</span>
           </div>
           <div id="cleaningChecklist" class="cleaning-checklist"></div>
+          <div class="checklist-add">
+            <input id="newTaskInput" type="text" placeholder="Add a task — e.g. Call Krishna Dry Cleaners for pickup" maxlength="120"/>
+            <button id="addTaskBtn" type="button">Add task</button>
+          </div>
+          <div id="customTaskList" class="cleaning-checklist"></div>
         </div>
       </section>
       <section class="dash-grid" style="grid-template-columns:1fr;">
@@ -2180,6 +2198,7 @@ function paintInventoryPage(){
     // Commit known-IDs after rendering so the next paint correctly flags fresh ones
     INVENTORY.forEach(i => _invKnownIds.add(i.id));
     renderCleaningChecklist();
+    renderCustomTasks();
   };
 
   if (!_invBound){
@@ -2216,6 +2235,26 @@ function paintInventoryPage(){
       if (!cb || !cb.checked) return;
       _applyCareStage(cb.dataset.id, '');
     });
+    // Custom tasks — add / tick / delete
+    document.getElementById('addTaskBtn')?.addEventListener('click', _addTask);
+    document.getElementById('newTaskInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter'){ e.preventDefault(); _addTask(); }
+    });
+    document.getElementById('customTaskList')?.addEventListener('click', (e) => {
+      const del = e.target.closest('.tk-del');
+      if (!del) return;
+      const row = del.closest('.task-row'); if (!row) return;
+      _saveTasks(_loadTasks().filter(t => t.id !== row.dataset.id));
+      renderCustomTasks();
+    });
+    document.getElementById('customTaskList')?.addEventListener('change', (e) => {
+      const cb = e.target.closest('.tk-check');
+      if (!cb) return;
+      const row = cb.closest('.task-row'); if (!row) return;
+      _saveTasks(_loadTasks().map(t => t.id === row.dataset.id ? { ...t, done: cb.checked } : t));
+      renderCustomTasks();
+    });
+    renderCustomTasks();
   }
   renderInvRows();
 }
@@ -2293,6 +2332,33 @@ function renderCleaningChecklist(){
         <span class="cl-due ${overdue?'overdue':''}">${overdue ? 'Overdue · ' : 'Due '}${due}</span>
       </label>`;
   }).join('');
+}
+
+/* Custom checklist tasks — free-text to-dos stored locally (e.g. "Call the
+   cleaner", "Steam the Sabyasachi"). Add / tick / delete. */
+const _TASKS_KEY = 'maison.cleaningTasks';
+function _loadTasks(){ try { const r = JSON.parse(localStorage.getItem(_TASKS_KEY)||'[]'); return Array.isArray(r) ? r : []; } catch(_){ return []; } }
+function _saveTasks(arr){ try { localStorage.setItem(_TASKS_KEY, JSON.stringify(arr.slice(0,100))); } catch(_){} }
+function renderCustomTasks(){
+  const wrap = document.getElementById('customTaskList');
+  if (!wrap) return;
+  wrap.innerHTML = _loadTasks().map(t => `
+    <div class="task-row ${t.done?'done':''}" data-id="${t.id}">
+      <input type="checkbox" class="checklist-check tk-check" ${t.done?'checked':''}>
+      <span class="tk-text">${(t.text||'').replace(/</g,'&lt;')}</span>
+      <button class="tk-del" title="Delete task" aria-label="Delete task" type="button">×</button>
+    </div>`).join('');
+}
+function _addTask(){
+  const inp = document.getElementById('newTaskInput');
+  if (!inp) return;
+  const text = (inp.value||'').trim();
+  if (!text) return;
+  const tasks = _loadTasks();
+  tasks.unshift({ id: 'tk-' + Date.now().toString(36), text, done: false, ts: Date.now() });
+  _saveTasks(tasks);
+  inp.value = '';
+  renderCustomTasks();
 }
 
 /* Inventory item detail lightbox — opens when ops clicks any row in
