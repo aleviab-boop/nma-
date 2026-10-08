@@ -10282,15 +10282,6 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
               <div class="s"><span class="n" id="phoneStatWardrobe">0</span><span class="l">In the wardrobe</span></div>
             </div>
 
-            <!-- Cleaning tasks (read-only · tick to mark done; synced with admin) -->
-            <div class="phone-tasks" id="phoneTasks" style="display:none;">
-              <div class="pt-head">
-                <span class="pt-title">Cleaning tasks</span>
-                <span class="pt-count" id="phoneTasksCount">0</span>
-              </div>
-              <div class="pt-list" id="phoneTasksList"></div>
-            </div>
-
             <!-- Camera -->
             <div class="camera-view">
               <div class="camera-feed" id="cameraFeed">
@@ -16917,6 +16908,17 @@ function onEnterVTO(){
   }
 }
 function onEnterOpsMobile(){
+  // Guard: the phone-frame layout (centered 390px canvas + bottom-nav) is driven
+  // by body.role-ops-mobile. If this page is opened/refreshed without any role
+  // applied (e.g. a direct /#opsmobile link that lost ?role=), the default
+  // desktop shell renders instead — wide, left-aligned, with the bottom bar
+  // floating in the middle. Apply the ops-mobile role so it always renders as
+  // the phone. Only fires when NO role is set, so a signed-in role is untouched.
+  if (!/\brole-(madame|ops-dashboard|ops-mobile)\b/.test(document.body.className)){
+    document.body.classList.add('tablet-view');
+    applyRoleClass('ops-mobile');
+    if (typeof renderBottomNav === 'function') renderBottomNav();
+  }
   startPhoneCamera();
 }
 
