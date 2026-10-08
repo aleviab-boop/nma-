@@ -103,6 +103,17 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
 .inv-clean-select{font-size:12px;padding:5px 9px;border:1px solid #d8dee9;border-radius:7px;background:#fff;color:#1f2937;cursor:pointer;max-width:150px;}
 .inv-clean-select:hover{border-color:#2563eb;}
 .inv-clean-select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.cleaning-checklist{display:flex;flex-direction:column;}
+.checklist-row{display:grid;grid-template-columns:22px minmax(0,1fr) 130px 130px;gap:12px;align-items:center;padding:11px 6px;border-bottom:1px solid #eef1f5;cursor:pointer;font-size:13px;}
+.checklist-row:last-child{border-bottom:0;}
+.checklist-row:hover{background:#f8fafc;}
+.checklist-row .cl-name{font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.checklist-row .cl-stage{font-size:11px;color:#2563eb;font-weight:600;}
+.checklist-row .cl-due{font-size:12px;color:#64748b;text-align:right;}
+.checklist-row .cl-due.overdue{color:#b91c1c;font-weight:700;}
+.checklist-row.overdue{background:#fef2f2;}
+.checklist-check{width:17px;height:17px;cursor:pointer;accent-color:#2563eb;}
+.checklist-empty{padding:16px 6px;color:#15803d;font-size:13px;}
 .topbar-right{display:flex;align-items:center;gap:14px;}
 .topbar-stat{font-size:12px;color:var(--pearl);font-variant-numeric:tabular-nums;}
 .topbar-stat b{color:var(--ivory);font-weight:600;}
@@ -1160,6 +1171,15 @@ button{background:none;border:0;color:inherit;cursor:pointer;font:inherit;}
         <div class="kpi"><div class="kpi-label">Cleaning</div><div class="kpi-value" id="invClean">1</div><div class="kpi-sub">at Krishna Dry Cleaners</div></div>
         <div class="kpi"><div class="kpi-label">Designers</div><div class="kpi-value" id="invDesigners">—</div><div class="kpi-sub">unique houses</div></div>
       </section>
+      <section class="dash-grid" style="grid-template-columns:1fr;margin-bottom:18px;">
+        <div class="card" id="cleaningChecklistCard">
+          <div class="card-head">
+            <div><h3>Cleaning checklist</h3><div class="meta">Tick a piece when it's back from the cleaner</div></div>
+            <span class="pill" id="cleaningChecklistCount">0 out</span>
+          </div>
+          <div id="cleaningChecklist" class="cleaning-checklist"></div>
+        </div>
+      </section>
       <section class="dash-grid" style="grid-template-columns:1fr;">
         <div class="card">
           <div class="card-head">
@@ -2146,6 +2166,7 @@ function paintInventoryPage(){
     }).join('');
     // Commit known-IDs after rendering so the next paint correctly flags fresh ones
     INVENTORY.forEach(i => _invKnownIds.add(i.id));
+    renderCleaningChecklist();
   };
 
   if (!_invBound){
@@ -2175,6 +2196,12 @@ function paintInventoryPage(){
       if (!seldrop) return;
       e.stopPropagation();
       _applyCareStage(seldrop.dataset.id, seldrop.value);
+    });
+    // Cleaning checklist — ticking a piece returns it to the wardrobe
+    document.getElementById('cleaningChecklist')?.addEventListener('change', (e) => {
+      const cb = e.target.closest('.checklist-check');
+      if (!cb || !cb.checked) return;
+      _applyCareStage(cb.dataset.id, '');
     });
   }
   renderInvRows();
@@ -2225,6 +2252,34 @@ async function _applyCareStage(id, val){
       what: toCleaning ? `${item.name} → ${_careLabel(val)}` : `${item.name} returned to wardrobe`
     });
   } catch (e) { /* local update already applied; server reconciles on next sync */ }
+}
+
+/* Cleaning checklist — the pieces currently out at the cleaner, with a checkbox
+   to tick off as each returns (ticking returns it to the wardrobe). */
+function renderCleaningChecklist(){
+  const wrap = document.getElementById('cleaningChecklist');
+  const countEl = document.getElementById('cleaningChecklistCount');
+  if (!wrap) return;
+  const now = Date.now();
+  const inCare = (INVENTORY || []).filter(i => i.status === 'cleaning')
+    .sort((a,b) => (a.cleaningDueAt||0) - (b.cleaningDueAt||0));
+  if (countEl) countEl.textContent = inCare.length + ' out';
+  if (!inCare.length){
+    wrap.innerHTML = '<div class="checklist-empty">✓ All pieces are in the wardrobe — nothing at the cleaner.</div>';
+    return;
+  }
+  wrap.innerHTML = inCare.map(i => {
+    const overdue = i.cleaningDueAt && now > i.cleaningDueAt;
+    const due = i.cleaningDueAt ? new Date(i.cleaningDueAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '—';
+    const nm = (i.name||'').replace(/</g,'&lt;');
+    return `
+      <label class="checklist-row ${overdue?'overdue':''}">
+        <input type="checkbox" class="checklist-check" data-id="${String(i.id||'').replace(/"/g,'&quot;')}">
+        <span class="cl-name">${nm}</span>
+        <span class="cl-stage">${_careLabel(i.careStage)}</span>
+        <span class="cl-due ${overdue?'overdue':''}">${overdue ? 'Overdue · ' : 'Due '}${due}</span>
+      </label>`;
+  }).join('');
 }
 
 /* Inventory item detail lightbox — opens when ops clicks any row in
