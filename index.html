@@ -5567,6 +5567,10 @@ body.role-madame .hero-label{margin-bottom:24px!important;}
 body.role-madame .hero-title{margin-top:8px;}
 body.role-madame .hero-label{font-size:9px;margin-bottom:10px;}
 body.role-madame .hero-title{font-size:42px!important;line-height:1.04;letter-spacing:-.02em;}
+/* Standardize page headings across tabs — Lookbook (30px) + Requests (67px)
+   were off; bring every tab's page title to the same 42px as the rest. */
+body.role-madame .lb2-title,
+body.role-madame .req-hero-title{font-size:42px!important;line-height:1.04;letter-spacing:-.02em;}
 /* Weather hero (replaces the "wardrobe is awake" headline on Home) */
 body.role-madame .hero-weather{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;font-size:64px!important;line-height:1;margin-top:4px;}
 body.role-madame .hero-weather .hw-main{font-weight:500;letter-spacing:-.02em;color:var(--ivory);}
@@ -5843,6 +5847,12 @@ body.role-madame .wardrobe-grid{grid-template-columns:repeat(4,1fr)!important;ga
 /* Wardrobe filter chips smaller */
 body.role-madame .filters{gap:6px;margin-bottom:18px;}
 body.role-madame .filter-chip{padding:6px 12px;font-size:11px;}
+/* Wardrobe ⇄ Requests sub-tabs (Requests merged under the Wardrobe tab) */
+.wardrobe-subtabs{display:none;gap:6px;margin-top:18px;}
+body.role-madame .wardrobe-subtabs{display:inline-flex;background:var(--surface-hi);border:1px solid var(--line);border-radius:12px;padding:4px;}
+.wardrobe-subtabs .wsub{padding:8px 20px;border:0;background:none;color:var(--pearl);font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;border-radius:9px;cursor:pointer;transition:all .2s;}
+.wardrobe-subtabs .wsub:hover{color:var(--gold-bright);}
+.wardrobe-subtabs .wsub.is-active{background:linear-gradient(135deg,var(--gold),var(--gold-metal));color:var(--bg);font-weight:600;}
 /* Quick filters as a dropdown for Madame (chips kept in DOM for state, hidden) */
 .wardrobe-filter-bar{display:none;align-items:center;gap:10px;margin-bottom:18px;}
 body.role-madame .wardrobe-filter-bar{display:flex;}
@@ -9545,6 +9555,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
       <section class="hero" style="padding-bottom:20px;">
         <div class="hero-label">The Full Collection</div>
         <h1 class="hero-title">Your <em>wardrobe</em>.</h1>
+        <div class="wardrobe-subtabs">
+          <button class="wsub is-active" data-go="wardrobe" type="button">Pieces</button>
+          <button class="wsub" data-go="requests" type="button">Requests</button>
+        </div>
       </section>
 
       <!-- Wardrobe summary — moved here from the home hero. Tapping a tile filters the grid. -->
@@ -9898,6 +9912,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             <span class="req-hero-line">Your outfit</span>
             <span class="req-hero-line">is <em>on its way</em>.</span>
           </h1>
+          <div class="wardrobe-subtabs">
+            <button class="wsub" data-go="wardrobe" type="button">Pieces</button>
+            <button class="wsub is-active" data-go="requests" type="button">Requests</button>
+          </div>
           <div class="req-hero-meta" id="reqHeroMeta">
             <div class="req-meta-chip">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -21127,7 +21145,9 @@ function openThisWeek(){
    resynced post-transition, so the sidebar could end up highlighting
    a stale page (e.g. "Lookbook" while the user was on Wardrobe). */
 function refreshBottomNavActive(){
-  const active = document.querySelector('.page.active')?.id?.replace('page-','');
+  const activeRaw = document.querySelector('.page.active')?.id?.replace('page-','');
+  // Requests is now a sub-view of Wardrobe — keep the Wardrobe dock item lit.
+  const active = (activeRaw === 'requests') ? 'wardrobe' : activeRaw;
   document.querySelectorAll('.bottom-nav .b-item[data-page]').forEach(b=>{
     b.classList.toggle('active', b.dataset.page === active);
   });
