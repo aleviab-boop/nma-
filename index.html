@@ -99,9 +99,9 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
 .search-bar{transition:flex-basis .25s var(--ease),width .25s var(--ease);}
 .search-toggle{background:none;border:0;padding:0;margin:0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;}
 .search-toggle svg{width:18px;height:18px;stroke:var(--gold-bright);fill:none;}
-.search-bar.collapsed{flex:0 0 auto!important;width:42px;min-width:42px;max-width:42px;background:var(--surface-hi)!important;border:1px solid var(--line)!important;border-radius:50%!important;box-shadow:none!important;padding:0!important;height:42px;justify-content:center;overflow:hidden;}
-.search-bar.collapsed>input,.search-bar.collapsed .search-mic-btn{display:none!important;}
-.search-bar.collapsed .search-toggle{width:40px;height:40px;}
+#searchBar.collapsed{flex:0 0 42px!important;width:42px!important;min-width:42px!important;max-width:42px!important;background:var(--surface-hi)!important;border:1px solid var(--line)!important;border-radius:50%!important;box-shadow:none!important;padding:0!important;height:42px!important;justify-content:center!important;align-items:center;overflow:hidden;}
+#searchBar.collapsed>input,#searchBar.collapsed .search-mic-btn{display:none!important;}
+#searchBar.collapsed .search-toggle{width:40px;height:40px;}
 
 /* ---- Top-right user avatar + dropdown (logout lives here, not in the dock) ---- */
 .user-menu{position:relative;flex:0 0 auto;}
@@ -5567,6 +5567,17 @@ body.role-madame .hero-label{margin-bottom:24px!important;}
 body.role-madame .hero-title{margin-top:8px;}
 body.role-madame .hero-label{font-size:9px;margin-bottom:10px;}
 body.role-madame .hero-title{font-size:42px!important;line-height:1.04;letter-spacing:-.02em;}
+/* Weather hero (replaces the "wardrobe is awake" headline on Home) */
+body.role-madame .hero-weather{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;font-size:64px!important;line-height:1;margin-top:4px;}
+body.role-madame .hero-weather .hw-main{font-weight:500;letter-spacing:-.02em;color:var(--ivory);}
+body.role-madame .hero-weather .hw-deg{font-size:.45em;vertical-align:super;opacity:.75;}
+body.role-madame .hero-weather em#heroWxCond{font-size:.5em;font-style:italic;}
+.hero-weather-sub{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-top:10px;display:flex;gap:10px;align-items:center;}
+.hero-weather-sub .hw-dot{opacity:.5;}
+.hero-weather-rec{margin-top:18px;font-size:17px;color:var(--ivory);max-width:640px;line-height:1.5;}
+.hero-weather-rec .hw-rec-lbl{color:var(--gold);font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-right:10px;}
+.hero-weather-rec strong{color:var(--gold-bright);font-weight:600;}
+@media(max-width:600px){ body.role-madame .hero-weather{font-size:44px!important;} }
 body.role-madame .hero-meta{gap:0;margin:22px auto 0;padding:18px 18px;max-width:96%;}
 body.role-madame .meta-block{min-width:0;padding:4px 10px;}
 body.role-madame .meta-block+.meta-block{border-left:1px solid rgba(245,212,119,.16);}
@@ -5824,11 +5835,22 @@ body.role-madame .section-link{font-size:9px;}
 
 /* Grids — strict 2-column for iPad portrait */
 body.role-madame .outfit-grid{grid-template-columns:repeat(2,1fr)!important;gap:12px;}
-body.role-madame .wardrobe-grid{grid-template-columns:repeat(2,1fr)!important;gap:12px;}
+/* Product card grid: 4 per row on home + wardrobe (was 2). Drops to 2 only on
+   phone-width screens so cards stay usable. */
+body.role-madame .wardrobe-grid{grid-template-columns:repeat(4,1fr)!important;gap:14px;}
+@media(max-width:600px){ body.role-madame .wardrobe-grid{grid-template-columns:repeat(2,1fr)!important;gap:12px;} }
 
 /* Wardrobe filter chips smaller */
 body.role-madame .filters{gap:6px;margin-bottom:18px;}
 body.role-madame .filter-chip{padding:6px 12px;font-size:11px;}
+/* Quick filters as a dropdown for Madame (chips kept in DOM for state, hidden) */
+.wardrobe-filter-bar{display:none;align-items:center;gap:10px;margin-bottom:18px;}
+body.role-madame .wardrobe-filter-bar{display:flex;}
+body.role-madame #filters{display:none!important;}
+.wardrobe-filter-bar .wfb-label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);}
+.wardrobe-cat-select{background:var(--surface-hi);border:1px solid var(--line);color:var(--ivory);padding:9px 14px;border-radius:10px;font-size:13px;cursor:pointer;outline:none;min-width:170px;font-family:inherit;}
+.wardrobe-cat-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,163,107,.14);}
+.wardrobe-cat-select option{background:#1a110b;color:var(--ivory);}
 
 /* Card body type smaller for compact cards */
 body.role-madame .outfit-body h4,body.role-madame .garment-info h5{font-size:14px;}
@@ -9344,33 +9366,20 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
         <span class="gold-mark" aria-hidden="true">✦</span>
         <div class="gold-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <div class="hero-label">Welcome back, <em style="font-style:italic;color:var(--latte);">Madam</em></div>
-        <h1 class="hero-title">
-          <span class="word-rise" style="animation-delay:.1s;">Your</span>
-          <span class="word-rise" style="animation-delay:.25s;">wardrobe</span><br>
-          <span class="word-rise" style="animation-delay:.4s;">is</span>
-          <span class="word-rise" style="animation-delay:.55s;"><em class="glow">awake</em>.</span>
+        <h1 class="hero-title hero-weather">
+          <span class="hw-main"><span id="heroWxTemp">28</span><span class="hw-deg">°C</span></span>
+          <em id="heroWxCond" class="glow">Clear skies</em>
         </h1>
-
-        <div class="event-pill-wrap">
-          <button class="event-pill" id="eventPillBtn" aria-label="View next event reminder">
-            <span class="ping" aria-hidden="true"></span>
-            <span class="ring" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M14 21a2 2 0 0 1-4 0"/></svg>
-            </span>
-            <span class="pill-txt">
-              <span class="lbl">Next Event · Tonight</span>
-              <span class="name">Hope Foundation <em>Gala</em></span>
-            </span>
-            <span class="pill-time">19:00</span>
-          </button>
+        <div class="hero-weather-sub">
+          <span class="hw-city">Mumbai</span><span class="hw-dot">·</span><span id="heroWxFeels">Feels 30°C</span>
         </div>
+        <p class="hero-weather-rec">
+          <span class="hw-rec-lbl">Today, drape in</span>
+          <strong id="heroWxDrape">Chiffon</strong><span id="heroWxAlso"></span>
+        </p>
 
-        <div class="hero-meta">
-          <button class="meta-block" type="button" data-filter-status="all" title="View the full wardrobe"><div class="label">Total Pieces</div><div class="value" id="heroTotal" data-count="2847">2,847</div><span class="spark" id="heroTotalSpark">▲ 12 this week</span></button>
-          <button class="meta-block" type="button" data-filter-status="available" title="Filter wardrobe to available pieces"><div class="label">Available Now</div><div class="value" id="heroAvailable" data-count="2791">2,791</div><span class="spark" id="heroAvailableSpark">98% ready</span></button>
-          <button class="meta-block" type="button" data-filter-status="unworn" title="Filter to pieces not worn in 60+ days"><div class="label">Unworn · 60 days</div><div class="value" id="heroUnworn" data-count="412">412</div><span class="spark" style="color:var(--warn);">rediscover</span></button>
-          <button class="meta-block" type="button" data-filter-status="cleaning" title="Filter to pieces at the cleaner"><div class="label">Cleaning Queue</div><div class="value" id="heroCleaning" data-count="18">18</div><span class="spark" id="heroCleaningSpark">2 priority</span></button>
-        </div>
+        <!-- Event reminder moved out of the hero — it now lives only in the
+             notification sheet (bell). Wardrobe summary moved to the Wardrobe tab. -->
 
         <div class="hero-runway" aria-hidden="true"></div>
         <div class="hero-marquee" aria-hidden="true">
@@ -9533,9 +9542,19 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 
     <!-- WARDROBE -->
     <div class="page" id="page-wardrobe">
-      <section class="hero" style="padding-bottom:32px;">
+      <section class="hero" style="padding-bottom:20px;">
         <div class="hero-label">The Full Collection</div>
         <h1 class="hero-title">Your <em>wardrobe</em>.</h1>
+      </section>
+
+      <!-- Wardrobe summary — moved here from the home hero. Tapping a tile filters the grid. -->
+      <section class="section wardrobe-summary-sec" style="padding-top:0;">
+        <div class="hero-meta wardrobe-summary">
+          <button class="meta-block" type="button" data-filter-status="all" title="View the full wardrobe"><div class="label">Total Pieces</div><div class="value" id="heroTotal" data-count="2847">2,847</div><span class="spark" id="heroTotalSpark">▲ 12 this week</span></button>
+          <button class="meta-block" type="button" data-filter-status="available" title="Filter wardrobe to available pieces"><div class="label">Available Now</div><div class="value" id="heroAvailable" data-count="2791">2,791</div><span class="spark" id="heroAvailableSpark">98% ready</span></button>
+          <button class="meta-block" type="button" data-filter-status="unworn" title="Filter to pieces not worn in 60+ days"><div class="label">Unworn · 60 days</div><div class="value" id="heroUnworn" data-count="412">412</div><span class="spark" style="color:var(--warn);">rediscover</span></button>
+          <button class="meta-block" type="button" data-filter-status="cleaning" title="Filter to pieces at the cleaner"><div class="label">Cleaning Queue</div><div class="value" id="heroCleaning" data-count="18">18</div><span class="spark" id="heroCleaningSpark">2 priority</span></button>
+        </div>
       </section>
 
       <!-- Recently Added — newest pieces from Ops Mobile / Dashboard, last 14 days -->
@@ -9556,6 +9575,19 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
             <span class="sub">Filter by category</span>
             <h3>The full <em>archive</em></h3>
           </div>
+        </div>
+        <div class="wardrobe-filter-bar">
+          <label class="wfb-label" for="wardrobeCatSelect">Category</label>
+          <select id="wardrobeCatSelect" class="wardrobe-cat-select" aria-label="Filter by category">
+            <option value="all">All pieces</option>
+            <option value="saree">Sarees</option>
+            <option value="lehenga">Lehengas</option>
+            <option value="gown">Gowns</option>
+            <option value="suit">Suits</option>
+            <option value="jewelry">Jewelry</option>
+            <option value="bag">Bags</option>
+            <option value="shoe">Footwear</option>
+          </select>
         </div>
         <div class="filters" id="filters">
           <button class="filter-chip active" data-filter="all">All</button>
@@ -16851,6 +16883,16 @@ function _applyWeatherToCard(data){
   // (some other roles may want it). Keep the data write so the
   // underlying state stays consistent.
   set('avoid', drape.avoid);
+
+  // Home hero — surface the live weather + fabric recommendation in place of
+  // the old "Your wardrobe is awake" headline.
+  const setId = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setId('heroWxTemp',  temp);
+  setId('heroWxCond',  condition);
+  setId('heroWxFeels', `Feels ${feels}°C · ${humid}% humidity`);
+  setId('heroWxDrape', drape.drape);
+  const alsoEl = document.getElementById('heroWxAlso');
+  if (alsoEl) alsoEl.textContent = drape.also ? ` · also ${drape.also}` : '';
 }
 
 /* Return an inline SVG string for a given WMO weather_code. Strokes
@@ -17176,6 +17218,24 @@ document.querySelectorAll('#filters .filter-chip').forEach(chip=>{
     paintWardrobe(chip.dataset.filter, document.getElementById('globalSearch').value);
   });
 });
+// Category dropdown (Madame) drives the same (hidden) chips so all existing
+// filter logic keeps working; the chips stay the single source of truth.
+(function _wireCategoryDropdown(){
+  const sel = document.getElementById('wardrobeCatSelect');
+  const filters = document.getElementById('filters');
+  if (!sel || !filters) return;
+  sel.addEventListener('change', () => {
+    const chip = filters.querySelector('.filter-chip[data-filter="' + sel.value + '"]');
+    if (chip) chip.click();
+  });
+  // Keep the dropdown in sync when the active chip changes from elsewhere.
+  const sync = () => {
+    const active = filters.querySelector('.filter-chip.active');
+    const val = active ? active.dataset.filter : 'all';
+    if (sel.value !== val) sel.value = val;
+  };
+  new MutationObserver(sync).observe(filters, { attributes:true, subtree:true, attributeFilter:['class'] });
+})();
 
 // Garment / action clicks
 document.addEventListener('click',(e)=>{
