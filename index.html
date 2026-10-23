@@ -94,6 +94,30 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
 .cart-btn,.btn-bell{background:var(--surface-hi);border-color:var(--line);}
 .cart-btn svg,.btn-bell svg{stroke:var(--gold);}
 .cart-count{background:var(--gold);color:var(--bg);}
+
+/* ---- Collapsible search (icon-only by default, expands on tap) ---- */
+.search-bar{transition:flex-basis .25s var(--ease),width .25s var(--ease);}
+.search-toggle{background:none;border:0;padding:0;margin:0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;}
+.search-toggle svg{width:18px;height:18px;stroke:var(--gold-bright);fill:none;}
+.search-bar.collapsed{flex:0 0 auto!important;width:42px;min-width:42px;max-width:42px;background:var(--surface-hi)!important;border:1px solid var(--line)!important;border-radius:50%!important;box-shadow:none!important;padding:0!important;height:42px;justify-content:center;overflow:hidden;}
+.search-bar.collapsed>input,.search-bar.collapsed .search-mic-btn{display:none!important;}
+.search-bar.collapsed .search-toggle{width:40px;height:40px;}
+
+/* ---- Top-right user avatar + dropdown (logout lives here, not in the dock) ---- */
+.user-menu{position:relative;flex:0 0 auto;}
+.user-avatar-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:linear-gradient(180deg,var(--gold-bright),var(--gold-metal));color:var(--bg);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s;}
+.user-avatar-btn:hover{box-shadow:0 0 0 3px rgba(212,168,74,.25);}
+.user-dropdown{position:absolute;top:calc(100% + 8px);right:0;min-width:210px;background:var(--surface,#1a110b);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.6);padding:8px;z-index:200;opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .16s,transform .16s;}
+.user-menu.open .user-dropdown{opacity:1;transform:none;pointer-events:auto;}
+.user-dropdown .ud-head{display:flex;flex-direction:column;gap:2px;padding:8px 10px 10px;border-bottom:1px solid var(--line-soft);margin-bottom:6px;}
+.user-dropdown .ud-name{color:var(--ivory);font-size:13px;font-weight:600;}
+.user-dropdown .ud-email{color:var(--pearl);font-size:11px;}
+.user-dropdown .ud-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:0;background:none;color:var(--ivory);font-size:13px;border-radius:9px;cursor:pointer;text-align:left;}
+.user-dropdown .ud-item svg{width:17px;height:17px;}
+.user-dropdown .ud-item:hover{background:rgba(212,168,74,.1);}
+.user-dropdown .ud-item.ud-danger{color:#F2A89B;}
+.user-dropdown .ud-item.ud-danger:hover{background:rgba(176,78,62,.15);}
+.user-dropdown .ud-item.ud-danger svg{stroke:#F2A89B;}
 .date-chip{background:var(--surface-hi);border-color:var(--line);color:var(--pearl);}
 
 /* Cards, modals, generic white surfaces */
@@ -2345,7 +2369,9 @@ body.has-stylist-open .stylist-fab{opacity:0;pointer-events:none;transform:scale
    unhide them. */
 .stylist-fab,
 .stylist-modal-backdrop{display:none!important;}
-body.role-madame .stylist-fab{display:flex!important;}
+/* Chat is now opened from the top-right topbar button (#topChatBtn); the
+   floating FAB is hidden for Madame to avoid a duplicate control. */
+body.role-madame .stylist-fab{display:none!important;}
 body.role-madame .stylist-modal-backdrop{display:block!important;}
 
 /* Two stacked CTAs in the mood-strip: Open Lookbook + Chat with Anaita */
@@ -4477,17 +4503,17 @@ body.role-madame .main{
      ideal 1024 px tablet width. This way the layout stretches edge-to-edge
      on a real iPad (portrait or landscape) without overflowing, but stays
      centred on wide desktop monitors with a tasteful gutter. */
-  width:min(100vw, 1024px);
-  max-width:1024px;
-  margin:0 auto;
-  border-left:1px solid rgba(212,168,74,.18);
-  border-right:1px solid rgba(212,168,74,.18);
-  box-shadow:0 0 0 1px rgba(212,168,74,.08),0 30px 80px rgba(0,0,0,.7);
+  /* Responsive full-width canvas — the hardcoded iPad device-frame mockup was
+     removed so the app fills whatever screen it runs on (phone, iPad, desktop)
+     rather than locking to a 1180×820 bezel. */
+  width:100%;
+  max-width:none;
+  margin:0;
   min-height:100vh;
   overflow-x:hidden;
 }
-/* Dim the gutter on wider screens so the iPad canvas reads as a device */
-body.role-madame::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.55) 100%);pointer-events:none;z-index:0;}
+/* (iPad-canvas gutter vignette removed — layout is now full-width responsive) */
+body.role-madame::before{content:none;}
 
 /* ============================================================
    TABLET CANVAS — on desktop monitors (≥1200 px wide) lock the
@@ -4496,7 +4522,7 @@ body.role-madame::before{content:"";position:fixed;inset:0;background:radial-gra
    canvas, preserving the device shape regardless of how much
    the user scrolls through wardrobe / lookbook / calendar.
    ============================================================ */
-@media(min-width:1200px) and (min-height:760px){
+@media(min-width:100000px){ /* DISABLED: iPad device-frame mockup removed for responsive layout */
   body.role-madame .main{
     /* iPad Pro 11" landscape dimensions (1180 × 820 ≈ 4:3 = 1.44:1 ratio).
        Clamped down by viewport height so the canvas always fits on screen. */
@@ -4543,7 +4569,7 @@ body.role-madame::before{content:"";position:fixed;inset:0;background:radial-gra
 /* Real iPad in landscape (1080–1366 wide, ≤1024 high) — just dress the
    existing fill-canvas with the same soft bezel so it still reads as a
    device. No size change. */
-@media(min-width:1080px) and (max-width:1366px) and (max-height:1024px) and (orientation:landscape){
+@media(min-width:100000px){ /* DISABLED: iPad bezel removed for responsive layout */
   body.role-madame .main{
     border-radius:16px;
     border:1px solid rgba(212,168,74,.22);
@@ -8902,8 +8928,10 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
       <button class="back-btn" id="topbarBackBtn" aria-label="Back" type="button" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <div class="search-bar">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <div class="search-bar collapsed" id="searchBar">
+        <button class="search-toggle" id="searchToggle" type="button" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </button>
         <input type="text" id="globalSearch" placeholder="Search 2,847 pieces — by designer, colour, occasion…" data-search-template="Search {n} pieces — by designer, colour, occasion…"/>
         <button class="search-mic-btn" id="searchMicBtn" type="button" aria-label="Voice search wardrobe" title="Tap to search by voice">
           <span class="search-mic-pulse" aria-hidden="true"></span>
@@ -8911,7 +8939,9 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
         </button>
       </div>
       <div class="top-actions">
-        <div class="date-chip">Thu · 23 Apr 26</div>
+        <button class="btn-bell" id="topChatBtn" title="Chat with Anaita" aria-label="Chat with Anaita">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg>
+        </button>
         <button class="cart-btn" id="cartBtn" title="Saved outfits" aria-label="Saved outfits">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s-8-5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-8 11-8 11z"/></svg>
           <span class="cart-count" id="cartCount">0</span>
@@ -8920,6 +8950,19 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
           <svg viewBox="0 0 24 24" fill="none"><path d="M6 19V11a6 6 0 0 1 12 0v8M3 19h18M10 22h4"/></svg>
           <span class="notif-count" id="notifCount">0</span>
         </button>
+        <div class="user-menu" id="userMenu">
+          <button class="user-avatar-btn" id="userAvatarBtn" aria-haspopup="menu" aria-expanded="false" title="Account">NA</button>
+          <div class="user-dropdown" id="userDropdown" role="menu" aria-hidden="true">
+            <div class="ud-head">
+              <span class="ud-name" id="udName">Nita Mam</span>
+              <span class="ud-email" id="udEmail">nma@gmail.com</span>
+            </div>
+            <button class="ud-item ud-danger" id="udLogout" type="button" role="menuitem">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -19536,7 +19579,7 @@ refreshProfileChip();
 // case-study demo, not production auth. The login form does an exact match
 // on email + password (both lowercased on the email side).
 const ACCOUNTS = [
-  {id:'nita',    name:'Nita Mam',      email:'nma@gmail.com',          password:'nma',       role:'madame',        home:'home',     avatar:'NA', device:'Tablet · Desktop', perms:['Wardrobe','Stylist','Calendar','Lookbook'], nav:['home','wardrobe','builder','calendar','lookbook','requests']},
+  {id:'nita',    name:'Nita Mam',      email:'nma@gmail.com',          password:'nma',       role:'madame',        home:'home',     avatar:'NA', device:'Tablet · Desktop', perms:['Wardrobe','Stylist','Calendar','Lookbook'], nav:['home','wardrobe','calendar','lookbook']},
   {id:'opsdash', name:'Ops Dashboard', email:'opsdashboard@gmail.com', password:'dashboard', role:'ops-dashboard', home:'ops',      avatar:'OD', device:'Tablet · Desktop', perms:['Tasks','Inventory','Queue','Activity'],              nav:['ops','wardrobe','requests']},
   {id:'opsmob',  name:'Ops Mobile',    email:'opsmobile@gmail.com',    password:'mobile',    role:'ops-mobile',    home:'opsmobile',avatar:'OM', device:'Mobile · Camera',  perms:['Camera','Capture','Intake'],                          nav:['opsmobile']}
 ];
@@ -20337,6 +20380,59 @@ function signOut(){
   showSignIn();
 }
 
+/* Topbar behaviours — collapsible search + user-avatar dropdown (which now owns
+   Logout, moved out of the bottom dock since it's a destructive action). */
+(function _wireTopbar(){
+  const bind = () => {
+    const searchBar = document.getElementById('searchBar');
+    const toggle = document.getElementById('searchToggle');
+    const input = document.getElementById('globalSearch');
+    if (toggle && searchBar && !toggle.dataset.wired){
+      toggle.dataset.wired = '1';
+      toggle.addEventListener('click', () => {
+        if (searchBar.classList.contains('collapsed')){
+          searchBar.classList.remove('collapsed');
+          setTimeout(() => { try { input && input.focus(); } catch(_){} }, 60);
+        } else if (!(input && input.value.trim())){
+          searchBar.classList.add('collapsed');
+        }
+      });
+      input && input.addEventListener('blur', () => {
+        if (!input.value.trim()) searchBar.classList.add('collapsed');
+      });
+    }
+    // User avatar dropdown
+    const menu = document.getElementById('userMenu');
+    const avatarBtn = document.getElementById('userAvatarBtn');
+    if (avatarBtn && menu && !avatarBtn.dataset.wired){
+      avatarBtn.dataset.wired = '1';
+      avatarBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = menu.classList.toggle('open');
+        avatarBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#userMenu')) menu.classList.remove('open');
+      });
+      document.getElementById('udLogout')?.addEventListener('click', () => { menu.classList.remove('open'); signOut(); });
+    }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
+
+/* Fill the topbar avatar + dropdown identity from the signed-in account. */
+function refreshUserAvatar(){
+  const u = session.user;
+  if (!u) return;
+  const acct = (typeof ACCOUNTS !== 'undefined') ? ACCOUNTS.find(a => a.id === u.id) : null;
+  const initials = (acct && acct.avatar) || (u.name ? u.name.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase() : 'NA');
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+  set('userAvatarBtn', initials);
+  set('udName', u.name || (acct && acct.name) || 'Account');
+  set('udEmail', u.email || (acct && acct.email) || '');
+}
+
 function renderBottomNav(){
   const nav = document.getElementById('bottomNav');
   if(!session.user){ nav.innerHTML=''; return; }
@@ -20381,9 +20477,9 @@ function renderBottomNav(){
     if(!def) return '';
     return `<button class="b-item" data-page="${key}"><svg viewBox="0 0 24 24" fill="none">${def.icon}</svg><span class="lbl">${def.label}</span></button>`;
   }).join('');
-  nav.innerHTML = items + `<button class="b-item signout" id="navSignOut" title="Log out"><svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Logout</span></button>`;
+  nav.innerHTML = items;  // Logout moved to the top-right user-avatar dropdown (destructive action)
   nav.querySelectorAll('.b-item[data-page]').forEach(b=>{ b.addEventListener('click',()=>navigateTo(b.dataset.page)); });
-  document.getElementById('navSignOut').addEventListener('click',signOut);
+  if (typeof refreshUserAvatar === 'function') refreshUserAvatar();
   refreshBottomNavActive();
 }
 
@@ -21588,7 +21684,7 @@ document.getElementById('flashBtn')?.addEventListener('click',()=>{
     const heroEl = document.querySelector('.stylist-hero');
     const backdropEl = document.getElementById('stylistBackdrop');
 
-    if (e.target.closest('#stylistFab')){
+    if (e.target.closest('#stylistFab') || e.target.closest('#topChatBtn')){
       e.preventDefault();
       if (!heroEl || heroEl.classList.contains('is-open')) return;
       heroEl.classList.add('is-open');
