@@ -1759,6 +1759,9 @@ body.tablet-view .bottom-nav{display:flex;}
 .notif-tile.unread::before{content:"";position:absolute;top:50%;left:-1px;transform:translate(-50%,-50%);width:6px;height:6px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 8px rgba(245,212,119,.6);}
 .notif-tile .thumb{width:48px;height:60px;border-radius:6px;overflow:hidden;background:#0B0604;flex-shrink:0;border:1px solid rgba(212,168,74,.15);}
 .notif-tile .thumb img{width:100%;height:100%;object-fit:cover;}
+.notif-tile .notif-event-ico{display:flex;align-items:center;justify-content:center;background:rgba(212,168,74,.12);color:var(--gold-bright);}
+.notif-tile .notif-event-ico svg{width:24px;height:24px;}
+.notif-tile.notif-event .badge{background:rgba(212,168,74,.16);color:var(--gold-bright);}
 .notif-tile .info{flex:1;min-width:0;}
 .notif-tile .info .n{font-family:var(--serif);font-weight:500;font-size:13px;color:var(--ivory);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .notif-tile .info .d{font-family:var(--mono);font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-bright);margin-top:2px;}
@@ -11625,6 +11628,37 @@ function _dedupeNotifs(listIn){
   return out;
 }
 
+// Build the "Upcoming events" tiles for the notification sheet (the event
+// reminder used to live in the home hero; it now surfaces only here).
+function _upcomingEventsHtml(){
+  if (typeof state === 'undefined' || !Array.isArray(state.events)) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const up = state.events
+    .filter(e => e && e.date && new Date(e.date) >= today && !(state.dismissedUpcoming && state.dismissedUpcoming.has && state.dismissedUpcoming.has(e.id)))
+    .sort((a,b) => new Date(a.date) - new Date(b.date))
+    .slice(0,5);
+  if (!up.length) return '';
+  const tiles = up.map(e => {
+    const d = new Date(e.date);
+    const diff = Math.floor((d - today)/86400000);
+    const mon = (typeof MONTH_NAMES !== 'undefined') ? MONTH_NAMES[d.getMonth()].slice(0,3) : '';
+    const when = diff <= 0 ? `Tonight · ${e.time||''}`
+               : diff === 1 ? `Tomorrow · ${e.time||''}`
+               : `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${d.getDate()} ${mon} · ${e.time||''}`;
+    return `
+      <div class="notif-tile notif-event" data-eventid="${e.id}">
+        <div class="thumb notif-event-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></div>
+        <div class="info">
+          <div class="n">${(e.name||'Event').replace(/</g,'&lt;')}</div>
+          <div class="d">${(e.dress||'').replace(/</g,'&lt;')}</div>
+          <div class="when">${when.trim().replace(/·\s*$/,'')}</div>
+        </div>
+        <span class="badge">Event</span>
+      </div>`;
+  }).join('');
+  return `<div class="notif-divider">Upcoming events</div>` + tiles;
+}
+
 function renderNotifPanel(){
   const list = document.getElementById('notifPanelList');
   const sub  = document.getElementById('notifPanelSub');
@@ -11648,16 +11682,17 @@ function renderNotifPanel(){
       return !!found;
     }));
 
+  const eventsHtml = _upcomingEventsHtml();
   const lastRead = getPanelLastReadTs();
   const unread = all.filter(n => (n.ts || n.addedAt || 0) > lastRead).length;
   bell.classList.toggle('has-unread', unread > 0);
   if (countEl) countEl.textContent = unread > 9 ? '9+' : String(unread);
   if (sub){
-    if (all.length === 0) sub.textContent = 'New pieces will appear here';
+    if (all.length === 0) sub.textContent = eventsHtml ? 'Upcoming events' : 'New pieces will appear here';
     else if (unread > 0)  sub.textContent = `${unread} new · ${all.length} total`;
     else                  sub.textContent = `${all.length} notification${all.length===1?'':'s'} · all caught up`;
   }
-  if (all.length === 0){
+  if (all.length === 0 && !eventsHtml){
     list.innerHTML = `
       <div class="notif-empty">
         <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 19V11a6 6 0 0 1 12 0v8M3 19h18M10 22h4"/></svg></div>
@@ -11698,7 +11733,7 @@ function renderNotifPanel(){
         <span class="badge">Added</span>
       </div>`;
   }
-  let html = '';
+  let html = eventsHtml;  // upcoming events first, then the garment-added groups
   if (groups.today.length)     html += `<div class="notif-divider">Today</div>` + groups.today.map(renderTile).join('');
   if (groups.yesterday.length) html += `<div class="notif-divider">Yesterday</div>` + groups.yesterday.map(renderTile).join('');
   if (groups.earlier.length)   html += `<div class="notif-divider">Earlier</div>` + groups.earlier.map(renderTile).join('');
@@ -11740,6 +11775,12 @@ document.getElementById('notifClearAll')?.addEventListener('click', ()=>{
 document.getElementById('notifPanelList')?.addEventListener('click', (e)=>{
   const tile = e.target.closest('.notif-tile');
   if (!tile) return;
+  // Event tile → jump to the calendar.
+  if (tile.dataset.eventid){
+    closeNotifPanel();
+    if (typeof navigateTo === 'function') navigateTo('calendar');
+    return;
+  }
   const itemId = tile.dataset.item;
   if (!itemId) return;
   // Confirm the item still exists in the inventory before opening the modal
