@@ -8873,6 +8873,19 @@ body.role-madame .cat-circles{display:flex;flex-wrap:wrap;gap:22px;justify-conte
 .cat-circle .cc-img{width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #E7DBC7;box-shadow:0 6px 18px rgba(110,80,40,.14);transition:transform .22s,border-color .22s;background:#F6EEE0;}
 .cat-circle:hover .cc-img{transform:translateY(-3px);border-color:#BFA161;}
 .cat-circle .cc-lbl{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6E1F2B;}
+/* centered "Maison / Nita Madame" brand lockup on top (heritage) */
+body.role-madame .topbar{position:relative;}
+body.role-madame .topbar-logo{display:flex!important;position:absolute;left:50%;transform:translateX(-50%);align-items:center;gap:9px;}
+body.role-madame .topbar-logo .tl-mark{color:#BFA161;font-size:16px;}
+body.role-madame .topbar-logo .tl-stack{display:flex;flex-direction:column;line-height:1;}
+body.role-madame .topbar-logo .tl-word{font-family:var(--serif);font-weight:500;font-size:21px;color:#6E1F2B;letter-spacing:.01em;}
+body.role-madame .topbar-logo .tl-eyebrow{font-family:var(--mono);font-size:7px;letter-spacing:.34em;text-transform:uppercase;color:#9A7D3D;margin-top:3px;}
+body.role-ops-mobile .topbar-logo .tl-eyebrow{display:none;}
+/* hero sub + CTA (heritage home) */
+.hero-sub,.hero-cta{display:none;}
+body.role-madame #homeHero .hero-sub{display:block;color:#E8D3BE!important;font-family:var(--sans);font-size:14px;max-width:430px;margin-top:14px;position:relative;z-index:4;line-height:1.6;}
+body.role-madame #homeHero .hero-cta{display:inline-block;margin-top:22px;position:relative;z-index:4;background:#BFA161;color:#3A220E;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;padding:13px 26px;border:0;border-radius:8px;cursor:pointer;align-self:flex-start;}
+body.role-madame #homeHero .hero-cta:hover{background:#D8BE86;}
 </style>
 <!-- Supabase JS SDK (UMD build) — provides window.supabase.createClient for Realtime subscriptions -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -9051,7 +9064,7 @@ body.role-madame .cat-circles{display:flex;flex-wrap:wrap;gap:22px;justify-conte
       <button class="back-btn" id="topbarBackBtn" aria-label="Back" type="button" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <div class="topbar-logo" aria-label="Maison"><span class="tl-mark">✦</span><span class="tl-word">Maison</span></div>
+      <div class="topbar-logo" aria-label="Maison"><span class="tl-mark">✦</span><span class="tl-stack"><span class="tl-word">Maison</span><span class="tl-eyebrow">Nita Madame</span></span></div>
       <div class="search-bar collapsed" id="searchBar">
         <button class="search-toggle" id="searchToggle" type="button" aria-label="Search">
           <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -9470,13 +9483,14 @@ body.role-madame .cat-circles{display:flex;flex-wrap:wrap;gap:22px;justify-conte
         <div class="title-backdrop" aria-hidden="true"></div>
         <span class="gold-mark" aria-hidden="true">✦</span>
         <div class="gold-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="hero-label">Welcome back, <em style="font-style:italic;color:var(--latte);">Madam</em></div>
+        <div class="hero-label">The Full Collection</div>
         <h1 class="hero-title">
-          <span class="word-rise" style="animation-delay:.1s;">Your</span>
-          <span class="word-rise" style="animation-delay:.25s;">wardrobe</span><br>
-          <span class="word-rise" style="animation-delay:.4s;">is</span>
-          <span class="word-rise" style="animation-delay:.55s;"><em class="glow">awake</em>.</span>
+          <span class="word-rise" style="animation-delay:.1s;">Timeless</span><br>
+          <span class="word-rise" style="animation-delay:.3s;"><em class="glow">heritage</em>,</span>
+          <span class="word-rise" style="animation-delay:.5s;">curated.</span>
         </h1>
+        <p class="hero-sub">Your wardrobe, dressed for every occasion — from the archive to the gala.</p>
+        <button class="hero-cta" type="button" data-go="lookbook">Open Lookbook →</button>
 
         <!-- Event reminder moved out of the hero — it now lives only in the
              notification sheet (bell). Wardrobe summary moved to the Wardrobe tab. -->
