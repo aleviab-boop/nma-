@@ -8857,6 +8857,42 @@ body.role-madame #homeHero .hero-doodle{position:absolute;z-index:3;pointer-even
 body.role-madame #homeHero .hero-doodle.hd-spark{top:26px;right:46px;font-size:18px;}
 body.role-madame #homeHero .hero-doodle.hd-rule{left:42px;bottom:30px;width:70px;height:1px;background:linear-gradient(90deg,#E7C98C,transparent);}
 body.role-madame #homeHero .hero-doodle.hd-corner{left:16px;top:16px;width:44px;height:44px;border-left:1px solid rgba(231,201,140,.45);border-top:1px solid rgba(231,201,140,.45);border-top-left-radius:10px;}
+
+/* ============ Sweep: remove black across Madame ============ */
+/* content panels / popovers -> ivory */
+body.role-madame .modal,body.role-madame .suggest-modal,body.role-madame .madame-pick-modal,
+body.role-madame .save-lb-modal,body.role-madame .look-pieces-modal,
+body.role-madame .confirm-modal,body.role-madame .madam-news-modal,body.role-madame .order-pop,
+body.role-madame .reminder-pop,body.role-madame .combo-saved-pop,body.role-madame .qr-modal-shell,
+body.role-madame .stylist-hero,body.role-madame .sh-thread-wrap{
+  background:#FFFDF9!important;color:#4A2230!important;border-color:var(--line)!important;}
+/* dim scrims -> wine-tinted (not pure black) */
+body.role-madame .modal-overlay,body.role-madame .notif-overlay,body.role-madame .auth-overlay,
+body.role-madame .ops-drawer-overlay{background:rgba(74,20,38,.42)!important;}
+/* card action buttons + delete -> wine */
+body.role-madame .g-action,body.role-madame .garment-delete{background:rgba(158,43,72,.9)!important;}
+body.role-madame .g-action svg,body.role-madame .garment-delete svg{stroke:#F7ECD9!important;}
+/* chat bubble (incoming) */
+body.role-madame .sh-msg-them{background:#F6EEE0!important;color:#4A2230!important;}
+/* inputs / selects / textareas -> light */
+body.role-madame input,body.role-madame select,body.role-madame textarea{background:#FFFFFF!important;color:#4A2230!important;border-color:var(--line)!important;}
+body.role-madame #searchBar.collapsed{background:#F6EEE0!important;}
+
+/* ============ Integrate the reddish-pink ============ */
+body.role-madame .trust-strip{background:#F7E7EC!important;border-color:#ECD2D9!important;color:#9E2B48!important;}
+body.role-madame .cat-circle .cc-img{border-color:#E6C6CF!important;}
+body.role-madame .cat-circle:hover .cc-img{border-color:#C85B78!important;}
+body.role-madame .wardrobe-summary,body.role-madame .hero-meta{background:#FFF7F3!important;}
+body.role-madame .garment:hover{border-color:#CE8AA0!important;}
+body.role-madame .hero-title em,body.role-madame .section-head h3 em,body.role-madame .lb2-title em{color:#C04A66!important;-webkit-text-fill-color:#C04A66!important;}
+body.role-madame #homeHero .hero-title em,body.role-madame #homeHero .glow{color:#F0C7A8!important;-webkit-text-fill-color:#F0C7A8!important;}
+
+/* ============ Hero text refinement ============ */
+body.role-madame #homeHero .hero-label{letter-spacing:.36em!important;font-size:10px!important;margin-bottom:18px!important;}
+body.role-madame #homeHero .hero-title{font-size:58px!important;line-height:1.0!important;letter-spacing:-.012em!important;max-width:60%;}
+body.role-madame #homeHero .hero-sub{font-size:15px!important;line-height:1.65;margin-top:18px;max-width:400px;}
+/* remove the "Mood of the week / Open Lookbook" box on Home */
+body.role-madame .mood-strip{display:none!important;}
 /* cards / surfaces */
 body.role-madame .garment,body.role-madame .mood-strip,body.role-madame .ct-card,
 body.role-madame .notif-tile,body.role-madame .up-event,body.role-madame .lb-card,
