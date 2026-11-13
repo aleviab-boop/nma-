@@ -16771,6 +16771,7 @@ function navigateTo(page){
       if(page === 'builder') onEnterBuilder();
       if(page === 'vto') onEnterVTO();
       if(page === 'opsmobile') onEnterOpsMobile();
+      if(page === 'wardrobe' && typeof _fillCategoryCircles === 'function') _fillCategoryCircles();
       if(page === 'guests' && typeof onEnterGuests === 'function') onEnterGuests();
       if((page === 'ops' || page === 'suggestions') && typeof renderSuggestEventList === 'function') renderSuggestEventList();
       setTimeout(()=>{ _navLock = false; }, 500);
@@ -17397,6 +17398,19 @@ document.querySelectorAll('#filters .filter-chip').forEach(chip=>{
     if (chip) chip.click();
   });
 })();
+
+// Fill the category circles with a real, representative garment photo per
+// category (prettier + more recognizable than the generic template art).
+function _fillCategoryCircles(){
+  const wrap = document.getElementById('catCircles');
+  if (!wrap || typeof INVENTORY === 'undefined' || !Array.isArray(INVENTORY)) return;
+  wrap.querySelectorAll('.cat-circle').forEach(c => {
+    const cat = c.dataset.cat;
+    const it = INVENTORY.find(i => String(i.cat||'').toLowerCase() === cat && (i.photo || i.capturedPhoto));
+    const img = c.querySelector('.cc-img');
+    if (it && img){ img.src = it.capturedPhoto || it.photo; img.style.objectPosition = 'center top'; }
+  });
+}
 
 // Garment / action clicks
 document.addEventListener('click',(e)=>{
