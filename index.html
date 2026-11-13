@@ -8809,12 +8809,12 @@ body.role-ops-mobile.role-ops-mobile.role-ops-mobile button{
 body.role-madame{
   --bg:#FAF4EC;--bg-soft:#FAF4EC;--surface:#FFFFFF;--surface-hi:#FFFDF9;--surface-mid:#F6EEE0;
   --gold:#9A7D3D;--gold-bright:#BFA161;--gold-deep:#8A6A1E;--gold-metal:#9A7D3D;--champagne:#8A6A3A;
-  --ivory:#2E211A;--pearl:#7A6A5B;
+  --ivory:#4A2230;--pearl:#9A5E68;
   --line:#E7DBC7;--line-soft:#F0E8D9;
   --ink:#6E1F2B;--ink-soft:#E8D3BE;--froth:#F7ECD9;--creme:#E8D3BE;--latte:#9A7D3D;--chai:#8A6A3A;
   --maroon:#6E1F2B;--maroon-deep:#551521;
   --shadow-sm:0 1px 2px rgba(110,80,40,.08);--shadow-md:0 10px 28px rgba(110,80,40,.12);--shadow-lg:0 24px 60px rgba(110,80,40,.16);
-  background:#FAF4EC!important;color:#2E211A;
+  background:#FAF4EC!important;color:#4A2230;
 }
 body.role-madame .main{background:#FAF4EC!important;}
 /* strip dark cinematic decoration for a clean editorial look */
@@ -8849,22 +8849,22 @@ body.role-madame .hero-portrait{display:block;position:absolute;top:0;right:0;he
 /* cards / surfaces */
 body.role-madame .garment,body.role-madame .mood-strip,body.role-madame .ct-card,
 body.role-madame .notif-tile,body.role-madame .up-event,body.role-madame .lb-card,
-body.role-madame .modal,body.role-madame .notif-panel{background:#FFFFFF!important;border-color:var(--line)!important;color:#2E211A!important;}
+body.role-madame .modal,body.role-madame .notif-panel{background:#FFFFFF!important;border-color:var(--line)!important;color:#4A2230!important;}
 body.role-madame .hero-meta,body.role-madame .wardrobe-summary{background:#FFFFFF!important;border:1px solid var(--line)!important;}
 body.role-madame .meta-block .value{color:#6E1F2B!important;}
 body.role-madame .meta-block .label{color:#9A7D3D!important;}
-body.role-madame .garment-info h5,body.role-madame .notif-tile .info .n{color:#2E211A!important;}
+body.role-madame .garment-info h5,body.role-madame .notif-tile .info .n{color:#4A2230!important;}
 body.role-madame .garment-info .designer,body.role-madame .notif-tile .info .d{color:#9A7D3D!important;}
 /* buttons / CTAs */
 body.role-madame .mood-action,body.role-madame .lb2-compose-btn{background:#6E1F2B!important;color:#F7ECD9!important;border:0!important;}
 body.role-madame .wardrobe-subtabs{background:#F6EEE0!important;border-color:var(--line)!important;}
 body.role-madame .wsub{color:#7A6A5B!important;}
 body.role-madame .wsub.is-active{background:#6E1F2B!important;color:#F7ECD9!important;}
-body.role-madame .wardrobe-cat-select{background:#FFFFFF!important;border-color:var(--line)!important;color:#2E211A!important;}
-body.role-madame .wardrobe-cat-select option{background:#FFFFFF!important;color:#2E211A!important;}
+body.role-madame .wardrobe-cat-select{background:#FFFFFF!important;border-color:var(--line)!important;color:#4A2230!important;}
+body.role-madame .wardrobe-cat-select option{background:#FFFFFF!important;color:#4A2230!important;}
 body.role-madame .user-avatar-btn{background:#6E1F2B!important;color:#F7ECD9!important;border-color:var(--line)!important;}
 body.role-madame .user-dropdown{background:#FFFFFF!important;border-color:var(--line)!important;}
-body.role-madame .user-dropdown .ud-name{color:#2E211A!important;}
+body.role-madame .user-dropdown .ud-name{color:#4A2230!important;}
 body.role-madame .search-toggle svg{stroke:#6E1F2B!important;}
 /* category circles (Browse by category) */
 .cat-circles{display:none;}
@@ -8886,6 +8886,20 @@ body.role-ops-mobile .topbar-logo .tl-eyebrow{display:none;}
 body.role-madame #homeHero .hero-sub{display:block;color:#E8D3BE!important;font-family:var(--sans);font-size:14px;max-width:430px;margin-top:14px;position:relative;z-index:4;line-height:1.6;}
 body.role-madame #homeHero .hero-cta{display:inline-block;margin-top:22px;position:relative;z-index:4;background:#BFA161;color:#3A220E;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;padding:13px 26px;border:0;border-radius:8px;cursor:pointer;align-self:flex-start;}
 body.role-madame #homeHero .hero-cta:hover{background:#D8BE86;}
+/* Madame primary top-nav (heritage) — replaces the bottom dock */
+.madame-topnav{display:none;}
+body.role-madame .madame-topnav{display:flex;justify-content:center;gap:34px;background:#FFFDF9;border-bottom:1px solid var(--line);padding:12px 18px;}
+body.role-madame .mtn-item{background:none;border:0;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#9A5E68;padding:4px 2px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;}
+body.role-madame .mtn-item:hover{color:#6E1F2B;}
+body.role-madame .mtn-item.active{color:#6E1F2B;border-bottom-color:#BFA161;}
+body.role-madame .bottom-nav{display:none!important;}
+body.role-madame.tablet-view .main{padding-bottom:0!important;}
+body.role-madame .main{padding-bottom:0!important;}
+/* Trust strip (heritage) */
+.trust-strip{display:none;}
+body.role-madame .trust-strip{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;margin:14px 18px 6px;padding:13px 18px;background:#F2E7D6;border:1px solid var(--line);border-radius:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:#6E1F2B;}
+body.role-madame .trust-strip .ts-item b{color:#9A7D3D;}
+body.role-madame .trust-strip .ts-sep{width:1px;height:14px;background:var(--line);}
 </style>
 <!-- Supabase JS SDK (UMD build) — provides window.supabase.createClient for Realtime subscriptions -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -9102,6 +9116,14 @@ body.role-madame #homeHero .hero-cta:hover{background:#D8BE86;}
         </div>
       </div>
     </div>
+
+    <!-- Madame primary top-nav (heritage) -->
+    <nav class="madame-topnav" id="madameTopNav" aria-label="Primary">
+      <button class="mtn-item" data-page="home" type="button">Home</button>
+      <button class="mtn-item" data-page="wardrobe" type="button">Wardrobe</button>
+      <button class="mtn-item" data-page="calendar" type="button">Calendar</button>
+      <button class="mtn-item" data-page="lookbook" type="button">Lookbook</button>
+    </nav>
 
     <!-- HOME -->
     <div class="page active" id="page-home">
@@ -9503,6 +9525,15 @@ body.role-madame #homeHero .hero-cta:hover{background:#D8BE86;}
           </div>
         </div>
       </section>
+
+      <!-- Trust strip (heritage) -->
+      <div class="trust-strip">
+        <span class="ts-item">✦ <b id="trustReady">58</b> pieces ready</span>
+        <span class="ts-sep"></span>
+        <span class="ts-item">✦ Live from Ops</span>
+        <span class="ts-sep"></span>
+        <span class="ts-item">✦ Concierge styling</span>
+      </div>
 
       <div class="mood-strip">
         <div class="mood-swatches" aria-hidden="true">
@@ -16920,6 +16951,8 @@ document.addEventListener('mouseup', (e)=>{
 function onEnterHome(){
   if(typeof runCounters==='function') runCounters();
   if(typeof _refreshMumbaiWeather==='function') _refreshMumbaiWeather();
+  // Trust-strip live count
+  try { const tr=document.getElementById('trustReady'); if(tr && typeof INVENTORY!=='undefined' && Array.isArray(INVENTORY)) tr.textContent = INVENTORY.filter(i=>i.status==='in-wardrobe').length; } catch(_){}
   // Paint the home Recently Added section so Madam sees what ops
   // just captured the moment she lands on the page.
   if(typeof paintRecentlyAdded==='function') paintRecentlyAdded();
@@ -21321,7 +21354,15 @@ function refreshBottomNavActive(){
   document.querySelectorAll('#drawerNavList .drawer-item[data-page]').forEach(b=>{
     b.classList.toggle('active', b.dataset.page === active);
   });
+  document.querySelectorAll('.madame-topnav .mtn-item[data-page]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page === active);
+  });
 }
+// Madame top-nav clicks
+document.getElementById('madameTopNav')?.addEventListener('click', (e)=>{
+  const b = e.target.closest('.mtn-item[data-page]');
+  if (b) navigateTo(b.dataset.page);
+});
 
 // Wrap navigateTo so every nav surface stays in sync with the page
 // transition AND so the browser back button moves WITHIN the app
