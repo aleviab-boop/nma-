@@ -8845,7 +8845,18 @@ body.role-madame #homeHero .hero-label{color:#E7C98C!important;position:relative
 body.role-madame #homeHero .hero-title{color:#F7ECD9!important;position:relative;z-index:4;max-width:62%;}
 body.role-madame #homeHero .hero-title em,body.role-madame #homeHero .glow{color:#E7C98C!important;-webkit-text-fill-color:#E7C98C!important;}
 .hero-portrait{display:none;}
-body.role-madame .hero-portrait{display:block;position:absolute;top:0;right:0;height:100%;width:auto;max-width:56%;object-fit:cover;object-position:top center;z-index:1;pointer-events:none;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 46%);mask-image:linear-gradient(to right,transparent 0,#000 46%);}
+body.role-madame .hero-portrait{display:block;position:absolute;top:0;right:0;height:100%;width:auto;max-width:58%;object-fit:cover;object-position:top center;z-index:1;pointer-events:none;-webkit-mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.25) 22%,#000 58%);mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.25) 22%,#000 58%);}
+/* maroon edge-overlay so the portrait melts into the hero on every side */
+body.role-madame #homeHero::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(to right,#9E2B48 0%,transparent 34%,transparent 86%,rgba(122,30,56,.55) 100%),
+             linear-gradient(to bottom,rgba(122,30,56,.55) 0%,transparent 20%,transparent 80%,rgba(122,30,56,.6) 100%);}
+/* page canvases are ivory for Madame (base .page was near-black #0B0604) */
+body.role-madame .page{background:transparent!important;}
+/* minor gold doodling in the hero */
+body.role-madame #homeHero .hero-doodle{position:absolute;z-index:3;pointer-events:none;color:rgba(231,201,140,.55);}
+body.role-madame #homeHero .hero-doodle.hd-spark{top:26px;right:46px;font-size:18px;}
+body.role-madame #homeHero .hero-doodle.hd-rule{left:42px;bottom:30px;width:70px;height:1px;background:linear-gradient(90deg,#E7C98C,transparent);}
+body.role-madame #homeHero .hero-doodle.hd-corner{left:16px;top:16px;width:44px;height:44px;border-left:1px solid rgba(231,201,140,.45);border-top:1px solid rgba(231,201,140,.45);border-top-left-radius:10px;}
 /* cards / surfaces */
 body.role-madame .garment,body.role-madame .mood-strip,body.role-madame .ct-card,
 body.role-madame .notif-tile,body.role-madame .up-event,body.role-madame .lb-card,
@@ -9131,6 +9142,9 @@ body.role-madame .trust-strip .ts-sep{width:1px;height:14px;background:var(--lin
         <!-- Heritage hero portrait (Nita Madame) — top-right, faded into the maroon.
              Only rendered in the heritage/light Madame theme. -->
         <img class="hero-portrait" id="heroPortrait" src="/img/nita-madame.jpg" alt="" aria-hidden="true"/>
+        <span class="hero-doodle hd-corner" aria-hidden="true"></span>
+        <span class="hero-doodle hd-spark" aria-hidden="true">✦</span>
+        <span class="hero-doodle hd-rule" aria-hidden="true"></span>
         <div class="cinema-bg galaxy" aria-hidden="true">
           <div class="silk-sheen"></div>
           <svg class="gold-waves" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
