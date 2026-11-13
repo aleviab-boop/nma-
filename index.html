@@ -8893,6 +8893,13 @@ body.role-madame #homeHero .hero-title{font-size:58px!important;line-height:1.0!
 body.role-madame #homeHero .hero-sub{font-size:15px!important;line-height:1.65;margin-top:18px;max-width:400px;}
 /* remove the "Mood of the week / Open Lookbook" box on Home */
 body.role-madame .mood-strip{display:none!important;}
+/* narrow-screen hero: compact so the title doesn't overrun the portrait */
+@media(max-width:760px){
+  body.role-madame #homeHero{min-height:0!important;padding:28px 22px!important;}
+  body.role-madame #homeHero .hero-title{font-size:38px!important;max-width:72%;}
+  body.role-madame #homeHero .hero-sub{max-width:72%;}
+  body.role-madame .hero-portrait{max-width:48%;}
+}
 /* cards / surfaces */
 body.role-madame .garment,body.role-madame .mood-strip,body.role-madame .ct-card,
 body.role-madame .notif-tile,body.role-madame .up-event,body.role-madame .lb-card,
