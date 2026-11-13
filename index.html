@@ -8902,17 +8902,30 @@ body.role-madame .wx-chip-ico{color:#E7C98C;}
 body.role-madame .wx-chip-temp{font-weight:700;}
 body.role-madame .wx-chip-sep{width:1px;height:12px;background:rgba(231,201,140,.4);}
 body.role-madame .wx-chip-drape{color:#F0D9B0;}
-body.role-madame .wx-pop{position:absolute;right:0;bottom:calc(100% + 10px);width:252px;background:#FFFDF9;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 50px rgba(74,20,38,.22);padding:16px 18px;color:#4A2230;}
-body.role-madame .wx-pop[hidden]{display:none;}
-body.role-madame .wx-pop-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:#9E2B48;margin-bottom:8px;}
-body.role-madame .wx-pop-close{background:none;border:0;font-size:18px;color:#9A5E68;cursor:pointer;line-height:1;}
-body.role-madame .wx-pop-temp{font-family:var(--serif);font-size:34px;color:#9E2B48;line-height:1;}
-body.role-madame .wx-pop-temp .wx-pop-cond{font-size:14px;font-style:italic;color:#9A5E68;margin-left:8px;}
-body.role-madame .wx-pop-sub{font-size:11px;color:#9A5E68;margin-top:4px;}
-body.role-madame .wx-pop-drape{margin-top:12px;display:flex;flex-direction:column;gap:2px;}
+body.role-madame .wx-chip{transition:transform .2s var(--ease),box-shadow .2s var(--ease);}
+body.role-madame .wx-chip:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(74,20,38,.34);}
+body.role-madame .wx-chip:active{transform:translateY(0) scale(.97);}
+body.role-madame .wx-pop{position:absolute;right:0;bottom:calc(100% + 12px);width:272px;background:#FFFDF9;border:1px solid var(--line);border-radius:16px;box-shadow:0 22px 54px rgba(74,20,38,.24);padding:16px 18px 18px;color:#4A2230;transform-origin:bottom right;opacity:0;transform:translateY(8px) scale(.96);pointer-events:none;transition:opacity .22s var(--ease),transform .22s var(--ease);}
+body.role-madame .wx-pop.open{opacity:1;transform:none;pointer-events:auto;}
+body.role-madame .wx-pop-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:#9E2B48;margin-bottom:10px;}
+body.role-madame .wx-pop-close{background:none;border:0;font-size:18px;color:#9A5E68;cursor:pointer;line-height:1;transition:color .2s;}
+body.role-madame .wx-pop-close:hover{color:#9E2B48;}
+body.role-madame .wx-pop-main{display:flex;align-items:center;gap:12px;}
+body.role-madame .wx-pop-icon{width:46px;height:46px;flex:0 0 auto;color:#C08A2E;display:flex;}
+body.role-madame .wx-pop-icon svg{width:46px;height:46px;}
+body.role-madame .wx-pop-temp{font-family:var(--serif);font-size:40px;line-height:1;color:#9E2B48;}
+body.role-madame .wx-pop-cond{font-size:12px;font-style:italic;color:#9A5E68;margin-top:2px;}
+body.role-madame .wx-pop-stats{display:flex;flex-direction:column;gap:9px;margin:14px 0;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+body.role-madame .wx-stat{display:flex;align-items:center;gap:10px;font-size:11px;}
+body.role-madame .wx-stat-k{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#B08A3A;width:60px;flex:0 0 auto;}
+body.role-madame .wx-stat-v{color:#4A2230;font-weight:600;margin-left:auto;}
+body.role-madame .wx-humid{flex:1;height:5px;border-radius:3px;background:#EEE0D2;overflow:hidden;}
+body.role-madame .wx-humid-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#C8738C,#9E2B48);transition:width .7s var(--ease);}
+body.role-madame .wx-pop-drape{display:flex;flex-direction:column;gap:3px;}
 body.role-madame .wx-pop-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#B08A3A;}
-body.role-madame .wx-pop-drape strong{font-family:var(--serif);font-size:20px;color:#9E2B48;}
-body.role-madame .wx-pop-also{margin-top:8px;font-size:11px;color:#6B5B4E;}
+body.role-madame .wx-pop-drape strong{font-family:var(--serif);font-size:22px;color:#9E2B48;}
+body.role-madame .wx-also-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+body.role-madame .wx-also-chips span{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:#8A5A64;background:#F7E7EC;border:1px solid #ECD2D9;border-radius:999px;padding:3px 10px;}
 /* narrow-screen hero: compact so the title doesn't overrun the portrait */
 @media(max-width:760px){
   body.role-madame #homeHero{min-height:0!important;padding:28px 22px!important;}
@@ -9650,12 +9663,25 @@ body.role-madame .trust-strip .ts-sep{width:1px;height:14px;background:var(--lin
 
       <!-- Compact floating weather + drape (replaces the bulky climate card) -->
       <div class="wx-fab" id="wxFab">
-        <div class="wx-pop" id="wxPop" hidden>
+        <div class="wx-pop" id="wxPop">
           <div class="wx-pop-head"><span>Climate · Bombay</span><button class="wx-pop-close" id="wxPopClose" type="button" aria-label="Close">×</button></div>
-          <div class="wx-pop-temp"><span id="wxPopTemp">—</span>°<em class="wx-pop-cond" id="wxPopCond">—</em></div>
-          <div class="wx-pop-sub" id="wxPopSub">—</div>
-          <div class="wx-pop-drape"><span class="wx-pop-lbl">Tonight's drape</span><strong id="wxPopDrape">—</strong></div>
-          <div class="wx-pop-also"><span class="wx-pop-lbl">Also</span> <span id="wxPopAlso">—</span></div>
+          <div class="wx-pop-main">
+            <span class="wx-pop-icon" id="wxPopIcon" aria-hidden="true"></span>
+            <div class="wx-pop-tempwrap">
+              <div class="wx-pop-temp"><span id="wxPopTemp">—</span>°</div>
+              <div class="wx-pop-cond" id="wxPopCond">—</div>
+            </div>
+          </div>
+          <div class="wx-pop-stats">
+            <div class="wx-stat"><span class="wx-stat-k">Feels</span><span class="wx-stat-v" id="wxPopFeels">—</span></div>
+            <div class="wx-stat"><span class="wx-stat-k">Humidity</span><span class="wx-humid"><span class="wx-humid-fill" id="wxPopHumidFill"></span></span><span class="wx-stat-v" id="wxPopHumid">—</span></div>
+            <div class="wx-stat"><span class="wx-stat-k">Sunset</span><span class="wx-stat-v" id="wxPopSunset">—</span></div>
+          </div>
+          <div class="wx-pop-drape">
+            <span class="wx-pop-lbl">Tonight's drape</span>
+            <strong id="wxPopDrape">—</strong>
+            <div class="wx-also-chips" id="wxPopAlsoChips"></div>
+          </div>
         </div>
         <button class="wx-chip" id="wxChip" type="button" aria-label="Today's weather & recommended fabric">
           <span class="wx-chip-ico">✦</span>
@@ -17208,14 +17234,21 @@ function _applyWeatherToCard(data){
   const alsoEl = document.getElementById('heroWxAlso');
   if (alsoEl) alsoEl.textContent = drape.also ? ` · also ${drape.also}` : '';
 
-  // Compact floating weather chip + popover
+  // Compact floating weather chip + interactive popover
   setId('wxChipTemp', temp + '°');
   setId('wxChipDrape', drape.drape);
   setId('wxPopTemp', temp);
   setId('wxPopCond', condition);
-  setId('wxPopSub', `Feels ${feels}°C · ${humid}% humidity`);
+  setId('wxPopFeels', `${feels}°C`);
+  setId('wxPopHumid', `${humid}%`);
+  setId('wxPopSunset', `${sunH}${sunM}`);
   setId('wxPopDrape', drape.drape);
-  setId('wxPopAlso', drape.also || '—');
+  const wxIcon = document.getElementById('wxPopIcon');
+  if (wxIcon && typeof _weatherIconSvg === 'function') wxIcon.innerHTML = _weatherIconSvg(code);
+  const wxFill = document.getElementById('wxPopHumidFill');
+  if (wxFill) wxFill.style.width = humid + '%';
+  const wxChips = document.getElementById('wxPopAlsoChips');
+  if (wxChips) wxChips.innerHTML = (drape.also || '').split('·').map(s => s.trim()).filter(Boolean).map(s => `<span>${s}</span>`).join('');
 }
 
 /* Return an inline SVG string for a given WMO weather_code. Strokes
@@ -17584,9 +17617,9 @@ function _fillCategoryCircles(){
 document.addEventListener('click', (e) => {
   const pop = document.getElementById('wxPop');
   if (!pop) return;
-  if (e.target.closest('#wxChip')){ pop.hidden = !pop.hidden; return; }
-  if (e.target.closest('#wxPopClose')){ pop.hidden = true; return; }
-  if (!e.target.closest('#wxFab')) pop.hidden = true;
+  if (e.target.closest('#wxChip')){ e.stopPropagation(); pop.classList.toggle('open'); return; }
+  if (e.target.closest('#wxPopClose')){ pop.classList.remove('open'); return; }
+  if (!e.target.closest('#wxFab')) pop.classList.remove('open');
 });
 
 // Garment / action clicks
